@@ -13,7 +13,8 @@ const Admin = () => {
         .from("races")
         .select(`
           *,
-          race_documents (*)
+          race_documents (*),
+          runners (*)
         `)
         .order('off_time', { ascending: true });
 
