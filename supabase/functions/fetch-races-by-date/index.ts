@@ -25,7 +25,7 @@ serve(async (req) => {
     const formattedDate = new Date(date).toISOString().split('T')[0]
     console.log('Formatted date for API request:', formattedDate)
 
-    const apiUrl = `https://api.theracingapi.com/v1/races/programme/${formattedDate}`
+    const apiUrl = `https://api.theracingapi.com/v1/racecards/pro?date=${formattedDate}`
     console.log('Making request to Racing API URL:', apiUrl)
 
     const response = await fetch(
