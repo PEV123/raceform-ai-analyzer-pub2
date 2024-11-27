@@ -25,21 +25,33 @@ serve(async (req) => {
     }
 
     console.log('Fetching results for horse:', horseId)
+    console.log('Using API credentials:', !!RACING_API_USERNAME, !!RACING_API_PASSWORD)
 
-    const response = await fetch(
-      `https://api.theracingapi.com/v1/horses/${horseId}/results`,
+    const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results`
+    console.log('Making request to:', apiUrl)
+
+    const apiResponse = await fetch(
+      apiUrl,
       {
         headers: {
-          'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
+          'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`),
+          'Accept': 'application/json'
         }
       }
     )
 
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`)
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text()
+      console.error('API Error Response:', {
+        status: apiResponse.status,
+        statusText: apiResponse.statusText,
+        body: errorText
+      })
+      throw new Error(`API responded with status: ${apiResponse.status} - ${errorText}`)
     }
 
-    const data = await response.json()
+    const data = await apiResponse.json()
+    console.log('Successfully retrieved horse results')
     
     return new Response(
       JSON.stringify(data),
