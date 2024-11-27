@@ -23,13 +23,18 @@ const Analysis = () => {
 
   const cleanupMutation = useMutation({
     mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("No session found");
+      }
+
       const response = await fetch(
         "https://vlcrqrmqghskrdhhsgqt.supabase.co/functions/v1/cleanup-races",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabase.auth.getSession()}`
+            "Authorization": `Bearer ${session.access_token}`
           }
         }
       );
@@ -49,9 +54,10 @@ const Analysis = () => {
       queryClient.invalidateQueries({ queryKey: ["races"] });
     },
     onError: (error) => {
+      console.error("Cleanup error:", error);
       toast({
         title: "Error",
-        description: "Failed to cleanup races",
+        description: "Failed to cleanup races. Please make sure you're logged in.",
         variant: "destructive",
       });
     },
