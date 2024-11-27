@@ -13,14 +13,40 @@ const ImportRaces = () => {
   const clearMutation = useMutation({
     mutationFn: async () => {
       console.log("Clearing all races...");
-      const { error } = await supabase
+      
+      // First, delete all race documents
+      const { error: docsError } = await supabase
+        .from("race_documents")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+      
+      if (docsError) {
+        console.error("Error clearing race documents:", docsError);
+        throw docsError;
+      }
+      console.log("Successfully cleared all race documents");
+
+      // Then, delete all runners
+      const { error: runnersError } = await supabase
+        .from("runners")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+      
+      if (runnersError) {
+        console.error("Error clearing runners:", runnersError);
+        throw runnersError;
+      }
+      console.log("Successfully cleared all runners");
+
+      // Finally, delete all races
+      const { error: racesError } = await supabase
         .from("races")
         .delete()
-        .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all races
+        .neq("id", "00000000-0000-0000-0000-000000000000");
       
-      if (error) {
-        console.error("Error clearing races:", error);
-        throw error;
+      if (racesError) {
+        console.error("Error clearing races:", racesError);
+        throw racesError;
       }
       console.log("Successfully cleared all races");
     },
