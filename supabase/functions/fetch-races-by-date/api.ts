@@ -27,15 +27,26 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
         statusText: response.statusText,
         body: errorText
       })
-      throw new Error(`Racing API error: ${response.statusText}`)
+      throw new Error(`Racing API error: ${response.status} - ${response.statusText}`)
     }
 
     const data = await response.json()
+    console.log('API Response:', JSON.stringify(data, null, 2))
     
     // Validate response structure
-    if (!data || !Array.isArray(data.races)) {
-      console.error('Invalid API response structure:', JSON.stringify(data, null, 2))
-      throw new Error('Invalid API response structure')
+    if (!data) {
+      console.error('Empty API response')
+      throw new Error('Empty API response')
+    }
+
+    if (!data.races) {
+      console.error('No races field in API response:', data)
+      throw new Error('Invalid API response: missing races field')
+    }
+
+    if (!Array.isArray(data.races)) {
+      console.error('Races is not an array:', data.races)
+      throw new Error('Invalid API response: races is not an array')
     }
 
     console.log(`Successfully fetched ${data.races.length} races`)

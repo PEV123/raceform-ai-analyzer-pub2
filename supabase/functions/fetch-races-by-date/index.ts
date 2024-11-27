@@ -18,101 +18,103 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient()
-    const data = await fetchRacesFromApi(date)
     
-    if (!data.races || !Array.isArray(data.races)) {
-      console.error('Invalid races data structure:', data)
-      throw new Error('Invalid races data received from API')
-    }
+    try {
+      const data = await fetchRacesFromApi(date)
+      console.log(`Processing ${data.races.length} races from API`)
+      
+      const processedRaces: (Race & { status: string; error?: string })[] = []
+      
+      for (const race of data.races) {
+        console.log(`Processing race at ${race.course} - ${race.off_time}`)
 
-    console.log(`Processing ${data.races.length} races from API`)
-    const processedRaces: (Race & { status: string; error?: string })[] = []
-    
-    for (const race of data.races) {
-      console.log(`Processing race at ${race.course} - ${race.off_time}`)
+        try {
+          // Check if race already exists
+          const { data: existingRace } = await supabase
+            .from("races")
+            .select("id")
+            .eq("race_id", race.race_id)
+            .single()
 
-      try {
-        // Check if race already exists
-        const { data: existingRace } = await supabase
-          .from("races")
-          .select("id")
-          .eq("race_id", race.race_id)
-          .single()
+          if (existingRace) {
+            console.log(`Race ${race.race_id} already exists, skipping`)
+            processedRaces.push({ ...race, status: 'skipped' })
+            continue
+          }
 
-        if (existingRace) {
-          console.log(`Race ${race.race_id} already exists, skipping`)
-          processedRaces.push({ ...race, status: 'skipped' })
-          continue
-        }
+          // Insert race
+          const raceData = await insertRace(supabase, race)
+          console.log(`Successfully inserted race: ${raceData.id}`)
 
-        // Insert race
-        const raceData = await insertRace(supabase, race)
-        console.log(`Successfully inserted race: ${raceData.id}`)
+          // Process runners
+          if (race.runners && Array.isArray(race.runners)) {
+            for (const runner of race.runners) {
+              if (!runner.horse_id || !runner.horse) {
+                console.warn(`Invalid runner data for race ${race.race_id}:`, runner)
+                continue
+              }
 
-        // Process runners
-        if (race.runners && Array.isArray(race.runners)) {
-          for (const runner of race.runners) {
-            if (!runner.horse_id || !runner.horse) {
-              console.warn(`Invalid runner data for race ${race.race_id}:`, runner)
-              continue
-            }
+              await insertRunner(supabase, raceData.id, runner)
 
-            await insertRunner(supabase, raceData.id, runner)
+              // Fetch and insert historical results
+              const resultsData = await fetchHorseResults(runner.horse_id)
+              if (resultsData?.results) {
+                for (const result of resultsData.results) {
+                  try {
+                    const { data: existingResult } = await supabase
+                      .from('horse_results')
+                      .select()
+                      .eq('horse_id', runner.horse_id)
+                      .eq('race_id', result.race_id)
+                      .single()
 
-            // Fetch and insert historical results
-            const resultsData = await fetchHorseResults(runner.horse_id)
-            if (resultsData?.results) {
-              for (const result of resultsData.results) {
-                try {
-                  const { data: existingResult } = await supabase
-                    .from('horse_results')
-                    .select()
-                    .eq('horse_id', runner.horse_id)
-                    .eq('race_id', result.race_id)
-                    .single()
-
-                  if (!existingResult) {
-                    await insertHorseResult(supabase, runner.horse_id, result)
+                    if (!existingResult) {
+                      await insertHorseResult(supabase, runner.horse_id, result)
+                    }
+                  } catch (error) {
+                    console.error(`Error processing result for horse ${runner.horse_id}:`, error)
                   }
-                } catch (error) {
-                  console.error(`Error processing result for horse ${runner.horse_id}:`, error)
                 }
               }
             }
           }
+
+          processedRaces.push({ ...race, status: 'inserted' })
+        } catch (error) {
+          console.error(`Error processing race ${race.race_id}:`, error)
+          processedRaces.push({ 
+            ...race, 
+            status: 'error', 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          })
         }
-
-        processedRaces.push({ ...race, status: 'inserted' })
-      } catch (error) {
-        console.error(`Error processing race ${race.race_id}:`, error)
-        processedRaces.push({ 
-          ...race, 
-          status: 'error', 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        })
       }
+
+      console.log('Processed races summary:', processedRaces.map(r => ({
+        course: r.course,
+        off_time: r.off_time,
+        status: r.status,
+        error: r.error
+      })))
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          races: processedRaces,
+          timezone: timezone 
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+          } 
+        }
+      )
+
+    } catch (error) {
+      console.error('API or processing error:', error)
+      throw error
     }
-
-    console.log('Processed races summary:', processedRaces.map(r => ({
-      course: r.course,
-      off_time: r.off_time,
-      status: r.status,
-      error: r.error
-    })))
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        races: processedRaces,
-        timezone: timezone 
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-        } 
-      }
-    )
 
   } catch (error) {
     console.error('Error:', error)
