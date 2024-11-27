@@ -70,6 +70,7 @@ const Login = () => {
           }}
           theme="light"
           providers={[]}
+          magicLink={false}
           showLinks={false}
           redirectTo={`${window.location.origin}/admin`}
         />
