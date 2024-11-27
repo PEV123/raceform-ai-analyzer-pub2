@@ -26,6 +26,9 @@ interface AdminSettingsTable {
     system_prompt: string
     timezone: string
     updated_at: string
+    selected_provider: string
+    anthropic_model: string
+    openai_model: string
   }
   Insert: {
     created_at?: string
@@ -34,6 +37,9 @@ interface AdminSettingsTable {
     system_prompt?: string
     timezone?: string
     updated_at?: string
+    selected_provider?: string
+    anthropic_model?: string
+    openai_model?: string
   }
   Update: {
     created_at?: string
@@ -42,6 +48,9 @@ interface AdminSettingsTable {
     system_prompt?: string
     timezone?: string
     updated_at?: string
+    selected_provider?: string
+    anthropic_model?: string
+    openai_model?: string
   }
   Relationships: []
 }

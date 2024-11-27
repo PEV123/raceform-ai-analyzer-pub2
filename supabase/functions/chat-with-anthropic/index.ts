@@ -24,6 +24,19 @@ serve(async (req) => {
     const race = await fetchRaceData(raceId);
     const settings = await fetchSettings();
 
+    if (settings.selected_provider === 'openai') {
+      return new Response(
+        JSON.stringify({ 
+          error: true,
+          message: 'OpenAI integration is not yet implemented'
+        }),
+        {
+          status: 501,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const messageContent = [];
     
     // Check if the message contains an image URL from a new upload
@@ -85,10 +98,10 @@ serve(async (req) => {
       Field Size: ${race.field_size} runners
     `;
 
-    console.log('Making request to Anthropic API');
+    console.log('Making request to Anthropic API with model:', settings.anthropic_model);
     
     const response = await anthropic.messages.create({
-      model: "claude-3-sonnet-20240229",
+      model: settings.anthropic_model,
       max_tokens: 1024,
       system: systemMessage,
       messages: [{

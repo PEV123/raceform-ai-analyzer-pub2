@@ -11,25 +11,34 @@ export type Database = {
     Tables: {
       admin_settings: {
         Row: {
+          anthropic_model: string
           created_at: string
           id: string
           knowledge_base: string
+          openai_model: string
+          selected_provider: string
           system_prompt: string
           timezone: string
           updated_at: string
         }
         Insert: {
+          anthropic_model?: string
           created_at?: string
           id?: string
           knowledge_base?: string
+          openai_model?: string
+          selected_provider?: string
           system_prompt?: string
           timezone?: string
           updated_at?: string
         }
         Update: {
+          anthropic_model?: string
           created_at?: string
           id?: string
           knowledge_base?: string
+          openai_model?: string
+          selected_provider?: string
           system_prompt?: string
           timezone?: string
           updated_at?: string
