@@ -11,38 +11,30 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { horseId } = await req.json()
+    const { horseName } = await req.json()
     
-    if (!horseId) {
+    if (!horseName) {
       return new Response(
-        JSON.stringify({ error: 'Horse ID is required' }),
+        JSON.stringify({ error: 'Horse name is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Fetching results for horse:', horseId)
-    console.log('Using API credentials:', !!RACING_API_USERNAME, !!RACING_API_PASSWORD)
-
+    console.log('Fetching results for horse:', horseName)
+    
     if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
       throw new Error('API credentials are not configured')
     }
 
-    // Get date range for the last year
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results?start_date=${startDate}&end_date=${endDate}`
-    console.log('Full API URL being called:', apiUrl)
-    
     const apiResponse = await fetch(
-      apiUrl,
+      `https://api.theracingapi.com/v1/horses/search?name=${encodeURIComponent(horseName)}`,
       {
         headers: {
-          'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`),
+          'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
           'Accept': 'application/json'
         }
       }
@@ -56,23 +48,7 @@ serve(async (req) => {
         body: errorText
       })
 
-      // Try to parse the error response
-      let errorMessage = 'Failed to fetch horse results'
-      try {
-        const errorJson = JSON.parse(errorText)
-        errorMessage = errorJson.detail || errorMessage
-      } catch {
-        // If parsing fails, use the raw error text
-        errorMessage = errorText
-      }
-
-      return new Response(
-        JSON.stringify({ error: errorMessage }),
-        { 
-          status: apiResponse.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      throw new Error(`Racing API error: ${apiResponse.statusText}`)
     }
 
     const data = await apiResponse.json()

@@ -22,29 +22,26 @@ export const HorseResults = () => {
 
   const searchMutation = useMutation({
     mutationFn: async (horseName: string) => {
+      console.log('Starting horse search for:', horseName);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
+        console.error('No session found');
         throw new Error("No session found");
       }
 
-      const response = await fetch(
-        "https://api.theracingapi.com/v1/horses/search",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Basic ${btoa(`${process.env.RACING_API_USERNAME}:${process.env.RACING_API_PASSWORD}`)}`
-          }
-        }
-      );
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
+        body: { horseName },
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to search horses");
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
       }
 
-      const data = await response.json();
       console.log('Search results:', data);
-      return data.search_results;
+      return data.search_results || [];
     },
     onSuccess: (data) => {
       setSearchResults(data);
@@ -55,11 +52,11 @@ export const HorseResults = () => {
         });
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Search error:", error);
       toast({
         title: "Error",
-        description: "Failed to search horses. Please try again.",
+        description: error.message || "Failed to search horses. Please try again.",
         variant: "destructive",
       });
     },
