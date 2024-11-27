@@ -1,4 +1,4 @@
-const RACING_API_BASE_URL = "https://the-racing-api1.p.rapidapi.com/v1";
+const RACING_API_BASE_URL = "https://the-racing-api1.p.rapidapi.com";
 const RACING_API_KEY = "ac74dad816msh3e7378a264cc01dp1aee4ejsn58139d3bf46b";
 const RACING_API_HOST = "the-racing-api1.p.rapidapi.com";
 
@@ -38,7 +38,7 @@ export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
   console.log("Fetching today's races from Racing API...");
   
   const response = await fetch(
-    `${RACING_API_BASE_URL}/racecards?day=today&region_codes=%5B%22gb%22%2C%22ire%22%5D`,
+    `${RACING_API_BASE_URL}/races/today?region=gb,ire`,
     {
       headers: {
         "X-RapidAPI-Key": RACING_API_KEY,
