@@ -1,6 +1,6 @@
-import { RacesTable } from './races.types';
-import { RunnersTable } from './runners.types';
-import { Json } from './json.types';
+import type { RacesTable } from './races.types';
+import type { RunnersTable } from './runners.types';
+import type { Json } from './json.types';
 
 export interface Database {
   public: {
