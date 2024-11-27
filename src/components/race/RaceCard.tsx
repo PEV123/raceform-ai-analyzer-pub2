@@ -52,13 +52,20 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
   const timezone = settings?.timezone || 'Europe/London';
 
+  // Format the race time in the correct timezone
+  const raceTime = formatInTimeZone(
+    new Date(race.off_time),
+    timezone,
+    'HH:mm'
+  );
+
   return (
     <Card className="p-4">
       <div className="mb-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">{race.race_name}</h3>
           <p className="text-sm text-muted-foreground">
-            {formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm')}
+            {raceTime}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">

@@ -14,36 +14,7 @@ import { useState } from "react";
 const Index = () => {
   const [date, setDate] = useState<Date>(new Date());
 
-  const { data: races, isLoading: racesLoading } = useQuery({
-    queryKey: ["races", date.toISOString()],
-    queryFn: async () => {
-      console.log("Fetching races for date:", date);
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const { data, error } = await supabase
-        .from("races")
-        .select(`
-          *,
-          runners (*)
-        `)
-        .gte('off_time', startOfDay.toISOString())
-        .lte('off_time', endOfDay.toISOString())
-        .order('off_time', { ascending: true });
-
-      if (error) {
-        console.error("Error fetching races:", error);
-        throw error;
-      }
-      
-      console.log("Fetched races:", data);
-      return data;
-    },
-  });
-
+  // First fetch admin settings for timezone
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
@@ -57,9 +28,44 @@ const Index = () => {
     },
   });
 
-  if (racesLoading || settingsLoading) return <div>Loading...</div>;
-
   const timezone = settings?.timezone || 'Europe/London';
+
+  // Then fetch races using the timezone
+  const { data: races, isLoading: racesLoading } = useQuery({
+    queryKey: ["races", date.toISOString(), timezone],
+    queryFn: async () => {
+      console.log("Fetching races for date:", date, "in timezone:", timezone);
+      
+      // Convert the selected date to the start and end of day in the correct timezone
+      const startStr = formatInTimeZone(date, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
+      const endStr = formatInTimeZone(date, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
+      
+      console.log("Date range in timezone:", timezone);
+      console.log("Start:", startStr);
+      console.log("End:", endStr);
+
+      const { data, error } = await supabase
+        .from("races")
+        .select(`
+          *,
+          runners (*)
+        `)
+        .gte('off_time', startStr)
+        .lte('off_time', endStr)
+        .order('off_time', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching races:", error);
+        throw error;
+      }
+      
+      console.log("Fetched races:", data);
+      return data;
+    },
+    enabled: !!timezone,
+  });
+
+  if (racesLoading || settingsLoading) return <div>Loading...</div>;
 
   // Group races by venue
   const groupedRaces = races?.reduce((acc: Record<string, any[]>, race) => {
@@ -73,6 +79,8 @@ const Index = () => {
 
   // Get unique venues
   const allVenues = Object.keys(groupedRaces).sort();
+
+  const formattedDate = formatInTimeZone(date, timezone, 'MMMM do, yyyy');
 
   return (
     <div className="space-y-8">
@@ -88,7 +96,7 @@ const Index = () => {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
+              {formattedDate}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
@@ -104,7 +112,7 @@ const Index = () => {
 
       {!races?.length ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No races found for this date.</p>
+          <p className="text-muted-foreground">No races found for {formattedDate}.</p>
         </div>
       ) : (
         <Tabs defaultValue={allVenues[0]} className="w-full">
