@@ -16,19 +16,14 @@ const ImportRaces = () => {
       console.log("Importing races:", races);
 
       for (const race of races) {
-        // Convert time to proper timestamp
-        const [hours, minutes] = race.off_time.split(':');
-        const today = new Date();
-        today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        const timestamp = today.toISOString();
+        // Use the timestamp directly from the API
+        console.log(`Processing race at ${race.course} - ${race.off_dt}`);
 
-        console.log(`Processing race at ${race.course} - ${race.off_time}`);
-
-        // Insert race with properly formatted timestamp
+        // Insert race with the API timestamp
         const { data: raceData, error: raceError } = await supabase
           .from("races")
           .insert([{
-            off_time: timestamp,
+            off_time: race.off_dt, // Use the API timestamp directly
             course: race.course,
             race_name: race.race_name,
             region: race.region,
