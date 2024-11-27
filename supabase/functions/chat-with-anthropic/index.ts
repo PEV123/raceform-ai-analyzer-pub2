@@ -7,6 +7,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert ArrayBuffer to base64 in chunks
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000; // Process in 32KB chunks to avoid stack overflow
+  let binary = '';
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -70,7 +84,11 @@ serve(async (req) => {
         try {
           const response = await fetch(url);
           const imageBuffer = await response.arrayBuffer();
-          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+          console.log('Image size:', imageBuffer.byteLength, 'bytes');
+          
+          // Use the chunked conversion method
+          const base64Image = arrayBufferToBase64(imageBuffer);
+          console.log('Successfully converted image to base64');
           
           return `Race document: ${doc.file_name} (${doc.content_type})
 Description: This is an image that has been uploaded for analysis.
