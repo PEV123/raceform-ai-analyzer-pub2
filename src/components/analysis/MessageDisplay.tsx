@@ -14,7 +14,7 @@ export const MessageDisplay = ({ role, message }: MessageDisplayProps) => {
           </div>
         );
       }
-      return <p key={i} className="mb-2">{line}</p>;
+      return <p key={i} className="mb-2 break-words">{line}</p>;
     });
   };
 
@@ -27,7 +27,9 @@ export const MessageDisplay = ({ role, message }: MessageDisplayProps) => {
             : 'bg-muted'
         }`}
       >
-        {formatMessage(message)}
+        <div className="max-w-full overflow-hidden">
+          {formatMessage(message)}
+        </div>
       </div>
     </div>
   );

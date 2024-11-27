@@ -15,6 +15,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -41,18 +42,13 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
       const publicUrl = await uploadImage(file);
       setUploadProgress(90);
       
-      await onSendMessage(publicUrl);
+      setUploadedImageUrl(publicUrl);
       toast({
         title: "Success",
         description: "Image uploaded successfully",
       });
       
-      // Reset states
       setUploadProgress(100);
-      setTimeout(() => {
-        setUploadProgress(0);
-        setPreviewUrl(null);
-      }, 1000);
       
     } catch (error) {
       console.error('Error processing image:', error);
@@ -63,6 +59,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
       });
       setUploadProgress(0);
       setPreviewUrl(null);
+      setUploadedImageUrl(null);
     }
   };
 
@@ -102,10 +99,14 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !uploadedImageUrl) return;
 
-    await onSendMessage(newMessage);
+    const messageToSend = uploadedImageUrl || newMessage;
+    await onSendMessage(messageToSend);
     setNewMessage('');
+    setPreviewUrl(null);
+    setUploadedImageUrl(null);
+    setUploadProgress(0);
   };
 
   return (
@@ -156,6 +157,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
                 className="absolute -top-2 -right-2 w-6 h-6"
                 onClick={() => {
                   setPreviewUrl(null);
+                  setUploadedImageUrl(null);
                   setUploadProgress(0);
                 }}
               >
@@ -169,10 +171,11 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
             onPaste={handlePaste}
             className="flex-1 resize-none border rounded-md p-2 w-full"
             rows={3}
-            placeholder="Type your message or paste an image..."
+            placeholder={uploadedImageUrl ? "Image ready to send..." : "Type your message or paste an image..."}
+            disabled={!!uploadedImageUrl}
           />
         </div>
-        <Button type="submit" className="shrink-0" disabled={isLoading}>
+        <Button type="submit" className="shrink-0" disabled={isLoading || (!newMessage.trim() && !uploadedImageUrl)}>
           Send
         </Button>
       </div>
