@@ -63,7 +63,7 @@ const RaceCard = ({ race }: { race: Race }) => {
         </div>
       </div>
       <div className="space-y-4">
-        {race.runners.map((runner) => (
+        {race.runners?.map((runner) => (
           <div
             key={runner.horse_id}
             className="flex items-center gap-4 p-4 bg-muted rounded-lg"
@@ -108,7 +108,7 @@ const Index = () => {
       console.log("Fetching races...");
       const { data: racesData, error: racesError } = await supabase
         .from("races")
-        .select("*")
+        .select("*, runners(*)")
         .order("off_time", { ascending: true });
 
       if (racesError) {
@@ -117,29 +117,7 @@ const Index = () => {
       }
 
       console.log("Fetched races:", racesData);
-
-      const racesWithRunners = await Promise.all(
-        racesData.map(async (race) => {
-          const { data: runnersData, error: runnersError } = await supabase
-            .from("runners")
-            .select("*")
-            .eq("race_id", race.id);
-
-          if (runnersError) {
-            console.error("Error fetching runners:", runnersError);
-            throw runnersError;
-          }
-
-          console.log(`Fetched runners for race ${race.id}:`, runnersData);
-
-          return {
-            ...race,
-            runners: runnersData || [],
-          };
-        })
-      );
-
-      return racesWithRunners;
+      return racesData;
     },
   });
 
