@@ -20,11 +20,6 @@ export const HorseIdSearch = ({ onResults, onRawData }: HorseIdSearchProps) => {
     mutationFn: async (id: string) => {
       console.log('Fetching results for horse ID:', id);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error("No session found");
-      }
-
       const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
         body: { horseId: id },
       });

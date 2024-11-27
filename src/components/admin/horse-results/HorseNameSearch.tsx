@@ -22,11 +22,6 @@ export const HorseNameSearch = ({ onSelectHorse, onRawData }: HorseNameSearchPro
     mutationFn: async (horseName: string) => {
       console.log('Starting horse search for:', horseName);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error("No session found");
-      }
-
       const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
         body: { horseName },
       });
