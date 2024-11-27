@@ -1,3 +1,5 @@
+import { Json } from './json.types';
+
 export interface RunnersTable {
   Row: {
     id: string

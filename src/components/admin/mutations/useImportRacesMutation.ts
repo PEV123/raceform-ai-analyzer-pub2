@@ -17,7 +17,7 @@ export const useImportRacesMutation = () => {
 
         const { data: raceData, error: raceError } = await supabase
           .from("races")
-          .insert([{
+          .insert({
             off_time: race.off_dt,
             course: race.course,
             race_name: race.race_name,
@@ -26,7 +26,7 @@ export const useImportRacesMutation = () => {
             age_band: race.age_band,
             rating_band: race.rating_band,
             prize: race.prize,
-            field_size: race.field_size,
+            field_size: Number(race.field_size),
             race_id: race.race_id,
             course_id: race.course_id,
             distance_round: race.distance_round,
@@ -43,7 +43,7 @@ export const useImportRacesMutation = () => {
             jumps: race.jumps,
             big_race: race.big_race,
             is_abandoned: race.is_abandoned,
-          }])
+          })
           .select()
           .single();
 
@@ -81,8 +81,8 @@ export const useImportRacesMutation = () => {
           .map(runner => ({
             race_id: raceData.id,
             horse_id: runner.horse_id,
-            number: runner.number || 0,
-            draw: runner.draw || 0,
+            number: Number(runner.number) || 0,
+            draw: Number(runner.draw) || 0,
             horse: runner.horse,
             silk_url: runner.silk_url,
             sire: runner.sire,
@@ -90,7 +90,7 @@ export const useImportRacesMutation = () => {
             dam: runner.dam,
             dam_region: runner.dam_region,
             form: runner.form,
-            lbs: runner.lbs || 0,
+            lbs: Number(runner.lbs) || 0,
             headgear: runner.headgear,
             ofr: runner.ofr,
             ts: runner.ts,

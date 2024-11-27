@@ -1,10 +1,6 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import { RacesTable } from './races.types';
+import { RunnersTable } from './runners.types';
+import { Json } from './json.types';
 
 export interface Database {
   public: {
@@ -128,3 +124,5 @@ interface RaceDocumentsTable {
     }
   ]
 }
+
+export type { AdminSettingsTable, RaceChatsTable, RaceDocumentsTable };
