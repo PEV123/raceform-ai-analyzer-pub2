@@ -10,6 +10,7 @@ const Admin = () => {
   const { data: races, isLoading } = useQuery({
     queryKey: ["races"],
     queryFn: async () => {
+      console.log('Fetching races data...');
       const { data, error } = await supabase
         .from("races")
         .select(`
@@ -19,7 +20,12 @@ const Admin = () => {
         `)
         .order('off_time', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching races:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched races:', data);
       return data;
     },
   });
