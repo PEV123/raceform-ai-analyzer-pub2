@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Tables } from "@/integrations/supabase/types";
 import { useSession } from '@supabase/auth-helpers-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { uploadImage } from "./utils/imageUpload";
+import { MessageDisplay } from "./MessageDisplay";
 
 interface RaceChatProps {
   raceId: string;
@@ -66,14 +67,12 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     if (!file) return;
 
     try {
-      const { data, error } = await supabase.storage
-        .from('race_documents')
-        .upload(`chat-images/${Date.now()}-${file.name}`, file);
-
-      if (error) throw error;
-
-      const imageUrl = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${data.path}`;
-      setNewMessage(prev => prev + `\n${imageUrl}`);
+      const publicUrl = await uploadImage(file);
+      setNewMessage(prev => prev + `\n${publicUrl}`);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
@@ -152,12 +151,6 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     );
   }
 
-  const formatMessage = (message: string) => {
-    return message.split('\n').map((line, i) => (
-      <p key={i} className="mb-2">{line}</p>
-    ));
-  };
-
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
       <div className="border-b p-2">
@@ -171,22 +164,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
 
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`mb-4 ${
-              msg.role === 'user' ? 'text-right' : 'text-left'
-            }`}
-          >
-            <div
-              className={`inline-block max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground ml-auto'
-                  : 'bg-muted'
-              }`}
-            >
-              {formatMessage(msg.message)}
-            </div>
-          </div>
+          <MessageDisplay key={index} role={msg.role} message={msg.message} />
         ))}
         {isLoading && (
           <div className="flex items-center justify-center p-4">
