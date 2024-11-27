@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 
@@ -60,7 +60,6 @@ serve(async (req) => {
       ${runner.ts ? `- Top Speed Rating: ${runner.ts}` : ''}
     `).join('\n');
 
-    // Process race documents and handle images
     console.log('Processing race documents...');
     const documentImages = await Promise.all(race.race_documents
       .filter((doc: any) => doc.content_type.startsWith('image/'))
@@ -106,20 +105,15 @@ serve(async (req) => {
       Please provide detailed analysis based on this information and any images shared. Analyze all images thoroughly and incorporate your findings into your response.
     `;
 
-    // Initialize Anthropic client
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
     });
 
-    // Prepare message content array
     const messageContent = [];
     
-    // Add any document images first
     messageContent.push(...validDocumentImages);
     
-    // Then handle the user's message/image
     if (message.startsWith('data:image')) {
-      // Handle base64 image from user
       const [header, base64Data] = message.split(',');
       const mediaType = header.split(';')[0].split(':')[1];
       messageContent.push({
