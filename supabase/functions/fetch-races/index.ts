@@ -1,111 +1,141 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from "../_shared/cors.ts"
 
-const RACING_API_BASE_URL = "https://api.theracingapi.com/v1"
-const RACING_API_USERNAME = Deno.env.get("RACING_API_USERNAME")
-const RACING_API_PASSWORD = Deno.env.get("RACING_API_PASSWORD")
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
+const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log("Edge function received request to fetch races")
-    
-    if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
-      console.error("Racing API credentials not configured")
-      throw new Error("Racing API credentials not configured")
-    }
-    
-    const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
-    
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
-    console.log("Fetching races for date:", today);
-    
-    console.log("Fetching races from Racing API...")
-    const response = await fetch(
-      `${RACING_API_BASE_URL}/racecards/pro?date=${today}`,
-      {
-        headers: {
-          "Authorization": `Basic ${authHeader}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-      }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Log the response status and headers for debugging
-    console.log("Racing API Response Status:", response.status)
-    console.log("Racing API Response Headers:", Object.fromEntries(response.headers.entries()))
+    // Fetch today's races
+    const response = await fetch('https://api.theracingapi.com/v1/races', {
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
+      }
+    })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Error response from Racing API:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      })
-
-      // Try to parse error response as JSON if possible
-      let errorBody
-      try {
-        errorBody = JSON.parse(errorText)
-      } catch {
-        errorBody = errorText
-      }
-
-      throw new Error(JSON.stringify({
-        status: response.status,
-        statusText: response.statusText,
-        error: errorBody
-      }))
+      throw new Error(`API responded with ${response.status}`)
     }
 
     const data = await response.json()
-    console.log("Successfully fetched races from Racing API")
-    
-    // Validate the response structure
-    if (!data || !Array.isArray(data.racecards)) {
-      console.error("Invalid response structure:", data)
-      throw new Error("Invalid response structure from Racing API")
+    console.log('Fetched races:', data)
+
+    // Process and insert races
+    for (const race of data.races) {
+      const { error: raceError } = await supabase
+        .from('races')
+        .insert({
+          id: race.id,
+          off_time: race.off_time,
+          course: race.course,
+          race_name: race.race_name,
+          region: race.region,
+          race_class: race.race_class,
+          age_band: race.age_band,
+          rating_band: race.rating_band,
+          prize: race.prize,
+          field_size: race.field_size,
+          created_at: new Date().toISOString(),
+          race_id: race.race_id,
+          course_id: race.course_id,
+          distance_round: race.distance_round,
+          distance: race.distance,
+          distance_f: race.distance_f,
+          pattern: race.pattern,
+          type: race.type,
+          going_detailed: race.going_detailed,
+          rail_movements: race.rail_movements,
+          stalls: race.stalls,
+          weather: race.weather,
+          going: race.going,
+          surface: race.surface,
+          jumps: race.jumps,
+          big_race: race.big_race,
+          is_abandoned: race.is_abandoned
+        })
+
+      if (raceError) {
+        console.error('Error inserting race:', raceError)
+        continue
+      }
+
+      // For each runner in the race, fetch their historical results
+      for (const runner of race.runners) {
+        console.log('Fetching historical results for horse:', runner.horse_id)
+        
+        const resultsResponse = await fetch(`https://api.theracingapi.com/v1/horses/${runner.horse_id}/results`, {
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
+          }
+        })
+
+        if (resultsResponse.ok) {
+          const resultsData = await resultsResponse.json()
+          console.log('Fetched results for horse:', runner.horse_id, resultsData)
+
+          // Insert historical results
+          for (const result of resultsData.results) {
+            const { data: existingResult } = await supabase
+              .from('horse_results')
+              .select()
+              .eq('horse_id', runner.horse_id)
+              .eq('race_id', result.race_id)
+              .single()
+
+            if (!existingResult) {
+              const { error: resultError } = await supabase
+                .from('horse_results')
+                .insert({
+                  horse_id: runner.horse_id,
+                  race_id: result.race_id,
+                  date: result.off_dt,
+                  course: result.course,
+                  distance: result.dist,
+                  class: result.class,
+                  going: result.going,
+                  position: result.runners.find(r => r.horse_id === runner.horse_id)?.position,
+                  weight_lbs: result.runners.find(r => r.horse_id === runner.horse_id)?.weight_lbs,
+                  winner: result.runners.find(r => r.position === '1')?.horse,
+                  second: result.runners.find(r => r.position === '2')?.horse,
+                  third: result.runners.find(r => r.position === '3')?.horse,
+                  winner_weight_lbs: result.runners.find(r => r.position === '1')?.weight_lbs,
+                  second_weight_lbs: result.runners.find(r => r.position === '2')?.weight_lbs,
+                  third_weight_lbs: result.runners.find(r => r.position === '3')?.weight_lbs,
+                  winner_btn: result.runners.find(r => r.position === '1')?.btn,
+                  second_btn: result.runners.find(r => r.position === '2')?.btn,
+                  third_btn: result.runners.find(r => r.position === '3')?.btn,
+                  comment: result.runners.find(r => r.horse_id === runner.horse_id)?.comment
+                })
+
+              if (resultError) {
+                console.error('Error inserting result:', resultError)
+              }
+            }
+          }
+        }
+      }
     }
-    
-    return new Response(
-      JSON.stringify(data),
-      { 
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
-    )
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+
   } catch (error) {
-    console.error("Error in edge function:", error)
-    
-    // Format error message for client
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    
-    return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500,
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
-    )
+    console.error('Error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    })
   }
 })

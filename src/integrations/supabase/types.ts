@@ -45,6 +45,78 @@ export type Database = {
         }
         Relationships: []
       }
+      horse_results: {
+        Row: {
+          class: string | null
+          comment: string | null
+          course: string
+          created_at: string | null
+          date: string
+          distance: string | null
+          going: string | null
+          horse_id: string
+          id: string
+          position: string | null
+          race_id: string | null
+          second: string | null
+          second_btn: string | null
+          second_weight_lbs: number | null
+          third: string | null
+          third_btn: string | null
+          third_weight_lbs: number | null
+          weight_lbs: number | null
+          winner: string | null
+          winner_btn: string | null
+          winner_weight_lbs: number | null
+        }
+        Insert: {
+          class?: string | null
+          comment?: string | null
+          course: string
+          created_at?: string | null
+          date: string
+          distance?: string | null
+          going?: string | null
+          horse_id: string
+          id?: string
+          position?: string | null
+          race_id?: string | null
+          second?: string | null
+          second_btn?: string | null
+          second_weight_lbs?: number | null
+          third?: string | null
+          third_btn?: string | null
+          third_weight_lbs?: number | null
+          weight_lbs?: number | null
+          winner?: string | null
+          winner_btn?: string | null
+          winner_weight_lbs?: number | null
+        }
+        Update: {
+          class?: string | null
+          comment?: string | null
+          course?: string
+          created_at?: string | null
+          date?: string
+          distance?: string | null
+          going?: string | null
+          horse_id?: string
+          id?: string
+          position?: string | null
+          race_id?: string | null
+          second?: string | null
+          second_btn?: string | null
+          second_weight_lbs?: number | null
+          third?: string | null
+          third_btn?: string | null
+          third_weight_lbs?: number | null
+          weight_lbs?: number | null
+          winner?: string | null
+          winner_btn?: string | null
+          winner_weight_lbs?: number | null
+        }
+        Relationships: []
+      }
       race_chats: {
         Row: {
           created_at: string
