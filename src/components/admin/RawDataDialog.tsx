@@ -37,7 +37,7 @@ export const RawDataDialog = ({ open, onOpenChange, race }: RawDataDialogProps) 
             <div>
               <h3 className="font-semibold mb-2">Raw Race Data</h3>
               <pre className="p-4 bg-muted rounded-lg text-sm">
-                {JSON.stringify(race, null, 2)}
+                {race ? JSON.stringify(race, null, 2) : 'No race data available'}
               </pre>
             </div>
           </div>
