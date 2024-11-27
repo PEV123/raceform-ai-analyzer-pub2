@@ -12,6 +12,15 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
     const formData = await req.formData()
     const file = formData.get('file')
     const raceId = formData.get('raceId')
@@ -28,6 +37,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Verify the session
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+
+    if (authError || !user) {
+      console.error('Auth error:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
+    console.log('Processing file upload for race:', raceId)
+
     const fileExt = (file as File).name.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
@@ -39,11 +63,14 @@ serve(async (req) => {
       })
 
     if (uploadError) {
+      console.error('Upload error:', uploadError)
       return new Response(
         JSON.stringify({ error: 'Failed to upload file', details: uploadError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
+
+    console.log('File uploaded successfully:', filePath)
 
     const { error: dbError } = await supabase
       .from('race_documents')
@@ -55,17 +82,21 @@ serve(async (req) => {
       })
 
     if (dbError) {
+      console.error('Database error:', dbError)
       return new Response(
         JSON.stringify({ error: 'Failed to save file metadata', details: dbError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
+    console.log('File metadata saved successfully')
+
     return new Response(
       JSON.stringify({ message: 'File uploaded successfully', filePath }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
+    console.error('Unexpected error:', error)
     return new Response(
       JSON.stringify({ error: 'An unexpected error occurred', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

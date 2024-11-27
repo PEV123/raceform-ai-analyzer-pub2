@@ -28,20 +28,24 @@ export const DocumentUploadDialog = ({
     const file = e.target.files[0];
 
     try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No authenticated session found");
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("raceId", race.id);
 
-      // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await fetch(
         "https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/upload-race-document",
         {
           method: "POST",
           body: formData,
           headers: {
-            Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY || ''}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
         }
       );
