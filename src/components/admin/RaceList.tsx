@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
+import { formatInTimeZone } from 'date-fns-tz';
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -14,6 +15,10 @@ interface RaceListProps {
 
 export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+
+  const formatUKTime = (date: string) => {
+    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
+  };
 
   return (
     <>
@@ -33,7 +38,7 @@ export const RaceList = ({ races }: RaceListProps) => {
             <TableRow key={race.id}>
               <TableCell>{race.course}</TableCell>
               <TableCell>
-                {new Date(race.off_time).toLocaleTimeString()}
+                {formatUKTime(race.off_time)}
               </TableCell>
               <TableCell>{race.field_size}</TableCell>
               <TableCell>0</TableCell>

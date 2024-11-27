@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
 import { useState } from "react";
+import { formatInTimeZone } from 'date-fns-tz';
 
 const Admin = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -26,15 +27,24 @@ const Admin = () => {
         `)
         .gte("off_time", startOfDay.toISOString())
         .lte("off_time", endOfDay.toISOString())
-        .order("off_time");
+        .order('course')
+        .order('off_time');
 
       if (error) {
         console.error("Error fetching races:", error);
         throw error;
       }
 
-      console.log("Fetched races:", data);
-      return data;
+      // Sort races by venue and time
+      const sortedData = data.sort((a, b) => {
+        if (a.course !== b.course) {
+          return a.course.localeCompare(b.course);
+        }
+        return new Date(a.off_time).getTime() - new Date(b.off_time).getTime();
+      });
+
+      console.log("Fetched races:", sortedData);
+      return sortedData;
     },
   });
 
