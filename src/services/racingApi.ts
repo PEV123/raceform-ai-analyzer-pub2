@@ -1,9 +1,9 @@
 export interface RacingApiRace {
   race_id: string;
-  off_time: string;
   course: string;
   course_id: string;
   date: string;
+  off_time: string;
   off_dt: string;
   race_name: string;
   distance_round: string;
@@ -16,13 +16,14 @@ export interface RacingApiRace {
   age_band: string;
   rating_band: string;
   prize: string;
-  field_size: number;
+  field_size: string;
   going_detailed: string;
   rail_movements: string;
   stalls: string;
   weather: string;
   going: string;
   surface: string;
+  jumps: string;
   big_race: boolean;
   is_abandoned: boolean;
   runners: RacingApiRunner[];
@@ -60,14 +61,14 @@ export interface RacingApiRunner {
   quotes: string[];
   stable_tour: string[];
   medical: string[];
-  number: number;
-  draw: number;
+  number: string;
+  draw: string;
   headgear: string;
   headgear_run: string;
   wind_surgery: string;
   wind_surgery_run: string;
   past_results_flags: string[];
-  lbs: number;
+  lbs: string;
   ofr: string;
   rpr: string;
   ts: string;
@@ -77,6 +78,7 @@ export interface RacingApiRunner {
   last_run: string;
   form: string;
   trainer_rtf: string;
+  odds: any[];
 }
 
 export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
@@ -126,9 +128,9 @@ export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
     field_size: parseInt(racecard.field_size),
     runners: racecard.runners.map((runner: any) => ({
       ...runner,
-      number: parseInt(runner.number),
+      number: parseInt(runner.number || '0'),
       draw: parseInt(runner.draw || '0'),
-      lbs: parseInt(runner.lbs),
+      lbs: parseInt(runner.lbs || '0'),
     }))
   }));
 };

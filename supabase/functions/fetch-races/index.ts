@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const RACING_API_BASE_URL = "https://api.theracingapi.com/v1"
-const RACING_API_USERNAME = "Gj48KGaBbt6ChEW1fiENkB59"
-const RACING_API_PASSWORD = "5v1KqVnUT3xfqBZmD4IEOdaM"
+const RACING_API_USERNAME = Deno.env.get("RACING_API_USERNAME")
+const RACING_API_PASSWORD = Deno.env.get("RACING_API_PASSWORD")
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +23,7 @@ serve(async (req) => {
     const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
     
     const response = await fetch(
-      `${RACING_API_BASE_URL}/racecards/basic?day=today`,
+      `${RACING_API_BASE_URL}/racecards/pro?day=today`,
       {
         headers: {
           "Authorization": `Basic ${authHeader}`,
@@ -40,17 +40,7 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    
-    // Log the specific race from Hereford at 12:15
-    const herefordRace = data.racecards.find(
-      (race: any) => race.course === "Hereford" && race.off_dt.includes("12:15:00")
-    );
-    
-    if (herefordRace) {
-      console.log("Found Hereford 12:15 race:", JSON.stringify(herefordRace, null, 2));
-    } else {
-      console.log("No race found at Hereford at 12:15");
-    }
+    console.log("Successfully fetched races from Racing API")
     
     return new Response(
       JSON.stringify(data),
