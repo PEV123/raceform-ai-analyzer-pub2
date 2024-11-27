@@ -2,13 +2,27 @@ import { Card } from "@/components/ui/card";
 import { OddsDisplay } from "./OddsDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface RaceCardProps {
   race: any;
 }
 
 export const RaceCard = ({ race }: RaceCardProps) => {
+  // Fetch settings for timezone
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch historical results for all runners in this race
   const { data: historicalResults } = useQuery({
     queryKey: ['historical-results', race.id],
@@ -36,13 +50,15 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     return `${position}/${runnerCount} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`;
   };
 
+  const timezone = settings?.timezone || 'Europe/London';
+
   return (
     <Card className="p-4">
       <div className="mb-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">{race.race_name}</h3>
           <p className="text-sm text-muted-foreground">
-            {format(new Date(race.off_time), 'HH:mm')}
+            {formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm')}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
