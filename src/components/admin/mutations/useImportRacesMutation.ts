@@ -25,6 +25,18 @@ export const useImportRacesMutation = () => {
       for (const race of races) {
         console.log(`Processing race at ${race.course} - ${race.off_time}`);
 
+        // Check if race already exists to avoid duplicates
+        const { data: existingRace } = await supabase
+          .from("races")
+          .select("id")
+          .eq("race_id", race.race_id)
+          .single();
+
+        if (existingRace) {
+          console.log(`Race ${race.race_id} already exists, skipping`);
+          continue;
+        }
+
         const { data: raceData, error: raceError } = await supabase
           .from("races")
           .insert({
@@ -36,7 +48,7 @@ export const useImportRacesMutation = () => {
             age_band: race.age_band,
             rating_band: race.rating_band,
             prize: race.prize,
-            field_size: Number(race.field_size),
+            field_size: Number(race.field_size) || 0,
             race_id: race.race_id,
             course_id: race.course_id,
             distance_round: race.distance_round,
@@ -63,6 +75,11 @@ export const useImportRacesMutation = () => {
         }
 
         console.log(`Successfully inserted race: ${raceData.id}`);
+
+        if (!race.runners || !Array.isArray(race.runners)) {
+          console.warn(`No runners found for race ${race.race_id}`);
+          continue;
+        }
 
         const validRunners = race.runners
           .filter(runner => {
@@ -122,22 +139,22 @@ export const useImportRacesMutation = () => {
             trainer_14_days: runner.trainer_14_days,
             owner: runner.owner,
             owner_id: runner.owner_id,
-            prev_trainers: runner.prev_trainers,
-            prev_owners: runner.prev_owners,
+            prev_trainers: runner.prev_trainers || [],
+            prev_owners: runner.prev_owners || [],
             comment: runner.comment,
             spotlight: runner.spotlight,
-            quotes: runner.quotes,
-            stable_tour: runner.stable_tour,
-            medical: runner.medical,
+            quotes: runner.quotes || [],
+            stable_tour: runner.stable_tour || [],
+            medical: runner.medical || [],
             headgear_run: runner.headgear_run,
             wind_surgery: runner.wind_surgery,
             wind_surgery_run: runner.wind_surgery_run,
-            past_results_flags: runner.past_results_flags,
+            past_results_flags: runner.past_results_flags || [],
             rpr: runner.rpr,
             jockey_id: runner.jockey_id,
             last_run: runner.last_run,
             trainer_rtf: runner.trainer_rtf,
-            odds: runner.odds,
+            odds: runner.odds || [],
           }));
 
         console.log(`Processing ${validRunners.length} valid runners for race ${raceData.id}`);
