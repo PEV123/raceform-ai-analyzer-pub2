@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
+import { OddsDisplay } from "../race/OddsDisplay";
 
 interface RaceAnalysisProps {
   raceId: string;
@@ -102,6 +103,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
                       {runner.jockey} | {runner.trainer}
                     </div>
                   </div>
+                  <OddsDisplay odds={runner.odds} />
                 </div>
               ))}
             </div>

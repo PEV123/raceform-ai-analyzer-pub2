@@ -3,104 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatInTimeZone } from 'date-fns-tz';
-
-interface Runner {
-  horse_id: string;
-  number: number;
-  draw: number;
-  horse: string;
-  silk_url: string | null;
-  sire: string;
-  sire_region: string;
-  dam: string;
-  dam_region: string;
-  form: string | null;
-  lbs: number;
-  headgear: string | null;
-  ofr: string | null;
-  ts: string | null;
-  jockey: string;
-  trainer: string;
-}
-
-interface Race {
-  id: string;
-  off_time: string;
-  course: string;
-  race_name: string;
-  region: string;
-  race_class: string;
-  age_band: string;
-  rating_band: string;
-  prize: string;
-  field_size: number;
-  runners: Runner[];
-}
-
-const RaceCard = ({ race, timezone }: { race: Race; timezone: string }) => {
-  const lbsToStone = (lbs: number) => {
-    const stone = Math.floor(lbs / 14);
-    const remainder = lbs % 14;
-    return `${stone}-${remainder}`;
-  };
-
-  return (
-    <Card className="p-6 mb-8">
-      <div className="flex justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold">
-            {formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm')} {race.course}
-          </h2>
-          <h3 className="text-xl">{race.race_name}</h3>
-        </div>
-        <div className="text-right">
-          <p className="text-sm">
-            {race.region} | {race.race_class} | {race.age_band} | {race.rating_band}
-          </p>
-          <p className="text-sm">
-            Prize {race.prize} - {race.field_size} run
-          </p>
-        </div>
-      </div>
-      <div className="space-y-4">
-        {race.runners?.map((runner) => (
-          <div
-            key={runner.horse_id}
-            className="flex items-center gap-4 p-4 bg-muted rounded-lg"
-          >
-            <div className="w-8 text-center">
-              <div className="font-bold">{runner.number}</div>
-              <div className="text-sm">({runner.draw})</div>
-            </div>
-            {runner.silk_url && (
-              <img src={runner.silk_url} alt="Silk" className="w-12 h-12" />
-            )}
-            <div className="flex-1">
-              <h4 className="font-bold">{runner.horse}</h4>
-              <p className="text-sm">
-                {runner.sire} ({runner.sire_region}) | {runner.dam} ({runner.dam_region})
-              </p>
-              <p className="text-sm">Form: {runner.form || 'N/A'}</p>
-            </div>
-            <div className="text-sm">
-              <p>wgt: {lbsToStone(runner.lbs)}</p>
-              <p>hg: {runner.headgear || 'None'}</p>
-            </div>
-            <div className="text-sm">
-              <p>ofr: {runner.ofr || 'N/A'}</p>
-              <p>ts: {runner.ts || 'N/A'}</p>
-            </div>
-            <div className="text-sm">
-              <p>J: {runner.jockey}</p>
-              <p>T: {runner.trainer}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-};
+import { RaceCard } from "@/components/race/RaceCard";
 
 const Index = () => {
   const { data: settings } = useQuery({
@@ -154,7 +57,7 @@ const Index = () => {
   }
 
   // Create a Map to store unique races by their course and off_time combination
-  const uniqueRaces = new Map<string, Race>();
+  const uniqueRaces = new Map();
   races.forEach(race => {
     const key = `${race.course}-${race.off_time}`;
     if (!uniqueRaces.has(key)) {
@@ -173,7 +76,7 @@ const Index = () => {
     }
     acc[race.course].push(race);
     return acc;
-  }, {} as Record<string, Race[]>);
+  }, {} as Record<string, typeof races>);
 
   const venues = Object.keys(racesByVenue).sort();
 
