@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { formatInTimeZone, zonedTimeToUtc } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { useState } from "react";
 
 const ImportRaces = () => {
@@ -33,7 +33,7 @@ const ImportRaces = () => {
   
   // Initialize with current UK date
   const [date, setDate] = useState<Date>(() => {
-    const ukDate = zonedTimeToUtc(new Date(), 'Europe/London');
+    const ukDate = fromZonedTime(new Date(), 'Europe/London');
     console.log('Initial UK date set to:', format(ukDate, 'yyyy-MM-dd'));
     return ukDate;
   });
@@ -119,7 +119,7 @@ const ImportRaces = () => {
                 onSelect={(newDate) => {
                   if (newDate) {
                     // Convert the selected date to UK timezone
-                    const ukDate = zonedTimeToUtc(newDate, 'Europe/London');
+                    const ukDate = fromZonedTime(newDate, 'Europe/London');
                     console.log('New UK date selected:', format(ukDate, 'yyyy-MM-dd'));
                     setDate(ukDate);
                   }
