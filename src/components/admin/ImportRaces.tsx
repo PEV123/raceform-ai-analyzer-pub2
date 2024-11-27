@@ -16,11 +16,17 @@ const ImportRaces = () => {
       console.log("Importing races:", races);
 
       for (const race of races) {
-        // Insert race
+        // Convert time to proper timestamp
+        const [hours, minutes] = race.off_time.split(':');
+        const today = new Date();
+        today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        const timestamp = today.toISOString();
+
+        // Insert race with properly formatted timestamp
         const { data: raceData, error: raceError } = await supabase
           .from("races")
           .insert([{
-            off_time: race.off_time,
+            off_time: timestamp, // Now using proper timestamp
             course: race.course,
             race_name: race.race_name,
             region: race.region,
@@ -61,8 +67,8 @@ const ImportRaces = () => {
           .map(runner => ({
             race_id: raceData.id,
             horse_id: runner.horse_id,
-            number: runner.number || 0, // Fallback to 0 if null
-            draw: runner.draw || 0, // Fallback to 0 if null
+            number: runner.number || 0,
+            draw: runner.draw || 0,
             horse: runner.horse,
             silk_url: runner.silk_url,
             sire: runner.sire,
@@ -70,7 +76,7 @@ const ImportRaces = () => {
             dam: runner.dam,
             dam_region: runner.dam_region,
             form: runner.form,
-            lbs: runner.lbs || 0, // Fallback to 0 if null
+            lbs: runner.lbs || 0,
             headgear: runner.headgear,
             ofr: runner.ofr,
             ts: runner.ts,
