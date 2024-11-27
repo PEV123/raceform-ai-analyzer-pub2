@@ -53,7 +53,7 @@ export const HorseResults = () => {
       console.log("Horse results data:", data);
       setResults(data);
       toast.success("Horse results fetched successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching horse results:", error);
       const errorMessage = error.message.includes("Invalid horse id") 
         ? "Invalid horse ID. Please check the ID and try again." 

@@ -27,7 +27,11 @@ serve(async (req) => {
     console.log('Fetching results for horse:', horseId)
     console.log('Using API credentials:', !!RACING_API_USERNAME, !!RACING_API_PASSWORD)
 
-    const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results`
+    // Get date range for the last year
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results?start_date=${startDate}&end_date=${endDate}`
     console.log('Making request to:', apiUrl)
 
     const apiResponse = await fetch(
