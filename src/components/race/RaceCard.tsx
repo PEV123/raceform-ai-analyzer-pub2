@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { OddsDisplay } from "./OddsDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface RaceCardProps {
   race: any;
@@ -30,15 +31,22 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   };
 
   const formatResult = (result: any) => {
-    return `${result.position}/${result.runners?.length} - ${result.course} (${result.distance}) - ${result.going}`;
+    const position = result.position || '-';
+    const runnerCount = result.winner && result.second && result.third ? '3+' : '-';
+    return `${position}/${runnerCount} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`;
   };
 
   return (
-    <Card className="p-4 mb-4">
+    <Card className="p-4">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold">{race.race_name}</h3>
-        <p className="text-sm text-gray-600">
-          {race.course} - {race.off_time} - {race.distance} - {race.going}
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{race.race_name}</h3>
+          <p className="text-sm text-muted-foreground">
+            {format(new Date(race.off_time), 'HH:mm')}
+          </p>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {race.distance} - {race.going}
         </p>
       </div>
 
@@ -46,27 +54,36 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         {race.runners?.map((runner: any) => (
           <div key={runner.horse_id} className="border-t pt-4">
             <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-medium">{runner.horse}</h4>
-                <p className="text-sm text-gray-600">
-                  {runner.jockey} - {runner.trainer}
-                </p>
-                
-                {/* Historical Results */}
-                <div className="mt-2 space-y-1">
-                  <p className="text-sm font-medium">Recent Form:</p>
-                  {getHorseResults(runner.horse_id)
-                    .slice(0, 3)
-                    .map((result: any) => (
-                      <p key={result.id} className="text-sm text-gray-600">
-                        {new Date(result.date).toLocaleDateString()} - {formatResult(result)}
-                        {result.comment && (
-                          <span className="block text-xs italic mt-1">
-                            {result.comment}
-                          </span>
-                        )}
-                      </p>
-                    ))}
+              <div className="flex gap-3">
+                {runner.silk_url && (
+                  <img
+                    src={runner.silk_url}
+                    alt={`${runner.jockey}'s silks`}
+                    className="w-8 h-8 object-contain"
+                  />
+                )}
+                <div>
+                  <h4 className="font-medium">{runner.horse}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {runner.jockey} - {runner.trainer}
+                  </p>
+                  
+                  {/* Historical Results */}
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-medium">Recent Form:</p>
+                    {getHorseResults(runner.horse_id)
+                      .slice(0, 3)
+                      .map((result: any, index: number) => (
+                        <p key={index} className="text-sm text-muted-foreground">
+                          {formatResult(result)}
+                          {result.comment && (
+                            <span className="block text-xs italic mt-1">
+                              {result.comment}
+                            </span>
+                          )}
+                        </p>
+                      ))}
+                  </div>
                 </div>
               </div>
               
