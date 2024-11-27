@@ -17,8 +17,19 @@ serve(async (req) => {
       throw new Error('Date parameter is required')
     }
 
+    if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
+      throw new Error('Racing API credentials are not configured')
+    }
+
+    // Ensure the date is in YYYY-MM-DD format
+    const formattedDate = new Date(date).toISOString().split('T')[0]
+    console.log('Formatted date for API request:', formattedDate)
+
+    const apiUrl = `https://api.theracingapi.com/v1/races/programme/${formattedDate}`
+    console.log('Making request to Racing API URL:', apiUrl)
+
     const response = await fetch(
-      `https://api.theracingapi.com/v1/races?date=${date}`,
+      apiUrl,
       {
         headers: {
           'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
@@ -28,11 +39,17 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      })
       throw new Error(`Racing API error: ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log('Successfully fetched races for date:', date)
+    console.log('Successfully fetched races for date:', formattedDate)
 
     return new Response(
       JSON.stringify(data),
