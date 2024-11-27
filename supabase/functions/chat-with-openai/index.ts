@@ -1,5 +1,5 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 import { 
   corsHeaders, 
   processBase64Image, 
@@ -7,7 +7,7 @@ import {
   fetchSettings,
   processRaceDocuments,
   formatRaceContext 
-} from "./utils.ts";
+} from "../chat-with-anthropic/utils.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,28 +26,6 @@ serve(async (req) => {
     const settings = await fetchSettings();
     console.log('Fetched race data with runners:', race.runners?.length);
 
-    // Redirect to OpenAI function if selected
-    if (settings.selected_provider === 'openai') {
-      console.log('Redirecting to OpenAI function');
-      const response = await fetch(
-        `${Deno.env.get('SUPABASE_URL')}/functions/v1/chat-with-openai`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message, raceId }),
-        }
-      );
-
-      const data = await response.json();
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const messageContent = [];
     
     // Check if the message contains an image URL from a new upload
@@ -55,12 +33,12 @@ serve(async (req) => {
       console.log('Processing new uploaded image URL');
       const lines = message.split('\n');
       const imageUrl = lines[0];
+      
+      // Add image as base64 for OpenAI vision API
       messageContent.push({
         type: "image",
-        source: {
-          type: "base64",
-          media_type: "image/png",
-          data: await fetchAndConvertToBase64(imageUrl)
+        image_url: {
+          url: imageUrl
         }
       });
       
@@ -76,12 +54,24 @@ serve(async (req) => {
         });
       }
     } else {
-      console.log('Adding race document images to message');
+      // Process any existing race documents
       const validDocumentImages = await processRaceDocuments(
         race,
         Deno.env.get('SUPABASE_URL') || ''
       );
-      messageContent.push(...validDocumentImages);
+      
+      // Convert document images to OpenAI format
+      for (const image of validDocumentImages) {
+        if (image?.source?.data) {
+          messageContent.push({
+            type: "image",
+            image_url: {
+              url: `data:${image.source.media_type};base64,${image.source.data}`
+            }
+          });
+        }
+      }
+      
       messageContent.push({
         type: "text",
         text: message
@@ -90,10 +80,6 @@ serve(async (req) => {
 
     console.log('Message content types:', messageContent.map(content => content.type));
 
-    const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
-    });
-    
     const raceContext = formatRaceContext(race);
     console.log('Generated race context length:', raceContext.length);
     
@@ -105,27 +91,46 @@ serve(async (req) => {
       ${raceContext}
     `;
 
-    console.log('Making request to Anthropic API with model:', settings.anthropic_model);
+    console.log('Making request to OpenAI API with model:', settings.openai_model);
     
-    const response = await anthropic.messages.create({
-      model: settings.anthropic_model,
-      max_tokens: 1024,
-      system: systemMessage,
-      messages: [{
-        role: "user",
-        content: messageContent
-      }]
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: settings.openai_model,
+        messages: [
+          { 
+            role: "system", 
+            content: systemMessage
+          },
+          { 
+            role: "user", 
+            content: messageContent
+          }
+        ],
+        max_tokens: 1024,
+      }),
     });
 
-    console.log('Received response from Anthropic');
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('OpenAI API error:', error);
+      throw new Error(error.error?.message || 'Failed to get response from OpenAI');
+    }
+
+    const data = await response.json();
+    console.log('Received response from OpenAI');
     
     return new Response(
-      JSON.stringify({ message: response.content[0].text }),
+      JSON.stringify({ message: data.choices[0].message.content }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in chat-with-anthropic function:', error);
+    console.error('Error in chat-with-openai function:', error);
     return new Response(
       JSON.stringify({ 
         error: true,
@@ -138,17 +143,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to fetch and convert image to base64
-async function fetchAndConvertToBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  let binary = '';
-  const chunkSize = 32768;
-  for (let i = 0; i < uint8Array.length; i += chunkSize) {
-    const chunk = uint8Array.slice(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
-  }
-  return btoa(binary);
-}
