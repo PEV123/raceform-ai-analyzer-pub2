@@ -20,17 +20,17 @@ Prize: ${race.prize || 'Unknown prize'}
 
 Runners:
 ${race.runners?.map((runner: any) => {
-  const horseResults = historicalResults?.filter(r => r.horse_id === runner.horse_id) || [];
+  const horseResults = historicalResults?.filter(result => result.horse_id === runner.horse_id) || [];
   
   return `
 ${runner.horse} (${runner.age}yo ${runner.sex})
 Jockey: ${runner.jockey}
 Trainer: ${runner.trainer}
 Weight: ${runner.weight || runner.lbs}
-Recent Form: ${horseResults.slice(0, 5).map(r => 
-  `${r.position}/${r.runners?.length || '-'} - ${r.course} (${r.distance}) - ${r.going}`
+Recent Form: ${horseResults.map(result => 
+  `${result.position || '-'}/${result.field_size || '-'} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`
 ).join(', ') || 'No recent form'}
-Comments: ${horseResults.slice(0, 3).map(r => r.comment).filter(Boolean).join(' | ') || 'No comments'}
+Comments: ${horseResults.slice(0, 3).map(result => result.comment).filter(Boolean).join(' | ') || 'No comments'}
   `;
 }).join('\n') || 'No runners available'}
 `;
