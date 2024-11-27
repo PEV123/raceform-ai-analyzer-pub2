@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Race, Runner } from './types.ts'
+import { format, parseISO } from 'https://esm.sh/date-fns@2'
+import { formatInTimeZone } from 'https://esm.sh/date-fns-tz@2'
 
 export const getSupabaseClient = () => {
   const client = createClient(
@@ -14,10 +16,15 @@ export const insertRace = async (supabase: any, race: Race) => {
   console.log(`Inserting race: ${race.course} - ${race.off_time}`)
   
   try {
+    // Parse and format the timestamp properly
+    const parsedDate = parseISO(race.off_time)
+    const formattedOffTime = format(parsedDate, "yyyy-MM-dd'T'HH:mm:ssXXX")
+    console.log('Formatted off_time:', formattedOffTime)
+
     const { data: raceData, error: raceError } = await supabase
       .from("races")
       .insert({
-        off_time: race.off_time,
+        off_time: formattedOffTime,
         course: race.course,
         race_name: race.race_name,
         region: race.region,
@@ -133,12 +140,16 @@ export const insertHorseResult = async (supabase: any, horseId: string, result: 
   console.log(`Inserting result for horse ${horseId}`)
   
   try {
+    // Parse and format the date properly
+    const parsedDate = parseISO(result.off_dt)
+    const formattedDate = format(parsedDate, "yyyy-MM-dd'T'HH:mm:ssXXX")
+
     const { error: resultError } = await supabase
       .from('horse_results')
       .insert({
         horse_id: horseId,
         race_id: result.race_id,
-        date: result.off_dt,
+        date: formattedDate,
         course: result.course,
         distance: result.dist,
         class: result.class,
