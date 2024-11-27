@@ -1,33 +1,82 @@
 export interface RacingApiRace {
+  race_id: string;
   off_time: string;
   course: string;
+  course_id: string;
+  date: string;
+  off_dt: string;
   race_name: string;
+  distance_round: string;
+  distance: string;
+  distance_f: string;
   region: string;
+  pattern: string;
   race_class: string;
+  type: string;
   age_band: string;
   rating_band: string;
   prize: string;
   field_size: number;
+  going_detailed: string;
+  rail_movements: string;
+  stalls: string;
+  weather: string;
+  going: string;
+  surface: string;
+  big_race: boolean;
+  is_abandoned: boolean;
   runners: RacingApiRunner[];
 }
 
 export interface RacingApiRunner {
   horse_id: string;
+  horse: string;
+  dob: string;
+  age: string;
+  sex: string;
+  sex_code: string;
+  colour: string;
+  region: string;
+  breeder: string;
+  dam: string;
+  dam_id: string;
+  dam_region: string;
+  sire: string;
+  sire_id: string;
+  sire_region: string;
+  damsire: string;
+  damsire_id: string;
+  damsire_region: string;
+  trainer: string;
+  trainer_id: string;
+  trainer_location: string;
+  trainer_14_days: Record<string, any>;
+  owner: string;
+  owner_id: string;
+  prev_trainers: any[];
+  prev_owners: any[];
+  comment: string;
+  spotlight: string;
+  quotes: string[];
+  stable_tour: string[];
+  medical: string[];
   number: number;
   draw: number;
-  horse: string;
-  silk_url?: string;
-  sire: string;
-  sire_region: string;
-  dam: string;
-  dam_region: string;
-  form?: string;
+  headgear: string;
+  headgear_run: string;
+  wind_surgery: string;
+  wind_surgery_run: string;
+  past_results_flags: string[];
   lbs: number;
-  headgear?: string;
-  ofr?: string;
-  ts?: string;
+  ofr: string;
+  rpr: string;
+  ts: string;
   jockey: string;
-  trainer: string;
+  jockey_id: string;
+  silk_url: string;
+  last_run: string;
+  form: string;
+  trainer_rtf: string;
 }
 
 export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
@@ -52,36 +101,34 @@ export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
   }
 
   const data = await response.json();
-  console.log("Received races data:", data);
+  
+  // Detailed logging of received data structure
+  console.log("Full API Response:", JSON.stringify(data, null, 2));
+  
+  // Check for missing fields in races
+  data.racecards.forEach((race: any, index: number) => {
+    const missingFields = Object.keys(race).filter(key => race[key] === undefined);
+    if (missingFields.length > 0) {
+      console.warn(`Race ${index} is missing fields:`, missingFields);
+    }
+    
+    // Check runners data
+    race.runners?.forEach((runner: any, runnerIndex: number) => {
+      const missingRunnerFields = Object.keys(runner).filter(key => runner[key] === undefined);
+      if (missingRunnerFields.length > 0) {
+        console.warn(`Runner ${runnerIndex} in race ${index} is missing fields:`, missingRunnerFields);
+      }
+    });
+  });
 
-  // Transform the API response to match our expected format
   return data.racecards.map((racecard: any) => ({
-    off_time: racecard.off_dt,
-    course: racecard.course,
-    race_name: racecard.race_name,
-    region: racecard.region,
-    race_class: racecard.race_class,
-    age_band: racecard.age_band,
-    rating_band: racecard.rating_band,
-    prize: racecard.prize,
+    ...racecard,
     field_size: parseInt(racecard.field_size),
     runners: racecard.runners.map((runner: any) => ({
-      horse_id: runner.horse_id,
+      ...runner,
       number: parseInt(runner.number),
       draw: parseInt(runner.draw || '0'),
-      horse: runner.horse,
-      silk_url: runner.silk_url,
-      sire: runner.sire,
-      sire_region: runner.sire_region || '',
-      dam: runner.dam,
-      dam_region: runner.dam_region || '',
-      form: runner.form,
       lbs: parseInt(runner.lbs),
-      headgear: runner.headgear,
-      ofr: runner.ofr,
-      ts: runner.ts,
-      jockey: runner.jockey,
-      trainer: runner.trainer,
-    })),
+    }))
   }));
 };
