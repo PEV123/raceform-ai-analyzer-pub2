@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
 import { useState } from "react";
-import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
@@ -17,12 +17,12 @@ const Admin = () => {
     queryKey: ["races", selectedDate],
     queryFn: async () => {
       // Convert the selected date to start and end of day in UK time
-      const ukStartOfDay = zonedTimeToUtc(
+      const ukStartOfDay = fromZonedTime(
         new Date(selectedDate.setHours(0, 0, 0, 0)),
         'Europe/London'
       );
       
-      const ukEndOfDay = zonedTimeToUtc(
+      const ukEndOfDay = fromZonedTime(
         new Date(selectedDate.setHours(23, 59, 59, 999)),
         'Europe/London'
       );
