@@ -102,7 +102,7 @@ serve(async (req) => {
       content: msg.message
     }));
 
-    // Call Anthropic API
+    // Call Anthropic API with the updated format
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -112,8 +112,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'claude-3-opus-20240229',
+        system: systemMessage,
         messages: [
-          { role: 'system', content: systemMessage },
           ...formattedMessages,
           { role: 'user', content: message }
         ],
