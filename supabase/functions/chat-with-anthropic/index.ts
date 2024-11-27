@@ -95,15 +95,15 @@ serve(async (req) => {
       Please provide detailed analysis based on this information.
     `;
 
-    console.log('System message prepared:', systemMessage);
-
     // Format previous messages for Claude
     const formattedMessages = previousMessages.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.message
+      role: msg.role,
+      content: msg.content
     }));
 
-    // Call Anthropic API with the updated format
+    console.log('Making request to Anthropic API...');
+
+    // Call Anthropic API with the updated model
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -112,7 +112,7 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-sonnet-20240229',
         system: systemMessage,
         messages: [
           ...formattedMessages,
