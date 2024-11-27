@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RaceAnalysis } from "@/components/analysis/RaceAnalysis";
-import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -20,6 +20,19 @@ const Analysis = () => {
   const { raceId } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const cleanupMutation = useMutation({
     mutationFn: async () => {
@@ -84,6 +97,22 @@ const Analysis = () => {
     return <div>Loading...</div>;
   }
 
+  const formatDateTime = (date: string) => {
+    return formatInTimeZone(
+      new Date(date),
+      settings?.timezone || 'Europe/London',
+      'dd/MM/yyyy'
+    );
+  };
+
+  const formatTime = (date: string) => {
+    return formatInTimeZone(
+      new Date(date),
+      settings?.timezone || 'Europe/London',
+      'HH:mm'
+    );
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -116,11 +145,11 @@ const Analysis = () => {
           {races?.map((race) => (
             <TableRow key={race.id}>
               <TableCell>
-                {format(new Date(race.off_time), "dd/MM/yyyy")}
+                {formatDateTime(race.off_time)}
               </TableCell>
               <TableCell>{race.course}</TableCell>
               <TableCell>
-                {format(new Date(race.off_time), "HH:mm")}
+                {formatTime(race.off_time)}
               </TableCell>
               <TableCell>{race.field_size}</TableCell>
               <TableCell>
