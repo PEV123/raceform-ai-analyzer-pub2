@@ -12,13 +12,35 @@ export const getSupabaseClient = () => {
   return client
 }
 
+const formatTimestamp = (dateStr: string): string => {
+  try {
+    // First try parsing as ISO string
+    const date = parseISO(dateStr)
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date from parseISO')
+    }
+    return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX")
+  } catch (error) {
+    console.error('Error parsing date:', dateStr, error)
+    // If parsing fails, try to fix common format issues
+    const fixedDate = dateStr
+      .replace(/(\d{4}-\d{2}-\d{2})(?:T| )(\d{2}:\d{2})(?::00)?/, '$1T$2:00')
+      .replace(/Z$/, '+00:00')
+    
+    console.log('Attempting with fixed date format:', fixedDate)
+    const date = parseISO(fixedDate)
+    if (isNaN(date.getTime())) {
+      throw new Error(`Could not parse date: ${dateStr}`)
+    }
+    return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX")
+  }
+}
+
 export const insertRace = async (supabase: any, race: Race) => {
   console.log(`Inserting race: ${race.course} - ${race.off_time}`)
   
   try {
-    // Parse and format the timestamp properly
-    const parsedDate = parseISO(race.off_time)
-    const formattedOffTime = format(parsedDate, "yyyy-MM-dd'T'HH:mm:ssXXX")
+    const formattedOffTime = formatTimestamp(race.off_time)
     console.log('Formatted off_time:', formattedOffTime)
 
     const { data: raceData, error: raceError } = await supabase
@@ -140,9 +162,8 @@ export const insertHorseResult = async (supabase: any, horseId: string, result: 
   console.log(`Inserting result for horse ${horseId}`)
   
   try {
-    // Parse and format the date properly
-    const parsedDate = parseISO(result.off_dt)
-    const formattedDate = format(parsedDate, "yyyy-MM-dd'T'HH:mm:ssXXX")
+    const formattedDate = formatTimestamp(result.off_dt)
+    console.log('Formatted horse result date:', formattedDate)
 
     const { error: resultError } = await supabase
       .from('horse_results')
