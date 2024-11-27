@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
 import ImportRaces from "@/components/admin/ImportRaces";
+import { HorseResults } from "@/components/admin/HorseResults";
 
 const Admin = () => {
   const { data: races, isLoading } = useQuery({
@@ -31,6 +32,7 @@ const Admin = () => {
         <div className="space-y-4">
           <ImportRaces />
           <AdminSettings />
+          <HorseResults />
         </div>
         
         <div className="space-y-4">
