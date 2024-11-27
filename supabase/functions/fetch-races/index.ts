@@ -40,7 +40,17 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log("Successfully fetched races data")
+    
+    // Log the specific race from Hereford at 12:15
+    const herefordRace = data.racecards.find(
+      (race: any) => race.course === "Hereford" && race.off_dt.includes("12:15:00")
+    );
+    
+    if (herefordRace) {
+      console.log("Found Hereford 12:15 race:", JSON.stringify(herefordRace, null, 2));
+    } else {
+      console.log("No race found at Hereford at 12:15");
+    }
     
     return new Response(
       JSON.stringify(data),
