@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { useState } from "react";
 
 const Admin = () => {
@@ -19,9 +20,12 @@ const Admin = () => {
   const { data: races, isLoading } = useQuery({
     queryKey: ["races", format(date, 'yyyy-MM-dd')],
     queryFn: async () => {
-      const start = startOfDay(date).toISOString();
-      const end = endOfDay(date).toISOString();
-      console.log('Fetching races between:', start, 'and', end);
+      // Format dates in UK timezone for database query
+      const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
+      const start = `${ukDate}T00:00:00+00:00`;
+      const end = `${ukDate}T23:59:59.999+00:00`;
+      
+      console.log('Fetching races between (UK time):', start, 'and', end);
 
       const { data, error } = await supabase
         .from("races")
@@ -58,7 +62,7 @@ const Admin = () => {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {format(date, "PPP")}
+              {formatInTimeZone(date, 'Europe/London', 'PPP')}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">

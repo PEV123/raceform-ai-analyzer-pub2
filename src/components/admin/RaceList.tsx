@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
 import { FileJson } from "lucide-react";
+import { formatInTimeZone } from 'date-fns-tz';
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -20,13 +21,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
 
   const formatTime = (date: string) => {
-    const raceTime = new Date(date);
-    return raceTime.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
   };
 
   // Create a Map to store unique races by their course and off_time combination

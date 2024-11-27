@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchRacesForDate } from "@/services/racingApi";
-import { startOfDay, endOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const useImportRacesMutation = () => {
   const { toast } = useToast();
@@ -23,7 +23,10 @@ export const useImportRacesMutation = () => {
 
   return useMutation({
     mutationFn: async (date: Date) => {
-      console.log("Starting import for date:", date);
+      // Log the date in UK timezone for debugging
+      console.log("Starting import for date (UK time):", 
+        formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd HH:mm:ss'));
+      
       const races = await fetchRacesForDate(date);
       
       if (!Array.isArray(races)) {

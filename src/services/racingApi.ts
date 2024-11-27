@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const fetchTodaysRaces = async () => {
   const today = new Date();
@@ -7,8 +8,9 @@ export const fetchTodaysRaces = async () => {
 };
 
 export const fetchRacesForDate = async (date: Date) => {
-  const formattedDate = format(date, 'yyyy-MM-dd');
-  console.log('Fetching races for date:', formattedDate);
+  // Always format the date in UK timezone for the API request
+  const formattedDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
+  console.log('Fetching races for date (UK time):', formattedDate);
 
   const { data, error } = await supabase.functions.invoke('fetch-races-by-date', {
     body: { 
