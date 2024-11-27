@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceCard } from "@/components/race/RaceCard";
-import { formatInTimeZone } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -14,37 +13,12 @@ import { format } from "date-fns";
 const Index = () => {
   const [date, setDate] = useState<Date>(new Date());
 
-  // First fetch admin settings for timezone display
-  const { data: settings, isLoading: settingsLoading } = useQuery({
-    queryKey: ["adminSettings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admin_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const timezone = settings?.timezone || 'Europe/London';
-
-  // Then fetch races using the exact date without timezone manipulation
+  // Fetch races for the selected date
   const { data: races, isLoading: racesLoading } = useQuery({
-    queryKey: ["races", date.toISOString()],
+    queryKey: ["races", format(date, 'yyyy-MM-dd')],
     queryFn: async () => {
-      // Create date range for the selected day in UTC
-      const startOfDay = new Date(date);
-      startOfDay.setUTCHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(date);
-      endOfDay.setUTCHours(23, 59, 59, 999);
-      
-      console.log("Selected date:", format(date, 'yyyy-MM-dd'));
-      console.log("Query date range (UTC):");
-      console.log("Start:", startOfDay.toISOString());
-      console.log("End:", endOfDay.toISOString());
+      const selectedDate = format(date, 'yyyy-MM-dd');
+      console.log("Fetching races for date:", selectedDate);
 
       const { data, error } = await supabase
         .from("races")
@@ -52,8 +26,8 @@ const Index = () => {
           *,
           runners (*)
         `)
-        .gte('off_time', startOfDay.toISOString())
-        .lte('off_time', endOfDay.toISOString())
+        .gte('off_time', `${selectedDate}T00:00:00`)
+        .lt('off_time', `${selectedDate}T23:59:59.999`)
         .order('off_time', { ascending: true });
 
       if (error) throw error;
@@ -62,7 +36,7 @@ const Index = () => {
     },
   });
 
-  if (racesLoading || settingsLoading) return <div>Loading...</div>;
+  if (racesLoading) return <div>Loading...</div>;
 
   // Group races by venue
   const groupedRaces = races?.reduce((acc: Record<string, any[]>, race) => {
