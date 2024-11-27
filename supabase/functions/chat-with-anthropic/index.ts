@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +15,7 @@ serve(async (req) => {
 
   try {
     const { message, raceId } = await req.json();
-    console.log('Received request:', { raceId, message });
+    console.log('Received request:', { raceId, messageType: typeof message });
 
     if (!message || !raceId) {
       throw new Error('Missing required parameters: message or raceId');
@@ -63,7 +65,7 @@ serve(async (req) => {
     const documentImages = await Promise.all(race.race_documents
       .filter((doc: any) => doc.content_type.startsWith('image/'))
       .map(async (doc: any) => {
-        const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
+        const url = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
         try {
           const response = await fetch(url);
           const arrayBuffer = await response.arrayBuffer();
@@ -82,7 +84,6 @@ serve(async (req) => {
         }
       }));
 
-    // Filter out any failed image processing
     const validDocumentImages = documentImages.filter(img => img !== null);
 
     const systemMessage = `
@@ -105,13 +106,18 @@ serve(async (req) => {
       Please provide detailed analysis based on this information and any images shared. Analyze all images thoroughly and incorporate your findings into your response.
     `;
 
-    // Check if the message contains a base64 image
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
+    });
+
+    // Prepare message content array
     const messageContent = [];
     
-    // First add any document images
+    // Add any document images first
     messageContent.push(...validDocumentImages);
     
-    // Then add the user's message
+    // Then handle the user's message/image
     if (message.startsWith('data:image')) {
       // Handle base64 image from user
       const [header, base64Data] = message.split(',');
@@ -136,37 +142,23 @@ serve(async (req) => {
     }
 
     console.log('Making request to Anthropic API');
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        system: systemMessage,
-        messages: [{
-          role: 'user',
-          content: messageContent
-        }],
-        max_tokens: 1024,
-      }),
+    const response = await anthropic.messages.create({
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 1024,
+      system: systemMessage,
+      messages: [{
+        role: "user",
+        content: messageContent
+      }]
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Anthropic API error:', response.status, errorText);
-      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
     console.log('Received response from Anthropic');
-
+    
     return new Response(
-      JSON.stringify({ message: data.content[0].text }),
+      JSON.stringify({ message: response.content[0].text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Error in chat-with-anthropic function:', error);
     return new Response(
