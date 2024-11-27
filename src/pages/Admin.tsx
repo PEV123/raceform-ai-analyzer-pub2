@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { useState } from "react";
 
 const Admin = () => {
@@ -19,8 +19,9 @@ const Admin = () => {
   const { data: races, isLoading } = useQuery({
     queryKey: ["races", format(date, 'yyyy-MM-dd')],
     queryFn: async () => {
-      const selectedDate = format(date, 'yyyy-MM-dd');
-      console.log('Fetching races for date:', selectedDate);
+      const start = startOfDay(date).toISOString();
+      const end = endOfDay(date).toISOString();
+      console.log('Fetching races between:', start, 'and', end);
 
       const { data, error } = await supabase
         .from("races")
@@ -29,8 +30,8 @@ const Admin = () => {
           race_documents (*),
           runners (*)
         `)
-        .gte('off_time', `${selectedDate}T00:00:00`)
-        .lt('off_time', `${selectedDate}T23:59:59.999`)
+        .gte('off_time', start)
+        .lt('off_time', end)
         .order('off_time', { ascending: true });
 
       if (error) {
