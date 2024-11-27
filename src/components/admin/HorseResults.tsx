@@ -17,7 +17,9 @@ import { useMutation } from "@tanstack/react-query";
 
 export const HorseResults = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedHorseId, setSelectedHorseId] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [horseResults, setHorseResults] = useState<any[]>([]);
   const { toast } = useToast();
 
   const searchMutation = useMutation({
@@ -30,7 +32,6 @@ export const HorseResults = () => {
         throw new Error("No session found");
       }
 
-      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
         body: { horseName },
       });
@@ -45,6 +46,8 @@ export const HorseResults = () => {
     },
     onSuccess: (data) => {
       setSearchResults(data);
+      setHorseResults([]);
+      setSelectedHorseId(null);
       if (data.length === 0) {
         toast({
           title: "No results found",
@@ -62,6 +65,41 @@ export const HorseResults = () => {
     },
   });
 
+  const resultsMutation = useMutation({
+    mutationFn: async (horseId: string) => {
+      console.log('Fetching results for horse ID:', horseId);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("No session found");
+      }
+
+      const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
+        body: { horseId },
+      });
+
+      if (error) throw error;
+      return data.results || [];
+    },
+    onSuccess: (data) => {
+      setHorseResults(data);
+      if (data.length === 0) {
+        toast({
+          title: "No results found",
+          description: "No race results found for this horse",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Results fetch error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch horse results. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) {
@@ -73,6 +111,11 @@ export const HorseResults = () => {
       return;
     }
     searchMutation.mutate(searchTerm);
+  };
+
+  const handleViewResults = (horseId: string) => {
+    setSelectedHorseId(horseId);
+    resultsMutation.mutate(horseId);
   };
 
   return (
@@ -105,26 +148,70 @@ export const HorseResults = () => {
       </form>
 
       {searchResults.length > 0 && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Sire</TableHead>
-              <TableHead>Dam</TableHead>
-              <TableHead>Dam Sire</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {searchResults.map((horse) => (
-              <TableRow key={horse.id}>
-                <TableCell>{horse.name}</TableCell>
-                <TableCell>{horse.sire}</TableCell>
-                <TableCell>{horse.dam}</TableCell>
-                <TableCell>{horse.damsire}</TableCell>
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-2">Search Results</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Horse ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Sire</TableHead>
+                <TableHead>Dam</TableHead>
+                <TableHead>Dam Sire</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {searchResults.map((horse) => (
+                <TableRow key={horse.id}>
+                  <TableCell>{horse.id}</TableCell>
+                  <TableCell>{horse.name}</TableCell>
+                  <TableCell>{horse.sire}</TableCell>
+                  <TableCell>{horse.dam}</TableCell>
+                  <TableCell>{horse.damsire}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewResults(horse.id)}
+                      disabled={resultsMutation.isPending}
+                    >
+                      View Results
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {horseResults.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Race Results</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Distance</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Going</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {horseResults.map((result, index) => (
+                <TableRow key={index}>
+                  <TableCell>{result.date}</TableCell>
+                  <TableCell>{result.course}</TableCell>
+                  <TableCell>{result.distance}</TableCell>
+                  <TableCell>{result.position}</TableCell>
+                  <TableCell>{result.going}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </Card>
   );

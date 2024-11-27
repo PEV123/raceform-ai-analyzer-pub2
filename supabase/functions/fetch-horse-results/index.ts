@@ -15,23 +15,33 @@ serve(async (req) => {
   }
 
   try {
-    const { horseName } = await req.json()
+    const { horseName, horseId } = await req.json()
     
-    if (!horseName) {
+    if (!horseName && !horseId) {
       return new Response(
-        JSON.stringify({ error: 'Horse name is required' }),
+        JSON.stringify({ error: 'Either horse name or ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Fetching results for horse:', horseName)
-    
     if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
       throw new Error('API credentials are not configured')
     }
 
+    let apiUrl;
+    if (horseId) {
+      // Get date range for the last year
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results?start_date=${startDate}&end_date=${endDate}`;
+      console.log('Fetching results for horse ID:', horseId);
+    } else {
+      apiUrl = `https://api.theracingapi.com/v1/horses/search?name=${encodeURIComponent(horseName)}`;
+      console.log('Searching for horse:', horseName);
+    }
+
     const apiResponse = await fetch(
-      `https://api.theracingapi.com/v1/horses/search?name=${encodeURIComponent(horseName)}`,
+      apiUrl,
       {
         headers: {
           'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
@@ -52,7 +62,7 @@ serve(async (req) => {
     }
 
     const data = await apiResponse.json()
-    console.log('Successfully retrieved horse results')
+    console.log('Successfully retrieved', horseId ? 'horse results' : 'horse search results')
     
     return new Response(
       JSON.stringify(data),
