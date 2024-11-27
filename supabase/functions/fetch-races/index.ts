@@ -20,8 +20,13 @@ serve(async (req) => {
   try {
     console.log("Edge function received request to fetch races")
     
+    if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
+      throw new Error("Racing API credentials not configured")
+    }
+    
     const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
     
+    console.log("Fetching races from Racing API...")
     const response = await fetch(
       `${RACING_API_BASE_URL}/racecards/pro?day=today`,
       {
@@ -33,10 +38,10 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
-      console.error("Error fetching races:", response.statusText)
+      console.error("Error response from Racing API:", response.status, response.statusText)
       const errorBody = await response.text()
       console.error("Error body:", errorBody)
-      throw new Error(`Failed to fetch races: ${response.statusText}`)
+      throw new Error(`Racing API error: ${response.statusText}`)
     }
 
     const data = await response.json()
