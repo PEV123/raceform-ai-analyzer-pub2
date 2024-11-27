@@ -1,39 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchTodaysRaces = async () => {
-  const response = await fetch('https://api.theracingapi.com/v1/races', {
-    headers: {
-      'Authorization': `Basic ${btoa(`${import.meta.env.VITE_RACING_API_USERNAME}:${import.meta.env.VITE_RACING_API_PASSWORD}`)}`,
-      'Accept': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch races: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.races;
+  const today = new Date().toISOString().split('T')[0];
+  return fetchRacesForDate(new Date());
 };
 
 export const fetchRacesForDate = async (date: Date) => {
   console.log('Fetching races for date:', date);
   const formattedDate = date.toISOString().split('T')[0];
 
-  const response = await fetch(
-    `https://api.theracingapi.com/v1/races?date=${formattedDate}`,
-    {
-      headers: {
-        'Authorization': `Basic ${btoa(`${import.meta.env.VITE_RACING_API_USERNAME}:${import.meta.env.VITE_RACING_API_PASSWORD}`)}`,
-        'Accept': 'application/json'
-      }
-    }
-  );
+  const { data, error } = await supabase.functions.invoke('fetch-races-by-date', {
+    body: { date: formattedDate }
+  });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch races: ${response.statusText}`);
+  if (error) {
+    console.error('Error fetching races:', error);
+    throw error;
   }
 
-  const data = await response.json();
   return data.races;
 };
