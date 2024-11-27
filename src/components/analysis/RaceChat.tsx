@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 import { useSession } from '@supabase/auth-helpers-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
 
 interface RaceChatProps {
   raceId: string;
@@ -25,6 +26,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
   const { toast } = useToast();
   const session = useSession();
   const [chatMode, setChatMode] = useState<'personal' | 'all'>('personal');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadChatHistory();
@@ -37,7 +39,6 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
       .eq('race_id', raceId)
       .order('created_at', { ascending: true });
 
-    // Filter by user_id for personal chat mode
     if (chatMode === 'personal' && session?.user) {
       query.eq('user_id', session.user.id);
     }
@@ -58,6 +59,29 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
       role: msg.role as 'user' | 'assistant',
       message: msg.message
     })));
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('race_documents')
+        .upload(`chat-images/${Date.now()}-${file.name}`, file);
+
+      if (error) throw error;
+
+      const imageUrl = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${data.path}`;
+      setNewMessage(prev => prev + `\n${imageUrl}`);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -82,7 +106,6 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
 
       if (error) throw error;
 
-      // Store both user and assistant messages with user_id
       const { error: insertError } = await supabase
         .from('race_chats')
         .insert([
@@ -129,6 +152,12 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     );
   }
 
+  const formatMessage = (message: string) => {
+    return message.split('\n').map((line, i) => (
+      <p key={i} className="mb-2">{line}</p>
+    ));
+  };
+
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
       <div className="border-b p-2">
@@ -155,10 +184,15 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
                   : 'bg-muted'
               }`}
             >
-              {msg.message}
+              {formatMessage(msg.message)}
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex items-center justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
       </ScrollArea>
 
       <form onSubmit={sendMessage} className="p-4 border-t">
@@ -169,6 +203,21 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
             placeholder="Type your message..."
             disabled={isLoading}
           />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+          />
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+          >
+            📎
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Sending..." : "Send"}
           </Button>
