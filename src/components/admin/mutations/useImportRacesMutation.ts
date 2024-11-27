@@ -9,8 +9,17 @@ export const useImportRacesMutation = () => {
 
   return useMutation({
     mutationFn: async (date: Date) => {
-      const races = await fetchRacesForDate(date);
-      console.log("Importing races for date:", date, races);
+      console.log("Importing races for date:", date);
+      const response = await fetchRacesForDate(date);
+      
+      // Check if response exists and has races property
+      if (!response || !Array.isArray(response)) {
+        console.error("Invalid response format:", response);
+        throw new Error("Invalid response format from Racing API");
+      }
+
+      const races = response;
+      console.log("Processing races:", races);
 
       for (const race of races) {
         console.log(`Processing race at ${race.course} - ${race.off_dt}`);
