@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -45,26 +45,46 @@ export const AdminSettings = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
+      console.log("Fetching admin settings...");
       const { data, error } = await supabase
         .from("admin_settings")
         .select("*")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching settings:", error);
+        throw error;
+      }
       
-      setSystemPrompt(data.system_prompt);
-      setKnowledgeBase(data.knowledge_base);
-      setTimezone(data.timezone);
-      setSelectedProvider(data.selected_provider);
-      setAnthropicModel(data.anthropic_model);
-      setOpenaiModel(data.openai_model);
-      
+      console.log("Fetched settings:", data);
       return data;
     },
   });
 
+  // Use useEffect to update state when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      console.log("Updating form with settings:", settings);
+      setSystemPrompt(settings.system_prompt || "");
+      setKnowledgeBase(settings.knowledge_base || "");
+      setTimezone(settings.timezone || "Europe/London");
+      setSelectedProvider(settings.selected_provider || "anthropic");
+      setAnthropicModel(settings.anthropic_model || "claude-3-sonnet-20240229");
+      setOpenaiModel(settings.openai_model || "gpt-4o");
+    }
+  }, [settings]);
+
   const updateSettings = useMutation({
     mutationFn: async () => {
+      console.log("Updating settings with values:", {
+        systemPrompt,
+        knowledgeBase,
+        timezone,
+        selectedProvider,
+        anthropicModel,
+        openaiModel
+      });
+
       const { error } = await supabase
         .from("admin_settings")
         .update({
