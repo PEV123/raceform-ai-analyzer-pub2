@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatRaceContext } from "@/lib/formatRaceContext";
+import { useState, useEffect } from "react";
 
 interface RawDataDialogProps {
   open: boolean;
@@ -15,7 +16,17 @@ interface RawDataDialogProps {
 }
 
 export const RawDataDialog = ({ open, onOpenChange, race }: RawDataDialogProps) => {
-  const formattedContext = formatRaceContext(race);
+  const [formattedContext, setFormattedContext] = useState<string>("");
+
+  useEffect(() => {
+    const loadContext = async () => {
+      if (race) {
+        const context = await formatRaceContext(race);
+        setFormattedContext(context);
+      }
+    };
+    loadContext();
+  }, [race]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
