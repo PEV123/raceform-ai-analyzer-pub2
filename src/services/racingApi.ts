@@ -36,6 +36,7 @@ export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
   const response = await fetch(
     "https://vlcrqrmqghskrdhhsgqt.supabase.co/functions/v1/fetch-races",
     {
+      method: 'GET',
       headers: {
         "Content-Type": "application/json",
       },
