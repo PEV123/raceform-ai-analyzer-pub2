@@ -1,27 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Runner {
   horse_id: string;
   number: number;
   draw: number;
   horse: string;
-  silk_url: string;
+  silk_url: string | null;
   sire: string;
   sire_region: string;
   dam: string;
   dam_region: string;
-  form: string;
+  form: string | null;
   lbs: number;
-  headgear: string;
-  ofr: string;
-  ts: string;
+  headgear: string | null;
+  ofr: string | null;
+  ts: string | null;
   jockey: string;
   trainer: string;
 }
 
 interface Race {
+  id: string;
   off_time: string;
   course: string;
   race_name: string;
@@ -45,34 +47,47 @@ const RaceCard = ({ race }: { race: Race }) => {
     <Card className="p-6 mb-8">
       <div className="flex justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold">{race.off_time} {race.course}</h2>
+          <h2 className="text-2xl font-bold">
+            {new Date(race.off_time).toLocaleTimeString()} {race.course}
+          </h2>
           <h3 className="text-xl">{race.race_name}</h3>
         </div>
         <div className="text-right">
-          <p className="text-sm">{race.region} | {race.race_class} | {race.age_band} | {race.rating_band}</p>
-          <p className="text-sm">Prize {race.prize} - {race.field_size} run</p>
+          <p className="text-sm">
+            {race.region} | {race.race_class} | {race.age_band} | {race.rating_band}
+          </p>
+          <p className="text-sm">
+            Prize {race.prize} - {race.field_size} run
+          </p>
         </div>
       </div>
       <div className="space-y-4">
         {race.runners.map((runner) => (
-          <div key={runner.horse_id} className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+          <div
+            key={runner.horse_id}
+            className="flex items-center gap-4 p-4 bg-muted rounded-lg"
+          >
             <div className="w-8 text-center">
               <div className="font-bold">{runner.number}</div>
               <div className="text-sm">({runner.draw})</div>
             </div>
-            <img src={runner.silk_url} alt="Silk" className="w-12 h-12" />
+            {runner.silk_url && (
+              <img src={runner.silk_url} alt="Silk" className="w-12 h-12" />
+            )}
             <div className="flex-1">
               <h4 className="font-bold">{runner.horse}</h4>
-              <p className="text-sm">{runner.sire} ({runner.sire_region}) | {runner.dam} ({runner.dam_region})</p>
-              <p className="text-sm">Form: {runner.form}</p>
+              <p className="text-sm">
+                {runner.sire} ({runner.sire_region}) | {runner.dam} ({runner.dam_region})
+              </p>
+              <p className="text-sm">Form: {runner.form || 'N/A'}</p>
             </div>
             <div className="text-sm">
               <p>wgt: {lbsToStone(runner.lbs)}</p>
-              <p>hg: {runner.headgear}</p>
+              <p>hg: {runner.headgear || 'None'}</p>
             </div>
             <div className="text-sm">
-              <p>ofr: {runner.ofr}</p>
-              <p>ts: {runner.ts}</p>
+              <p>ofr: {runner.ofr || 'N/A'}</p>
+              <p>ts: {runner.ts || 'N/A'}</p>
             </div>
             <div className="text-sm">
               <p>J: {runner.jockey}</p>
@@ -89,9 +104,41 @@ const Index = () => {
   const { data: races, isLoading } = useQuery({
     queryKey: ["races"],
     queryFn: async () => {
-      // This is where we'll integrate with the Racing API
-      // For now, return mock data
-      return [];
+      console.log("Fetching races...");
+      const { data: racesData, error: racesError } = await supabase
+        .from("races")
+        .select("*")
+        .order("off_time", { ascending: true });
+
+      if (racesError) {
+        console.error("Error fetching races:", racesError);
+        throw racesError;
+      }
+
+      console.log("Fetched races:", racesData);
+
+      const racesWithRunners = await Promise.all(
+        racesData.map(async (race) => {
+          const { data: runnersData, error: runnersError } = await supabase
+            .from("runners")
+            .select("*")
+            .eq("race_id", race.id);
+
+          if (runnersError) {
+            console.error("Error fetching runners:", runnersError);
+            throw runnersError;
+          }
+
+          console.log(`Fetched runners for race ${race.id}:`, runnersData);
+
+          return {
+            ...race,
+            runners: runnersData || [],
+          };
+        })
+      );
+
+      return racesWithRunners;
     },
   });
 
@@ -108,9 +155,15 @@ const Index = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Today's Races</h1>
-      {races?.map((race: Race) => (
-        <RaceCard key={`${race.course}-${race.off_time}`} race={race} />
-      ))}
+      {races?.length === 0 ? (
+        <Card className="p-6">
+          <p className="text-lg text-muted-foreground">No races scheduled for today</p>
+        </Card>
+      ) : (
+        races?.map((race: Race) => (
+          <RaceCard key={race.id} race={race} />
+        ))
+      )}
     </div>
   );
 };

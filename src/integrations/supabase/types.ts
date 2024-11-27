@@ -9,7 +9,122 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      races: {
+        Row: {
+          age_band: string
+          course: string
+          created_at: string | null
+          field_size: number
+          id: string
+          off_time: string
+          prize: string
+          race_class: string
+          race_name: string
+          rating_band: string
+          region: string
+        }
+        Insert: {
+          age_band: string
+          course: string
+          created_at?: string | null
+          field_size: number
+          id?: string
+          off_time: string
+          prize: string
+          race_class: string
+          race_name: string
+          rating_band: string
+          region: string
+        }
+        Update: {
+          age_band?: string
+          course?: string
+          created_at?: string | null
+          field_size?: number
+          id?: string
+          off_time?: string
+          prize?: string
+          race_class?: string
+          race_name?: string
+          rating_band?: string
+          region?: string
+        }
+        Relationships: []
+      }
+      runners: {
+        Row: {
+          created_at: string | null
+          dam: string
+          dam_region: string
+          draw: number
+          form: string | null
+          headgear: string | null
+          horse: string
+          horse_id: string
+          id: string
+          jockey: string
+          lbs: number
+          number: number
+          ofr: string | null
+          race_id: string | null
+          silk_url: string | null
+          sire: string
+          sire_region: string
+          trainer: string
+          ts: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dam: string
+          dam_region: string
+          draw: number
+          form?: string | null
+          headgear?: string | null
+          horse: string
+          horse_id: string
+          id?: string
+          jockey: string
+          lbs: number
+          number: number
+          ofr?: string | null
+          race_id?: string | null
+          silk_url?: string | null
+          sire: string
+          sire_region: string
+          trainer: string
+          ts?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dam?: string
+          dam_region?: string
+          draw?: number
+          form?: string | null
+          headgear?: string | null
+          horse?: string
+          horse_id?: string
+          id?: string
+          jockey?: string
+          lbs?: number
+          number?: number
+          ofr?: string | null
+          race_id?: string | null
+          silk_url?: string | null
+          sire?: string
+          sire_region?: string
+          trainer?: string
+          ts?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runners_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
