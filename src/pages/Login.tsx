@@ -70,7 +70,6 @@ const Login = () => {
           }}
           theme="light"
           providers={[]}
-          view="sign_in_with_email"
           showLinks={false}
           redirectTo={`${window.location.origin}/admin`}
         />
