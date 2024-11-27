@@ -33,14 +33,20 @@ const Index = () => {
   const { data: races, isLoading: racesLoading } = useQuery({
     queryKey: ["races", date.toISOString(), timezone],
     queryFn: async () => {
-      // Create a new date at the start of the selected day in the specified timezone
-      const zonedDate = new Date(formatInTimeZone(date, timezone, 'yyyy-MM-dd'));
+      // Get the start of the selected day in the target timezone
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
       
-      // Format the dates in the correct timezone for the start and end of the selected date
-      const startStr = formatInTimeZone(zonedDate, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
-      const endStr = formatInTimeZone(zonedDate, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
+      // Get the end of the selected day in the target timezone
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
       
-      console.log("Fetching races for date:", formatInTimeZone(zonedDate, timezone, 'PPP'), "in timezone:", timezone);
+      // Format the dates in the correct timezone
+      const startStr = formatInTimeZone(startOfDay, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+      const endStr = formatInTimeZone(endOfDay, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+      
+      console.log("Selected date:", date);
+      console.log("Fetching races for date:", formatInTimeZone(date, timezone, 'PPP'), "in timezone:", timezone);
       console.log("Date range in timezone:", timezone);
       console.log("Start:", startStr);
       console.log("End:", endStr);
