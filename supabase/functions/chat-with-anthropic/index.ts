@@ -53,55 +53,20 @@ serve(async (req) => {
       - Trainer: ${runner.trainer}
       - Form: ${runner.form || 'No form'}
       - Weight: ${runner.lbs}lbs
-      - Breeding: By ${runner.sire} (${runner.sire_region}) out of ${runner.dam} (${runner.dam_region})
       ${runner.headgear ? `- Headgear: ${runner.headgear}` : ''}
       ${runner.ofr ? `- Official Rating: ${runner.ofr}` : ''}
       ${runner.ts ? `- Top Speed Rating: ${runner.ts}` : ''}
     `).join('\n');
 
-    // Process race documents and convert images to base64
-    console.log('Processing race documents...');
-    const documentDescriptions = await Promise.all(race.race_documents.map(async (doc: any) => {
+    // Create a simplified document summary instead of including base64 data
+    const documentSummary = race.race_documents.map((doc: any) => {
       const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
-      
-      // Only process image files
-      if (doc.content_type.startsWith('image/')) {
-        console.log('Fetching image data for:', doc.file_name);
-        try {
-          const response = await fetch(url);
-          const imageBuffer = await response.arrayBuffer();
-          console.log('Image size:', imageBuffer.byteLength, 'bytes');
-          
-          // Convert to base64 directly using btoa and Uint8Array
-          const base64Image = btoa(
-            Array.from(new Uint8Array(imageBuffer))
-              .map(byte => String.fromCharCode(byte))
-              .join('')
-          );
-          
-          console.log('Successfully converted image to base64');
-          
-          return `Race document: ${doc.file_name} (${doc.content_type})
-Description: This is an image that has been uploaded for analysis.
-Content: <image>${base64Image}</image>
-
-Please analyze this image and incorporate your findings into your response.`;
-        } catch (error) {
-          console.error('Error processing image:', doc.file_name, error);
-          return `Race document: ${doc.file_name} (${doc.content_type}) - Error processing image`;
-        }
-      } else {
-        return `Race document: ${doc.file_name} (${doc.content_type})
-URL: ${url}
-
-Note: This is a non-image document that has been uploaded for analysis.`;
-      }
-    }));
+      return `Race document: ${doc.file_name} (${doc.content_type})
+URL: ${url}`;
+    }).join('\n\n');
 
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
-
-      ${settings?.knowledge_base || ''}
 
       Race Analysis Context:
       Race: ${race.race_name} at ${race.course}
@@ -112,16 +77,17 @@ Note: This is a non-image document that has been uploaded for analysis.`;
       Prize: ${race.prize}
       Field Size: ${race.field_size} runners
 
-      Detailed Runner Information:
+      Runners:
       ${formattedRunners}
 
-      Race Documents:
-      ${documentDescriptions.join('\n\n') || 'No race documents have been uploaded for this race.'}
+      Available Documents:
+      ${documentSummary}
 
-      Please provide detailed analysis based on this information. If race documents are available, please analyze them and incorporate your findings into your response.
+      Please provide analysis based on this information. The race documents are available at the URLs provided - you can reference them in your analysis but don't need to process them directly.
     `;
 
-    console.log('Making request to Anthropic API with system message length:', systemMessage.length);
+    console.log('Making request to Anthropic API');
+    console.log('System message length:', systemMessage.length);
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
