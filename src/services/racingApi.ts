@@ -1,16 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
+import { formatInTimeZone } from 'date-fns-tz';
 
-export const fetchTodaysRaces = async () => {
-  const today = new Date().toISOString().split('T')[0];
-  return fetchRacesForDate(new Date());
+export const fetchTodaysRaces = async (timezone: string = 'Europe/London') => {
+  const today = new Date();
+  return fetchRacesForDate(today, timezone);
 };
 
-export const fetchRacesForDate = async (date: Date) => {
-  console.log('Fetching races for date:', date);
-  const formattedDate = date.toISOString().split('T')[0];
+export const fetchRacesForDate = async (date: Date, timezone: string = 'Europe/London') => {
+  const formattedDate = formatInTimeZone(date, timezone, 'yyyy-MM-dd');
+  console.log('Fetching races for date:', formattedDate, 'in timezone:', timezone);
 
   const { data, error } = await supabase.functions.invoke('fetch-races-by-date', {
-    body: { date: formattedDate }
+    body: { 
+      date: formattedDate,
+      timezone: timezone
+    }
   });
 
   if (error) {

@@ -5,14 +5,13 @@ const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
 const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { date } = await req.json()
-    console.log('Fetching races for date:', date)
+    const { date, timezone } = await req.json()
+    console.log('Fetching races for date:', date, 'in timezone:', timezone)
 
     if (!date) {
       throw new Error('Date parameter is required')
@@ -22,11 +21,7 @@ serve(async (req) => {
       throw new Error('Racing API credentials are not configured')
     }
 
-    // Ensure the date is in YYYY-MM-DD format
-    const formattedDate = new Date(date).toISOString().split('T')[0]
-    console.log('Formatted date for API request:', formattedDate)
-
-    const apiUrl = `https://api.theracingapi.com/v1/racecards/pro?date=${formattedDate}`
+    const apiUrl = `https://api.theracingapi.com/v1/racecards/pro?date=${date}`
     console.log('Making request to Racing API URL:', apiUrl)
 
     const response = await fetch(
@@ -52,9 +47,11 @@ serve(async (req) => {
     const data = await response.json()
     console.log('Successfully fetched races:', data)
 
-    // Ensure we're returning the races array
     return new Response(
-      JSON.stringify({ races: data.races || [] }),
+      JSON.stringify({ 
+        races: data.races || [],
+        timezone: timezone 
+      }),
       { 
         headers: { 
           ...corsHeaders, 

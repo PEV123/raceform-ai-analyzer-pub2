@@ -1,15 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchRacesForDate } from "@/services/racingApi";
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const useImportRacesMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return useMutation({
     mutationFn: async (date: Date) => {
-      console.log("Importing races for date:", date);
+      const timezone = settings?.timezone || 'Europe/London';
+      console.log("Importing races for date:", formatInTimeZone(date, timezone, 'yyyy-MM-dd'));
       const races = await fetchRacesForDate(date);
       
       if (!Array.isArray(races)) {

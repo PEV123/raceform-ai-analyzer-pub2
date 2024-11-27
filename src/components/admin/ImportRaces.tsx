@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,12 +24,28 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { useState } from "react";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
   const [date, setDate] = useState<Date>(new Date());
+
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const timezone = settings?.timezone || 'Europe/London';
 
   return (
     <Card className="p-6">
@@ -84,7 +102,7 @@ const ImportRaces = () => {
                 disabled={importMutation.isPending}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                {date ? formatInTimeZone(date, timezone, 'PPP') : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
