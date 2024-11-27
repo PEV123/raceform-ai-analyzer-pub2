@@ -1,7 +1,3 @@
-const RACING_API_BASE_URL = "https://api.theracingapi.com/v1";
-const RACING_API_USERNAME = "Gj48KGaBbt6ChEW1fiENkB59";
-const RACING_API_PASSWORD = "5v1KqVnUT3xfqBZmD4IEOdaM";
-
 export interface RacingApiRace {
   off_time: string;
   course: string;
@@ -20,30 +16,28 @@ export interface RacingApiRunner {
   number: number;
   draw: number;
   horse: string;
-  silk_url: string | null;
+  silk_url?: string;
   sire: string;
   sire_region: string;
   dam: string;
   dam_region: string;
-  form: string | null;
+  form?: string;
   lbs: number;
-  headgear: string | null;
-  ofr: string | null;
-  ts: string | null;
+  headgear?: string;
+  ofr?: string;
+  ts?: string;
   jockey: string;
   trainer: string;
 }
 
 export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
-  console.log("Fetching today's races from Racing API...");
-  
-  const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`);
+  console.log("Fetching today's races from Edge Function...");
   
   const response = await fetch(
-    `${RACING_API_BASE_URL}/racecards/basic?day=today`,
+    "https://vlcrqrmqghskrdhhsgqt.supabase.co/functions/v1/fetch-races",
     {
       headers: {
-        "Authorization": `Basic ${authHeader}`,
+        "Content-Type": "application/json",
       },
     }
   );
