@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { uploadImage } from "./utils/imageUpload";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
@@ -18,18 +17,34 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
 
     try {
       console.log('Starting image upload process');
-      const publicUrl = await uploadImage(file);
-      console.log('Image uploaded successfully:', publicUrl);
-      setNewMessage(prev => prev + `\n${publicUrl}`);
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        const base64String = event.target?.result as string;
+        console.log('Image converted to base64');
+        
+        try {
+          await onSendMessage(base64String);
+          toast({
+            title: "Success",
+            description: "Image uploaded successfully",
+          });
+        } catch (error) {
+          console.error('Error sending image message:', error);
+          toast({
+            title: "Error",
+            description: "Failed to send image",
+            variant: "destructive",
+          });
+        }
+      };
+
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error processing image:', error);
       toast({
         title: "Error",
-        description: "Failed to upload image",
+        description: "Failed to process image",
         variant: "destructive",
       });
     }

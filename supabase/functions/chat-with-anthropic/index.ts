@@ -1,6 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,31 +60,30 @@ serve(async (req) => {
 
     // Process race documents and handle images
     console.log('Processing race documents...');
-    const documentDescriptions = await Promise.all(race.race_documents.map(async (doc: any) => {
-      const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
-      
-      // For image files, include them directly in the message
-      if (doc.content_type.startsWith('image/')) {
-        return `Race document: ${doc.file_name} (${doc.content_type})
-URL: ${url}
+    const documentImages = await Promise.all(race.race_documents
+      .filter((doc: any) => doc.content_type.startsWith('image/'))
+      .map(async (doc: any) => {
+        const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
+        try {
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          return {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: doc.content_type,
+              data: base64
+            }
+          };
+        } catch (error) {
+          console.error('Error processing image:', error);
+          return null;
+        }
+      }));
 
-Please analyze this image as part of your response.`;
-      } else {
-        return `Race document: ${doc.file_name} (${doc.content_type})
-URL: ${url}`;
-      }
-    }));
-
-    // Check if the message contains an image URL
-    const imageUrlMatch = message.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
-    let processedMessage = message;
-    
-    if (imageUrlMatch) {
-      console.log('Found image URL in message:', imageUrlMatch[0]);
-      processedMessage = `${message}
-
-Please analyze this image as part of your response.`;
-    }
+    // Filter out any failed image processing
+    const validDocumentImages = documentImages.filter(img => img !== null);
 
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
@@ -104,15 +102,40 @@ Please analyze this image as part of your response.`;
       Detailed Runner Information:
       ${formattedRunners}
 
-      Race Documents:
-      ${documentDescriptions.join('\n\n') || 'No race documents have been uploaded for this race.'}
-
-      Please provide detailed analysis based on this information. If images are shared in the conversation, please analyze them and incorporate your findings into your response.
+      Please provide detailed analysis based on this information and any images shared. Analyze all images thoroughly and incorporate your findings into your response.
     `;
 
-    console.log('Making request to Anthropic API');
-    console.log('System message length:', systemMessage.length);
+    // Check if the message contains a base64 image
+    const messageContent = [];
+    
+    // First add any document images
+    messageContent.push(...validDocumentImages);
+    
+    // Then add the user's message
+    if (message.startsWith('data:image')) {
+      // Handle base64 image from user
+      const [header, base64Data] = message.split(',');
+      const mediaType = header.split(';')[0].split(':')[1];
+      messageContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: base64Data
+        }
+      });
+      messageContent.push({
+        type: "text",
+        text: "Please analyze this image."
+      });
+    } else {
+      messageContent.push({
+        type: "text",
+        text: message
+      });
+    }
 
+    console.log('Making request to Anthropic API');
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -123,7 +146,10 @@ Please analyze this image as part of your response.`;
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         system: systemMessage,
-        messages: [{ role: 'user', content: processedMessage }],
+        messages: [{
+          role: 'user',
+          content: messageContent
+        }],
         max_tokens: 1024,
       }),
     });
