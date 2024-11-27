@@ -20,6 +20,21 @@ export const RaceList = ({ races }: RaceListProps) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
   };
 
+  // Create a Map to store unique races by their course and off_time combination
+  const uniqueRaces = new Map<string, Race>();
+  races.forEach(race => {
+    const key = `${race.course}-${race.off_time}`;
+    // If this race already exists in our Map, only update it if it has documents
+    // (this ensures we keep the version with documents if it exists)
+    if (!uniqueRaces.has(key) || race.race_documents?.length > 0) {
+      uniqueRaces.set(key, race);
+    }
+  });
+
+  // Convert the Map back to an array and sort by off_time
+  const dedupedRaces = Array.from(uniqueRaces.values())
+    .sort((a, b) => new Date(a.off_time).getTime() - new Date(b.off_time).getTime());
+
   return (
     <>
       <Table>
@@ -34,7 +49,7 @@ export const RaceList = ({ races }: RaceListProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {races.map((race) => (
+          {dedupedRaces.map((race) => (
             <TableRow key={race.id}>
               <TableCell>{race.course}</TableCell>
               <TableCell>
