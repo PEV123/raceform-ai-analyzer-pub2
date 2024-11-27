@@ -27,9 +27,13 @@ serve(async (req) => {
     
     const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)
     
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    console.log("Fetching races for date:", today);
+    
     console.log("Fetching races from Racing API...")
     const response = await fetch(
-      `${RACING_API_BASE_URL}/racecards/pro?day=today`,
+      `${RACING_API_BASE_URL}/racecards/pro?date=${today}`,
       {
         headers: {
           "Authorization": `Basic ${authHeader}`,
