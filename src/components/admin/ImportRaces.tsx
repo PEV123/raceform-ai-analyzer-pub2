@@ -23,18 +23,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
+import { formatInTimeZone, zonedTimeToUtc } from "date-fns-tz";
 import { useState } from "react";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
   
-  // Initialize with start of current day to ensure consistent date handling
+  // Initialize with current UK date
   const [date, setDate] = useState<Date>(() => {
-    const now = startOfDay(new Date());
-    console.log('Initial date set to:', format(now, 'yyyy-MM-dd'));
-    return now;
+    const ukDate = zonedTimeToUtc(new Date(), 'Europe/London');
+    console.log('Initial UK date set to:', format(ukDate, 'yyyy-MM-dd'));
+    return ukDate;
   });
 
   const { data: settings } = useQuery({
@@ -50,8 +51,8 @@ const ImportRaces = () => {
     },
   });
 
-  console.log('Current selected date:', format(date, 'yyyy-MM-dd'));
-  const formattedDate = format(date, "MMMM do, yyyy");
+  // Format the date in UK timezone
+  const formattedDate = formatInTimeZone(date, 'Europe/London', "MMMM do, yyyy");
 
   return (
     <Card className="p-6">
@@ -117,10 +118,10 @@ const ImportRaces = () => {
                 selected={date}
                 onSelect={(newDate) => {
                   if (newDate) {
-                    // Ensure we're working with the start of the day
-                    const selectedDate = startOfDay(newDate);
-                    console.log('New date selected:', format(selectedDate, 'yyyy-MM-dd'));
-                    setDate(selectedDate);
+                    // Convert the selected date to UK timezone
+                    const ukDate = zonedTimeToUtc(newDate, 'Europe/London');
+                    console.log('New UK date selected:', format(ukDate, 'yyyy-MM-dd'));
+                    setDate(ukDate);
                   }
                 }}
                 initialFocus
