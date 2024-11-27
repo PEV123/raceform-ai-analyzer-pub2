@@ -33,15 +33,14 @@ const Index = () => {
   const { data: races, isLoading: racesLoading } = useQuery({
     queryKey: ["races", date.toISOString(), timezone],
     queryFn: async () => {
-      // Set the time to noon to avoid any timezone edge cases
-      const selectedDate = new Date(date);
-      selectedDate.setHours(12, 0, 0, 0);
+      // Create a new date at the start of the selected day in the specified timezone
+      const zonedDate = new Date(formatInTimeZone(date, timezone, 'yyyy-MM-dd'));
       
       // Format the dates in the correct timezone for the start and end of the selected date
-      const startStr = formatInTimeZone(selectedDate, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
-      const endStr = formatInTimeZone(selectedDate, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
+      const startStr = formatInTimeZone(zonedDate, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
+      const endStr = formatInTimeZone(zonedDate, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
       
-      console.log("Fetching races for date:", formatInTimeZone(selectedDate, timezone, 'PPP'), "in timezone:", timezone);
+      console.log("Fetching races for date:", formatInTimeZone(zonedDate, timezone, 'PPP'), "in timezone:", timezone);
       console.log("Date range in timezone:", timezone);
       console.log("Start:", startStr);
       console.log("End:", endStr);
@@ -56,11 +55,7 @@ const Index = () => {
         .lte('off_time', endStr)
         .order('off_time', { ascending: true });
 
-      if (error) {
-        console.error("Error fetching races:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
       console.log("Fetched races:", data);
       return data;
     },
@@ -82,7 +77,8 @@ const Index = () => {
   // Get unique venues
   const allVenues = Object.keys(groupedRaces).sort();
 
-  const formattedDate = formatInTimeZone(date, timezone, 'MMMM do, yyyy');
+  // Format the display date in the correct timezone
+  const displayDate = formatInTimeZone(date, timezone, 'MMMM do, yyyy');
 
   return (
     <div className="space-y-8">
@@ -98,7 +94,7 @@ const Index = () => {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {formattedDate}
+              {displayDate}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
@@ -114,7 +110,7 @@ const Index = () => {
 
       {!races?.length ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No races found for {formattedDate}.</p>
+          <p className="text-muted-foreground">No races found for {displayDate}.</p>
         </div>
       ) : (
         <Tabs defaultValue={allVenues[0]} className="w-full">
