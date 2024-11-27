@@ -20,12 +20,30 @@ serve(async (req) => {
     const supabase = getSupabaseClient()
     
     try {
-      const data = await fetchRacesFromApi(date)
-      console.log(`Processing ${data.races.length} races from API`)
+      const { races } = await fetchRacesFromApi(date)
+      console.log(`Processing ${races.length} races from API`)
+      
+      if (!Array.isArray(races) || races.length === 0) {
+        console.log('No races found for date:', date)
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            races: [],
+            message: 'No races found for the specified date',
+            timezone 
+          }),
+          { 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+            } 
+          }
+        )
+      }
       
       const processedRaces: (Race & { status: string; error?: string })[] = []
       
-      for (const race of data.races) {
+      for (const race of races) {
         console.log(`Processing race at ${race.course} - ${race.off_time}`)
 
         try {
@@ -101,7 +119,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true,
           races: processedRaces,
-          timezone: timezone 
+          timezone 
         }),
         { 
           headers: { 
