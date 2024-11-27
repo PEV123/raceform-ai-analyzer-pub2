@@ -4,11 +4,42 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchTodaysRaces } from "@/services/racingApi";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 const ImportRaces = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      console.log("Clearing all races...");
+      const { error } = await supabase
+        .from("races")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all races
+      
+      if (error) {
+        console.error("Error clearing races:", error);
+        throw error;
+      }
+      console.log("Successfully cleared all races");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "All races have been cleared",
+      });
+      queryClient.invalidateQueries({ queryKey: ["races"] });
+    },
+    onError: (error) => {
+      console.error("Error clearing races:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear races. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const importMutation = useMutation({
     mutationFn: async () => {
@@ -128,19 +159,38 @@ const ImportRaces = () => {
       <p className="text-muted-foreground mb-4">
         Import today's races from the Racing API
       </p>
-      <Button
-        onClick={() => importMutation.mutate()}
-        disabled={importMutation.isPending}
-      >
-        {importMutation.isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Importing...
-          </>
-        ) : (
-          "Import Today's Races"
-        )}
-      </Button>
+      <div className="flex gap-4">
+        <Button
+          variant="destructive"
+          onClick={() => clearMutation.mutate()}
+          disabled={clearMutation.isPending || importMutation.isPending}
+        >
+          {clearMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Clearing...
+            </>
+          ) : (
+            <>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All Races
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={() => importMutation.mutate()}
+          disabled={clearMutation.isPending || importMutation.isPending}
+        >
+          {importMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Importing...
+            </>
+          ) : (
+            "Import Today's Races"
+          )}
+        </Button>
+      </div>
     </Card>
   );
 };
