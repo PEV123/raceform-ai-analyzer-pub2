@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      race_documents: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          file_name: string
+          file_path: string
+          id: string
+          race_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          race_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          race_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_documents_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       races: {
         Row: {
           age_band: string
