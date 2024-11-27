@@ -24,18 +24,12 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { formatInTimeZone } from 'date-fns-tz';
 import { useState } from "react";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
-  const [date, setDate] = useState<Date>(() => {
-    // Initialize with current date in UK timezone
-    const now = new Date();
-    const ukDate = formatInTimeZone(now, 'Europe/London', 'yyyy-MM-dd');
-    return new Date(ukDate);
-  });
+  const [date, setDate] = useState<Date>(new Date());
 
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -50,9 +44,8 @@ const ImportRaces = () => {
     },
   });
 
-  console.log('Current selected date (before format):', date);
-  const formattedDate = formatInTimeZone(date, 'Europe/London', 'MMMM do, yyyy');
-  console.log('Formatted date for display:', formattedDate);
+  console.log('Current selected date:', date);
+  const formattedDate = format(date, "MMMM do, yyyy");
 
   return (
     <Card className="p-6">
@@ -118,11 +111,8 @@ const ImportRaces = () => {
                 selected={date}
                 onSelect={(newDate) => {
                   if (newDate) {
-                    console.log('New date selected from calendar:', newDate);
-                    // Convert the selected date to UK timezone
-                    const ukDate = formatInTimeZone(newDate, 'Europe/London', 'yyyy-MM-dd');
-                    console.log('Date converted to UK timezone:', ukDate);
-                    setDate(new Date(ukDate));
+                    console.log('New date selected:', newDate);
+                    setDate(newDate);
                   }
                 }}
                 initialFocus
