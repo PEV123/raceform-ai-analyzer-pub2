@@ -2,17 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,10 +20,12 @@ serve(async (req) => {
       throw new Error('Missing required parameters: message or raceId');
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    // Get race details including runners and documents
+    console.log('Fetching race data...');
     const { data: race, error: raceError } = await supabase
       .from('races')
       .select(`
@@ -44,13 +41,12 @@ serve(async (req) => {
       throw raceError;
     }
 
-    // Get admin settings for system context and knowledge base
+    console.log('Fetching admin settings...');
     const { data: settings } = await supabase
       .from('admin_settings')
       .select('*')
       .single();
 
-    // Format runners data for better readability
     const formattedRunners = race.runners.map((runner: any) => `
       ${runner.number}. ${runner.horse} (Draw: ${runner.draw})
       - Jockey: ${runner.jockey}
@@ -63,16 +59,36 @@ serve(async (req) => {
       ${runner.ts ? `- Top Speed Rating: ${runner.ts}` : ''}
     `).join('\n');
 
-    // Format race documents with descriptions
-    const documentDescriptions = race.race_documents.map((doc: any) => {
+    // Process race documents and convert images to base64
+    console.log('Processing race documents...');
+    const documentDescriptions = await Promise.all(race.race_documents.map(async (doc: any) => {
       const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
-      return `Race document: ${doc.file_name} (${doc.content_type})
+      
+      // Only process image files
+      if (doc.content_type.startsWith('image/')) {
+        console.log('Fetching image data for:', doc.file_name);
+        try {
+          const response = await fetch(url);
+          const imageBuffer = await response.arrayBuffer();
+          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+          
+          return `Race document: ${doc.file_name} (${doc.content_type})
+Description: This is an image that has been uploaded for analysis.
+Content: <image>${base64Image}</image>
+
+Please analyze this image and incorporate your findings into your response.`;
+        } catch (error) {
+          console.error('Error processing image:', doc.file_name, error);
+          return `Race document: ${doc.file_name} (${doc.content_type}) - Error processing image`;
+        }
+      } else {
+        return `Race document: ${doc.file_name} (${doc.content_type})
 URL: ${url}
 
-Note: This is a race document that has been uploaded for analysis. Please reference this document in your analysis if relevant.`;
-    }).join('\n\n');
+Note: This is a non-image document that has been uploaded for analysis.`;
+      }
+    }));
 
-    // Construct the system message with all available context
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
 
@@ -91,19 +107,18 @@ Note: This is a race document that has been uploaded for analysis. Please refere
       ${formattedRunners}
 
       Race Documents:
-      ${documentDescriptions || 'No race documents have been uploaded for this race.'}
+      ${documentDescriptions.join('\n\n') || 'No race documents have been uploaded for this race.'}
 
-      Please provide detailed analysis based on this information. If race documents are available, please reference them in your analysis.
+      Please provide detailed analysis based on this information. If race documents are available, please analyze them and incorporate your findings into your response.
     `;
 
-    console.log('Making request to Anthropic API with system message:', systemMessage);
+    console.log('Making request to Anthropic API with system message length:', systemMessage.length);
 
-    // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey!,
+        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
