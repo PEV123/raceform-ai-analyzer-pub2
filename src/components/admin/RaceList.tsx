@@ -28,9 +28,12 @@ export const RaceList = ({ races }: RaceListProps) => {
   const uniqueRaces = new Map<string, Race>();
   races.forEach(race => {
     const key = `${race.course}-${race.off_time}`;
-    // If this race already exists in our Map, only update it if it has documents
-    // (this ensures we keep the version with documents if it exists)
-    if (!uniqueRaces.has(key) || race.race_documents?.length > 0) {
+    const existingRace = uniqueRaces.get(key);
+    
+    // Only update if:
+    // 1. This race doesn't exist in our Map yet, OR
+    // 2. This race has documents while the existing one doesn't
+    if (!existingRace || (race.race_documents?.length > 0 && (!existingRace.race_documents || existingRace.race_documents.length === 0))) {
       uniqueRaces.set(key, race);
     }
   });
