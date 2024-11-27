@@ -4,9 +4,12 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { formatInTimeZone } from 'date-fns-tz';
+import { RawDataDialog } from "./RawDataDialog";
+import { FileJson } from "lucide-react";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
+  runners: Tables<"runners">[];
 };
 
 interface RaceListProps {
@@ -15,6 +18,7 @@ interface RaceListProps {
 
 export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+  const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
 
   const formatUKTime = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
@@ -74,12 +78,22 @@ export const RaceList = ({ races }: RaceListProps) => {
                 )}
               </TableCell>
               <TableCell>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedRace(race)}
-                >
-                  Upload Docs
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedRace(race)}
+                  >
+                    Upload Docs
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setRawDataRace(race)}
+                    title="View Raw Data"
+                  >
+                    <FileJson className="h-4 w-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -90,6 +104,12 @@ export const RaceList = ({ races }: RaceListProps) => {
         race={selectedRace}
         open={!!selectedRace}
         onOpenChange={(open) => !open && setSelectedRace(null)}
+      />
+
+      <RawDataDialog
+        race={rawDataRace}
+        open={!!rawDataRace}
+        onOpenChange={(open) => !open && setRawDataRace(null)}
       />
     </>
   );
