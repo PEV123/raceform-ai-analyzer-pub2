@@ -13,22 +13,26 @@ export const uploadImage = async (file: File) => {
     }
 
     console.log('Uploading file to path:', filePath);
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('race_documents')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (error) {
-      console.error('Upload error:', error);
-      throw error;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
     }
 
     console.log('File uploaded successfully, getting public URL');
     const { data: { publicUrl } } = supabase.storage
       .from('race_documents')
       .getPublicUrl(filePath);
+
+    if (!publicUrl) {
+      throw new Error('Failed to get public URL for uploaded file');
+    }
 
     console.log('Public URL generated:', publicUrl);
     return publicUrl;

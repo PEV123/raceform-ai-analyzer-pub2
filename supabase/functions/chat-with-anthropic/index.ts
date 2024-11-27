@@ -18,8 +18,12 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId, previousMessages } = await req.json();
+    const { message, raceId } = await req.json();
     console.log('Received request:', { raceId, message });
+
+    if (!message || !raceId) {
+      throw new Error('Missing required parameters: message or raceId');
+    }
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
@@ -41,18 +45,13 @@ serve(async (req) => {
     }
 
     // Get admin settings for system context and knowledge base
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings } = await supabase
       .from('admin_settings')
       .select('*')
       .single();
 
-    if (settingsError) {
-      console.error('Error fetching admin settings:', settingsError);
-      // Continue without settings if they don't exist yet
-    }
-
     // Format runners data for better readability
-    const formattedRunners = race.runners.map(runner => `
+    const formattedRunners = race.runners.map((runner: any) => `
       ${runner.number}. ${runner.horse} (Draw: ${runner.draw})
       - Jockey: ${runner.jockey}
       - Trainer: ${runner.trainer}
@@ -65,7 +64,7 @@ serve(async (req) => {
     `).join('\n');
 
     // Format race documents (images) as URLs
-    const documentUrls = race.race_documents.map(doc => 
+    const documentUrls = race.race_documents.map((doc: any) => 
       `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`
     );
 
@@ -95,15 +94,9 @@ serve(async (req) => {
       Please provide detailed analysis based on this information.
     `;
 
-    // Format previous messages for Claude
-    const formattedMessages = previousMessages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
-
     console.log('Making request to Anthropic API...');
 
-    // Call Anthropic API with the updated model
+    // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -114,10 +107,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         system: systemMessage,
-        messages: [
-          ...formattedMessages,
-          { role: 'user', content: message }
-        ],
+        messages: [{ role: 'user', content: message }],
         max_tokens: 1024,
       }),
     });
@@ -125,22 +115,23 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Anthropic API error:', response.status, errorText);
-      throw new Error(`Anthropic API error: ${response.statusText} - ${errorText}`);
+      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Received response from Anthropic:', data);
+    console.log('Received response from Anthropic');
 
     return new Response(
       JSON.stringify({ message: data.content[0].text }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in chat-with-anthropic function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: true,
+        message: error.message || 'An unexpected error occurred'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
