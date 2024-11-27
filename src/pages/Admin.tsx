@@ -3,15 +3,34 @@ import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 const Admin = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to access the admin area",
+        });
+        navigate('/login');
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
 
   const { data: races, isLoading } = useQuery({
     queryKey: ["races", selectedDate],
@@ -60,7 +79,18 @@ const Admin = () => {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate('/login');
+          }}
+        >
+          Sign Out
+        </Button>
+      </div>
       
       <Card className="p-6">
         <div className="flex flex-col items-center space-y-4">

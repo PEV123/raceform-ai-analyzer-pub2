@@ -1,6 +1,8 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface NavItemProps {
   href: string;
@@ -27,6 +29,26 @@ const NavItem = ({ href, children }: NavItemProps) => {
 };
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -35,10 +57,30 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <Link to="/" className="text-2xl font-bold text-primary">
               Racing Analysis
             </Link>
-            <nav className="flex gap-4">
+            <nav className="flex gap-4 items-center">
               <NavItem href="/">Today's Races</NavItem>
               <NavItem href="/analysis">Analysis</NavItem>
-              <NavItem href="/admin">Admin</NavItem>
+              {isAuthenticated ? (
+                <>
+                  <NavItem href="/admin">Admin</NavItem>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate('/login');
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/login')}
+                >
+                  Sign In
+                </Button>
+              )}
             </nav>
           </div>
         </div>
