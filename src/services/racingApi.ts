@@ -3,12 +3,14 @@ import { format } from 'date-fns';
 
 export const fetchTodaysRaces = async () => {
   const today = new Date();
-  return fetchRacesForDate(today);
+  const utcToday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  return fetchRacesForDate(utcToday);
 };
 
 export const fetchRacesForDate = async (date: Date) => {
+  // Format the UTC date for the API request
   const formattedDate = format(date, 'yyyy-MM-dd');
-  console.log('Fetching races for date:', formattedDate);
+  console.log('Fetching races for date (UTC):', formattedDate);
 
   const { data, error } = await supabase.functions.invoke('fetch-races-by-date', {
     body: { 

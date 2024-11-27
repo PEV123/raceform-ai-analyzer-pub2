@@ -29,7 +29,12 @@ import { useState } from "react";
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
-  const [date, setDate] = useState<Date>(new Date());
+  
+  // Initialize with UTC midnight of current date to avoid any timezone issues
+  const [date, setDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  });
 
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -44,7 +49,7 @@ const ImportRaces = () => {
     },
   });
 
-  console.log('Current selected date:', date);
+  console.log('Selected date (UTC):', date.toISOString());
   const formattedDate = format(date, "MMMM do, yyyy");
 
   return (
@@ -111,8 +116,14 @@ const ImportRaces = () => {
                 selected={date}
                 onSelect={(newDate) => {
                   if (newDate) {
-                    console.log('New date selected:', newDate);
-                    setDate(newDate);
+                    // Create a new UTC date at midnight to avoid timezone issues
+                    const utcDate = new Date(Date.UTC(
+                      newDate.getFullYear(),
+                      newDate.getMonth(),
+                      newDate.getDate()
+                    ));
+                    console.log('New date selected (UTC):', utcDate.toISOString());
+                    setDate(utcDate);
                   }
                 }}
                 initialFocus
