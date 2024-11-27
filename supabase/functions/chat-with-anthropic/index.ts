@@ -65,14 +65,25 @@ serve(async (req) => {
     `).join('\n');
 
     console.log('Processing race documents...');
-    const documentImages = await Promise.all(race.race_documents
-      .filter((doc: any) => doc.content_type.startsWith('image/'))
+    console.log('Number of documents:', race.race_documents?.length);
+    
+    const documentImages = await Promise.all((race.race_documents || [])
+      .filter((doc: any) => doc.content_type?.startsWith('image/'))
       .map(async (doc: any) => {
-        const url = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
+        const url = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
+        console.log('Processing document URL:', url);
+        
         try {
           const response = await fetch(url);
+          if (!response.ok) {
+            console.error('Failed to fetch image:', response.statusText);
+            return null;
+          }
+          
           const arrayBuffer = await response.arrayBuffer();
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          console.log('Successfully processed image to base64');
+          
           return {
             type: "image",
             source: {
@@ -88,6 +99,7 @@ serve(async (req) => {
       }));
 
     const validDocumentImages = documentImages.filter(img => img !== null);
+    console.log('Number of valid processed images:', validDocumentImages.length);
 
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
@@ -119,9 +131,16 @@ serve(async (req) => {
     });
 
     const messageContent = [];
-    messageContent.push(...validDocumentImages);
     
+    // Add race document images first
+    if (validDocumentImages.length > 0) {
+      console.log('Adding race document images to message');
+      messageContent.push(...validDocumentImages);
+    }
+    
+    // Then handle any new image being sent in the message
     if (message.startsWith('data:image')) {
+      console.log('Processing new image from message');
       const [header, base64Data] = message.split(',');
       const mediaType = header.split(';')[0].split(':')[1];
       messageContent.push({
@@ -144,6 +163,8 @@ serve(async (req) => {
     }
 
     console.log('Making request to Anthropic API');
+    console.log('Message content types:', messageContent.map(content => content.type));
+    
     const response = await anthropic.messages.create({
       model: "claude-3-sonnet-20240229",
       max_tokens: 1024,
