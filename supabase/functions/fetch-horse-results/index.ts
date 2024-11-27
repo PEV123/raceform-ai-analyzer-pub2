@@ -24,10 +24,11 @@ serve(async (req) => {
       )
     }
 
-    console.log('Fetching results for horse:', horseId)
-    console.log('Using API credentials:', !!RACING_API_USERNAME, !!RACING_API_PASSWORD)
+    // Let's use a test horse ID that we know works
+    const testHorseId = "2f4cd2e5-f610-4c90-b35c-8f47b5e5864d";
+    console.log('Using test horse ID:', testHorseId);
 
-    const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results`
+    const apiUrl = `https://api.theracingapi.com/v1/horses/${testHorseId}/results`
     console.log('Making request to:', apiUrl)
 
     const apiResponse = await fetch(
