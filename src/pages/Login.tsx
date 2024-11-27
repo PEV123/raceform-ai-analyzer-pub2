@@ -58,7 +58,7 @@ const Login = () => {
   return (
     <div className="max-w-md mx-auto mt-8">
       <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Login</h1>
+        <h1 className="text-2xl font-bold mb-6">Login or Sign Up</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{ 
@@ -71,7 +71,6 @@ const Login = () => {
           theme="light"
           providers={[]}
           magicLink={false}
-          showLinks={false}
           redirectTo={`${window.location.origin}/admin`}
         />
       </Card>
