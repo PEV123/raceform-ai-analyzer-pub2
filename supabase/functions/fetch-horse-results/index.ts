@@ -27,6 +27,10 @@ serve(async (req) => {
     console.log('Fetching results for horse:', horseId)
     console.log('Using API credentials:', !!RACING_API_USERNAME, !!RACING_API_PASSWORD)
 
+    if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
+      throw new Error('API credentials are not configured')
+    }
+
     // Get date range for the last year
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -51,7 +55,24 @@ serve(async (req) => {
         statusText: apiResponse.statusText,
         body: errorText
       })
-      throw new Error(`API responded with status: ${apiResponse.status} - ${errorText}`)
+
+      // Try to parse the error response
+      let errorMessage = 'Failed to fetch horse results'
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.detail || errorMessage
+      } catch {
+        // If parsing fails, use the raw error text
+        errorMessage = errorText
+      }
+
+      return new Response(
+        JSON.stringify({ error: errorMessage }),
+        { 
+          status: apiResponse.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     const data = await apiResponse.json()
