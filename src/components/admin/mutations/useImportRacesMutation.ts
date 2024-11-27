@@ -1,16 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchTodaysRaces } from "@/services/racingApi";
+import { fetchRacesForDate } from "@/services/racingApi";
 
 export const useImportRacesMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      const races = await fetchTodaysRaces();
-      console.log("Importing races:", races);
+    mutationFn: async (date: Date) => {
+      const races = await fetchRacesForDate(date);
+      console.log("Importing races for date:", date, races);
 
       for (const race of races) {
         console.log(`Processing race at ${race.course} - ${race.off_dt}`);

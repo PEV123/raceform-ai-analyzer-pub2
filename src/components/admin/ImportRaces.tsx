@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
 import {
@@ -14,16 +14,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { useState } from "react";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
+  const [date, setDate] = useState<Date>(new Date());
 
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Import Races</h2>
       <p className="text-muted-foreground mb-4">
-        Import today's races from the Racing API
+        Import races from the Racing API for a specific date
       </p>
       <div className="flex gap-4">
         <AlertDialog>
@@ -62,19 +72,45 @@ const ImportRaces = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        <Button
-          onClick={() => importMutation.mutate()}
-          disabled={clearMutation.isPending || importMutation.isPending}
-        >
-          {importMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Importing...
-            </>
-          ) : (
-            "Import Today's Races"
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+                disabled={importMutation.isPending}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(newDate) => newDate && setDate(newDate)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            onClick={() => importMutation.mutate(date)}
+            disabled={clearMutation.isPending || importMutation.isPending}
+          >
+            {importMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              "Import Races"
+            )}
+          </Button>
+        </div>
       </div>
     </Card>
   );
