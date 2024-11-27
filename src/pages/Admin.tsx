@@ -17,14 +17,10 @@ const Admin = () => {
   const [date, setDate] = useState<Date>(new Date());
 
   const { data: races, isLoading } = useQuery({
-    queryKey: ["races", date.toISOString()],
+    queryKey: ["races", format(date, 'yyyy-MM-dd')],
     queryFn: async () => {
-      console.log('Fetching races data for date:', date);
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const selectedDate = format(date, 'yyyy-MM-dd');
+      console.log('Fetching races for date:', selectedDate);
 
       const { data, error } = await supabase
         .from("races")
@@ -33,8 +29,8 @@ const Admin = () => {
           race_documents (*),
           runners (*)
         `)
-        .gte('off_time', startOfDay.toISOString())
-        .lte('off_time', endOfDay.toISOString())
+        .gte('off_time', `${selectedDate}T00:00:00`)
+        .lt('off_time', `${selectedDate}T23:59:59.999`)
         .order('off_time', { ascending: true });
 
       if (error) {
@@ -61,7 +57,7 @@ const Admin = () => {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
+              {format(date, "PPP")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">

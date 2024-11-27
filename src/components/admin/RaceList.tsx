@@ -3,11 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
-import { formatInTimeZone } from 'date-fns-tz';
 import { RawDataDialog } from "./RawDataDialog";
 import { FileJson } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -22,25 +19,14 @@ export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
 
-  const { data: settings } = useQuery({
-    queryKey: ["adminSettings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admin_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const formatTime = (date: string) => {
-    return formatInTimeZone(
-      new Date(date), 
-      settings?.timezone || 'Europe/London',
-      'HH:mm:ss'
-    );
+    const raceTime = new Date(date);
+    return raceTime.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   };
 
   // Create a Map to store unique races by their course and off_time combination
