@@ -12,6 +12,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -111,7 +112,7 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
+        model: 'claude-3-haiku-20240307',
         system: systemMessage,
         messages: [
           ...formattedMessages,
@@ -129,19 +130,6 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('Received response from Anthropic:', data);
-
-    // Store the conversation in the database
-    const { error: insertError } = await supabase
-      .from('race_chats')
-      .insert([
-        { race_id: raceId, message, role: 'user' },
-        { race_id: raceId, message: data.content[0].text, role: 'assistant' }
-      ]);
-
-    if (insertError) {
-      console.error('Error storing chat messages:', insertError);
-      throw insertError;
-    }
 
     return new Response(
       JSON.stringify({ message: data.content[0].text }),
