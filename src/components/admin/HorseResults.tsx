@@ -6,12 +6,27 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 export const HorseResults = () => {
-  // Using a test horse ID that we know works
-  const [horseId, setHorseId] = useState("2f4cd2e5-f610-4c90-b35c-8f47b5e5864d");
+  const [horseId, setHorseId] = useState("");
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  const validateHorseId = (id: string) => {
+    // Basic UUID validation pattern
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidPattern.test(id);
+  };
+
   const fetchHorseResults = async () => {
+    if (!horseId.trim()) {
+      toast.error("Please enter a horse ID");
+      return;
+    }
+
+    if (!validateHorseId(horseId)) {
+      toast.error("Invalid horse ID format. Please enter a valid UUID");
+      return;
+    }
+
     try {
       setLoading(true);
       console.log("Fetching horse results for ID:", horseId);
@@ -40,7 +55,10 @@ export const HorseResults = () => {
       toast.success("Horse results fetched successfully");
     } catch (error) {
       console.error("Error fetching horse results:", error);
-      toast.error(error.message || "Failed to fetch horse results");
+      const errorMessage = error.message.includes("Invalid horse id") 
+        ? "Invalid horse ID. Please check the ID and try again." 
+        : error.message || "Failed to fetch horse results";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,7 +71,7 @@ export const HorseResults = () => {
         <Input
           value={horseId}
           onChange={(e) => setHorseId(e.target.value)}
-          placeholder="Enter Horse ID"
+          placeholder="Enter Horse ID (UUID format)"
           className="flex-1"
         />
         <Button 
