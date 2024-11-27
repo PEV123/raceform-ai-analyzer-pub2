@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 
 const corsHeaders = {
@@ -21,10 +20,15 @@ serve(async (req) => {
       throw new Error('Missing required parameters: message or raceId');
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // Initialize Supabase client with proper error handling
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('Fetching race data...');
     const { data: race, error: raceError } = await supabase
@@ -105,12 +109,16 @@ serve(async (req) => {
       Please provide detailed analysis based on this information and any images shared. Analyze all images thoroughly and incorporate your findings into your response.
     `;
 
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicApiKey) {
+      throw new Error('Missing Anthropic API key');
+    }
+
     const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
+      apiKey: anthropicApiKey,
     });
 
     const messageContent = [];
-    
     messageContent.push(...validDocumentImages);
     
     if (message.startsWith('data:image')) {
