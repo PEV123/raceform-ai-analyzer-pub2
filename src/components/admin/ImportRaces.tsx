@@ -38,34 +38,55 @@ const ImportRaces = () => {
           throw raceError;
         }
 
-        // Insert runners for this race
-        const { error: runnersError } = await supabase
-          .from("runners")
-          .insert(
-            race.runners.map((runner) => ({
-              race_id: raceData.id,
-              horse_id: runner.horse_id,
-              number: runner.number,
-              draw: runner.draw,
-              horse: runner.horse,
-              silk_url: runner.silk_url,
-              sire: runner.sire,
-              sire_region: runner.sire_region,
-              dam: runner.dam,
-              dam_region: runner.dam_region,
-              form: runner.form,
-              lbs: runner.lbs,
-              headgear: runner.headgear,
-              ofr: runner.ofr,
-              ts: runner.ts,
-              jockey: runner.jockey,
-              trainer: runner.trainer,
-            }))
-          );
+        // Filter out runners with missing required fields and transform data
+        const validRunners = race.runners
+          .filter(runner => {
+            const isValid = runner.number != null && 
+                          runner.draw != null && 
+                          runner.horse && 
+                          runner.horse_id && 
+                          runner.sire && 
+                          runner.sire_region && 
+                          runner.dam && 
+                          runner.dam_region && 
+                          runner.lbs != null && 
+                          runner.jockey && 
+                          runner.trainer;
+            
+            if (!isValid) {
+              console.warn("Skipping invalid runner:", runner);
+            }
+            return isValid;
+          })
+          .map(runner => ({
+            race_id: raceData.id,
+            horse_id: runner.horse_id,
+            number: runner.number || 0, // Fallback to 0 if null
+            draw: runner.draw || 0, // Fallback to 0 if null
+            horse: runner.horse,
+            silk_url: runner.silk_url,
+            sire: runner.sire,
+            sire_region: runner.sire_region,
+            dam: runner.dam,
+            dam_region: runner.dam_region,
+            form: runner.form,
+            lbs: runner.lbs || 0, // Fallback to 0 if null
+            headgear: runner.headgear,
+            ofr: runner.ofr,
+            ts: runner.ts,
+            jockey: runner.jockey,
+            trainer: runner.trainer,
+          }));
 
-        if (runnersError) {
-          console.error("Error inserting runners:", runnersError);
-          throw runnersError;
+        if (validRunners.length > 0) {
+          const { error: runnersError } = await supabase
+            .from("runners")
+            .insert(validRunners);
+
+          if (runnersError) {
+            console.error("Error inserting runners:", runnersError);
+            throw runnersError;
+          }
         }
       }
     },
