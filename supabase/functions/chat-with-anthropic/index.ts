@@ -5,7 +5,8 @@ import {
   processBase64Image, 
   fetchRaceData, 
   fetchSettings,
-  processRaceDocuments 
+  processRaceDocuments,
+  formatRaceContext 
 } from "./utils.ts";
 
 serve(async (req) => {
@@ -23,6 +24,7 @@ serve(async (req) => {
 
     const race = await fetchRaceData(raceId);
     const settings = await fetchSettings();
+    console.log('Fetched race data with runners:', race.runners?.length);
 
     if (settings.selected_provider === 'openai') {
       return new Response(
@@ -48,12 +50,11 @@ serve(async (req) => {
         type: "image",
         source: {
           type: "base64",
-          media_type: "image/png", // Default to PNG, the API will handle other formats
+          media_type: "image/png",
           data: await fetchAndConvertToBase64(imageUrl)
         }
       });
       
-      // Add any text message that follows the image URL
       if (lines.length > 1) {
         messageContent.push({
           type: "text",
@@ -66,7 +67,6 @@ serve(async (req) => {
         });
       }
     } else {
-      // Handle regular text messages with race documents
       console.log('Adding race document images to message');
       const validDocumentImages = await processRaceDocuments(
         race,
@@ -85,17 +85,15 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
     });
     
+    const raceContext = formatRaceContext(race);
+    console.log('Generated race context length:', raceContext.length);
+    
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
       ${settings?.knowledge_base || ''}
+      
       Race Analysis Context:
-      Race: ${race.race_name} at ${race.course}
-      Time: ${race.off_time}
-      Class: ${race.race_class}
-      Age Band: ${race.age_band}
-      Rating Band: ${race.rating_band}
-      Prize: ${race.prize}
-      Field Size: ${race.field_size} runners
+      ${raceContext}
     `;
 
     console.log('Making request to Anthropic API with model:', settings.anthropic_model);
