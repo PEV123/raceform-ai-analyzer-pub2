@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
+import ImportRaces from "@/components/admin/ImportRaces";
 
 const Admin = () => {
   const { data: races, isLoading } = useQuery({
@@ -26,7 +27,8 @@ const Admin = () => {
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       
       <div className="grid gap-8 md:grid-cols-2">
-        <div>
+        <div className="space-y-4">
+          <ImportRaces />
           <AdminSettings />
         </div>
         
