@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
 import { useState } from "react";
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 const Admin = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -12,21 +16,27 @@ const Admin = () => {
   const { data: races, isLoading } = useQuery({
     queryKey: ["races", selectedDate],
     queryFn: async () => {
-      const startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
+      // Convert the selected date to start and end of day in UK time
+      const ukStartOfDay = zonedTimeToUtc(
+        new Date(selectedDate.setHours(0, 0, 0, 0)),
+        'Europe/London'
+      );
       
-      const endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      const ukEndOfDay = zonedTimeToUtc(
+        new Date(selectedDate.setHours(23, 59, 59, 999)),
+        'Europe/London'
+      );
 
-      console.log("Fetching races for date:", selectedDate);
+      console.log("Fetching races between:", ukStartOfDay, "and", ukEndOfDay);
+      
       const { data, error } = await supabase
         .from("races")
         .select(`
           *,
           race_documents (*)
         `)
-        .gte("off_time", startOfDay.toISOString())
-        .lte("off_time", endOfDay.toISOString())
+        .gte("off_time", ukStartOfDay.toISOString())
+        .lte("off_time", ukEndOfDay.toISOString())
         .order('course')
         .order('off_time');
 
@@ -55,12 +65,28 @@ const Admin = () => {
       <Card className="p-6">
         <div className="flex flex-col items-center space-y-4">
           <h2 className="text-xl font-semibold">Select Date</h2>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={(date) => date && setSelectedDate(date)}
-            className="rounded-md border"
-          />
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={
+                  "w-[280px] justify-start text-left font-normal"
+                }
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(selectedDate, "PPP")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </Card>
 
