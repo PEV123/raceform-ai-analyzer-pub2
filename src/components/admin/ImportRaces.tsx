@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { formatInTimeZone } from 'date-fns-tz';
 import { useState } from "react";
 
 const ImportRaces = () => {
@@ -45,7 +44,7 @@ const ImportRaces = () => {
     },
   });
 
-  const timezone = settings?.timezone || 'Europe/London';
+  console.log('Current selected date:', date);
 
   return (
     <Card className="p-6">
@@ -102,14 +101,22 @@ const ImportRaces = () => {
                 disabled={importMutation.isPending}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? formatInTimeZone(date, timezone, 'PPP') : <span>Pick a date</span>}
+                {format(date, "MMMM do, yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={(newDate) => newDate && setDate(newDate)}
+                onSelect={(newDate) => {
+                  if (newDate) {
+                    console.log('New date selected:', newDate);
+                    // Ensure we're working with the correct date by setting time to noon
+                    const adjustedDate = new Date(newDate);
+                    adjustedDate.setHours(12, 0, 0, 0);
+                    setDate(adjustedDate);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>
