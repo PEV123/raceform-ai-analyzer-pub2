@@ -6,7 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 export const HorseResults = () => {
-  const [horseId, setHorseId] = useState("8dfccd20-80f3-4ef2-a3e6-c4de9d6d2fc4");
+  // Using a valid horse ID from the Racing API
+  const [horseId, setHorseId] = useState("64e33c0d-9776-4b8f-8db7-c9f97e08d573");
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,17 +28,21 @@ export const HorseResults = () => {
         }
       );
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Extract the error message from the response
+        const errorMessage = data.error || 'Failed to fetch horse results';
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
       console.log("Horse results data:", data);
       setResults(data);
       toast.success("Horse results fetched successfully");
     } catch (error) {
       console.error("Error fetching horse results:", error);
-      toast.error("Failed to fetch horse results");
+      // Show the specific error message to the user
+      toast.error(error.message || "Failed to fetch horse results");
     } finally {
       setLoading(false);
     }
