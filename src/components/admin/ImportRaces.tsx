@@ -23,15 +23,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { useState } from "react";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
   
-  // Initialize with current date, no UTC conversion needed
-  const [date, setDate] = useState<Date>(new Date());
+  // Initialize with start of current day to ensure consistent date handling
+  const [date, setDate] = useState<Date>(() => {
+    const now = startOfDay(new Date());
+    console.log('Initial date set to:', format(now, 'yyyy-MM-dd'));
+    return now;
+  });
 
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -46,7 +50,7 @@ const ImportRaces = () => {
     },
   });
 
-  console.log('Selected date:', date.toISOString());
+  console.log('Current selected date:', format(date, 'yyyy-MM-dd'));
   const formattedDate = format(date, "MMMM do, yyyy");
 
   return (
@@ -113,8 +117,10 @@ const ImportRaces = () => {
                 selected={date}
                 onSelect={(newDate) => {
                   if (newDate) {
-                    console.log('New date selected:', newDate.toISOString());
-                    setDate(newDate);
+                    // Ensure we're working with the start of the day
+                    const selectedDate = startOfDay(newDate);
+                    console.log('New date selected:', format(selectedDate, 'yyyy-MM-dd'));
+                    setDate(selectedDate);
                   }
                 }}
                 initialFocus

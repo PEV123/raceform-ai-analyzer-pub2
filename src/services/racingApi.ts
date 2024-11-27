@@ -1,20 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
-import { format } from 'date-fns';
+import { format, startOfDay } from "date-fns";
 
 export const fetchTodaysRaces = async () => {
-  const today = new Date();
+  const today = startOfDay(new Date());
+  console.log('Fetching today\'s races:', format(today, 'yyyy-MM-dd'));
   return fetchRacesForDate(today);
 };
 
 export const fetchRacesForDate = async (date: Date) => {
-  // Format the date for the API request - no timezone conversion needed
-  const formattedDate = format(date, 'yyyy-MM-dd');
+  // Ensure we're working with the start of the day
+  const targetDate = startOfDay(date);
+  const formattedDate = format(targetDate, 'yyyy-MM-dd');
   console.log('Fetching races for date:', formattedDate);
 
   const { data, error } = await supabase.functions.invoke('fetch-races-by-date', {
-    body: { 
-      date: formattedDate
-    }
+    body: {
+      date: formattedDate,
+    },
   });
 
   if (error) {
@@ -22,11 +24,5 @@ export const fetchRacesForDate = async (date: Date) => {
     throw error;
   }
 
-  if (!data || !data.races) {
-    console.error('Invalid response format:', data);
-    throw new Error('Invalid response from Racing API');
-  }
-
-  console.log('Successfully fetched races:', data.races);
   return data.races;
 };
