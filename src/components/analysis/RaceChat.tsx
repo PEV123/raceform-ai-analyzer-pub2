@@ -5,6 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Tables } from "@/integrations/supabase/types";
+import { useSession } from '@supabase/auth-helpers-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RaceChatProps {
   raceId: string;
@@ -21,17 +23,26 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const session = useSession();
+  const [chatMode, setChatMode] = useState<'personal' | 'all'>('personal');
 
   useEffect(() => {
     loadChatHistory();
-  }, [raceId]);
+  }, [raceId, chatMode]);
 
   const loadChatHistory = async () => {
-    const { data, error } = await supabase
+    const query = supabase
       .from('race_chats')
       .select('*')
       .eq('race_id', raceId)
       .order('created_at', { ascending: true });
+
+    // Filter by user_id for personal chat mode
+    if (chatMode === 'personal' && session?.user) {
+      query.eq('user_id', session.user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error loading chat history:', error);
@@ -51,7 +62,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim() || isLoading || !session?.user) return;
 
     setIsLoading(true);
     const userMessage = newMessage.trim();
@@ -70,6 +81,26 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
       });
 
       if (error) throw error;
+
+      // Store both user and assistant messages with user_id
+      const { error: insertError } = await supabase
+        .from('race_chats')
+        .insert([
+          { 
+            race_id: raceId, 
+            message: userMessage, 
+            role: 'user',
+            user_id: session.user.id 
+          },
+          { 
+            race_id: raceId, 
+            message: data.message, 
+            role: 'assistant',
+            user_id: session.user.id 
+          }
+        ]);
+
+      if (insertError) throw insertError;
 
       await loadChatHistory();
     } catch (error) {
@@ -90,8 +121,25 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     }
   }, [messages]);
 
+  if (!session?.user) {
+    return (
+      <div className="p-4 text-center">
+        Please log in to use the chat feature.
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
+      <div className="border-b p-2">
+        <Tabs value={chatMode} onValueChange={(value) => setChatMode(value as 'personal' | 'all')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="personal">My Chat</TabsTrigger>
+            <TabsTrigger value="all">All Chats</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         {messages.map((msg, index) => (
           <div
@@ -112,6 +160,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
           </div>
         ))}
       </ScrollArea>
+
       <form onSubmit={sendMessage} className="p-4 border-t">
         <div className="flex gap-2">
           <Input

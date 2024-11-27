@@ -16,6 +16,7 @@ export type Database = {
           message: string
           race_id: string
           role: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -23,6 +24,7 @@ export type Database = {
           message: string
           race_id: string
           role: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -30,6 +32,7 @@ export type Database = {
           message?: string
           race_id?: string
           role?: string
+          user_id?: string | null
         }
         Relationships: [
           {
