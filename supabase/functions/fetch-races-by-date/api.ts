@@ -31,33 +31,35 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
     }
 
     const data = await response.json()
-    console.log('Raw API Response:', data)
+    console.log('Raw API Response structure:', {
+      hasData: !!data,
+      hasRacecards: !!data?.racecards,
+      hasDataRacecards: !!data?.data?.racecards,
+      responseKeys: Object.keys(data || {})
+    })
     
-    // Validate response structure
+    // Handle empty response
     if (!data) {
-      console.error('Empty API response')
-      throw new Error('Empty API response')
+      console.log('No data returned from API')
+      return { races: [] }
     }
 
-    // Check if data.data exists (API might wrap response in data field)
-    const raceData = data.data || data
-    console.log('Processed race data:', raceData)
-
-    if (!raceData.races && !raceData.racecards) {
-      console.error('Invalid API response structure:', raceData)
-      throw new Error('Invalid API response: missing races field')
+    // The API returns racecards directly or nested in data
+    let races = []
+    if (data.racecards && Array.isArray(data.racecards)) {
+      console.log('Found races in data.racecards')
+      races = data.racecards
+    } else if (data.data?.racecards && Array.isArray(data.data.racecards)) {
+      console.log('Found races in data.data.racecards')
+      races = data.data.racecards
+    } else {
+      console.log('No valid races array found in response')
+      return { races: [] }
     }
 
-    // Handle different possible response structures
-    const races = raceData.races || raceData.racecards || []
-    
-    if (!Array.isArray(races)) {
-      console.error('Races is not an array:', races)
-      throw new Error('Invalid API response: races is not an array')
-    }
-
-    console.log(`Successfully fetched ${races.length} races`)
+    console.log(`Successfully processed ${races.length} races`)
     return { races }
+
   } catch (error) {
     console.error('Error fetching races from API:', error)
     throw error
