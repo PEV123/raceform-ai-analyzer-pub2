@@ -116,108 +116,252 @@ export type Database = {
       races: {
         Row: {
           age_band: string
+          big_race: boolean | null
           course: string
+          course_id: string | null
           created_at: string | null
+          distance: string | null
+          distance_f: string | null
+          distance_round: string | null
           field_size: number
+          going: string | null
+          going_detailed: string | null
           id: string
+          is_abandoned: boolean | null
+          jumps: string | null
           off_time: string
+          pattern: string | null
           prize: string
           race_class: string
+          race_id: string | null
           race_name: string
+          rail_movements: string | null
           rating_band: string
           region: string
+          stalls: string | null
+          surface: string | null
+          type: string | null
+          weather: string | null
         }
         Insert: {
           age_band: string
+          big_race?: boolean | null
           course: string
+          course_id?: string | null
           created_at?: string | null
+          distance?: string | null
+          distance_f?: string | null
+          distance_round?: string | null
           field_size: number
+          going?: string | null
+          going_detailed?: string | null
           id?: string
+          is_abandoned?: boolean | null
+          jumps?: string | null
           off_time: string
+          pattern?: string | null
           prize: string
           race_class: string
+          race_id?: string | null
           race_name: string
+          rail_movements?: string | null
           rating_band: string
           region: string
+          stalls?: string | null
+          surface?: string | null
+          type?: string | null
+          weather?: string | null
         }
         Update: {
           age_band?: string
+          big_race?: boolean | null
           course?: string
+          course_id?: string | null
           created_at?: string | null
+          distance?: string | null
+          distance_f?: string | null
+          distance_round?: string | null
           field_size?: number
+          going?: string | null
+          going_detailed?: string | null
           id?: string
+          is_abandoned?: boolean | null
+          jumps?: string | null
           off_time?: string
+          pattern?: string | null
           prize?: string
           race_class?: string
+          race_id?: string | null
           race_name?: string
+          rail_movements?: string | null
           rating_band?: string
           region?: string
+          stalls?: string | null
+          surface?: string | null
+          type?: string | null
+          weather?: string | null
         }
         Relationships: []
       }
       runners: {
         Row: {
+          age: string | null
+          breeder: string | null
+          colour: string | null
+          comment: string | null
           created_at: string | null
           dam: string
+          dam_id: string | null
           dam_region: string
+          damsire: string | null
+          damsire_id: string | null
+          damsire_region: string | null
+          dob: string | null
           draw: number
           form: string | null
           headgear: string | null
+          headgear_run: string | null
           horse: string
           horse_id: string
           id: string
           jockey: string
+          jockey_id: string | null
+          last_run: string | null
           lbs: number
+          medical: Json | null
           number: number
+          odds: Json | null
           ofr: string | null
+          owner: string | null
+          owner_id: string | null
+          past_results_flags: Json | null
+          prev_owners: Json | null
+          prev_trainers: Json | null
+          quotes: Json | null
           race_id: string | null
+          region: string | null
+          rpr: string | null
+          sex: string | null
+          sex_code: string | null
           silk_url: string | null
           sire: string
           sire_region: string
+          spotlight: string | null
+          stable_tour: Json | null
           trainer: string
+          trainer_14_days: Json | null
+          trainer_id: string | null
+          trainer_location: string | null
+          trainer_rtf: string | null
           ts: string | null
+          wind_surgery: string | null
+          wind_surgery_run: string | null
         }
         Insert: {
+          age?: string | null
+          breeder?: string | null
+          colour?: string | null
+          comment?: string | null
           created_at?: string | null
           dam: string
+          dam_id?: string | null
           dam_region: string
+          damsire?: string | null
+          damsire_id?: string | null
+          damsire_region?: string | null
+          dob?: string | null
           draw: number
           form?: string | null
           headgear?: string | null
+          headgear_run?: string | null
           horse: string
           horse_id: string
           id?: string
           jockey: string
+          jockey_id?: string | null
+          last_run?: string | null
           lbs: number
+          medical?: Json | null
           number: number
+          odds?: Json | null
           ofr?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          past_results_flags?: Json | null
+          prev_owners?: Json | null
+          prev_trainers?: Json | null
+          quotes?: Json | null
           race_id?: string | null
+          region?: string | null
+          rpr?: string | null
+          sex?: string | null
+          sex_code?: string | null
           silk_url?: string | null
           sire: string
           sire_region: string
+          spotlight?: string | null
+          stable_tour?: Json | null
           trainer: string
+          trainer_14_days?: Json | null
+          trainer_id?: string | null
+          trainer_location?: string | null
+          trainer_rtf?: string | null
           ts?: string | null
+          wind_surgery?: string | null
+          wind_surgery_run?: string | null
         }
         Update: {
+          age?: string | null
+          breeder?: string | null
+          colour?: string | null
+          comment?: string | null
           created_at?: string | null
           dam?: string
+          dam_id?: string | null
           dam_region?: string
+          damsire?: string | null
+          damsire_id?: string | null
+          damsire_region?: string | null
+          dob?: string | null
           draw?: number
           form?: string | null
           headgear?: string | null
+          headgear_run?: string | null
           horse?: string
           horse_id?: string
           id?: string
           jockey?: string
+          jockey_id?: string | null
+          last_run?: string | null
           lbs?: number
+          medical?: Json | null
           number?: number
+          odds?: Json | null
           ofr?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          past_results_flags?: Json | null
+          prev_owners?: Json | null
+          prev_trainers?: Json | null
+          quotes?: Json | null
           race_id?: string | null
+          region?: string | null
+          rpr?: string | null
+          sex?: string | null
+          sex_code?: string | null
           silk_url?: string | null
           sire?: string
           sire_region?: string
+          spotlight?: string | null
+          stable_tour?: Json | null
           trainer?: string
+          trainer_14_days?: Json | null
+          trainer_id?: string | null
+          trainer_location?: string | null
+          trainer_rtf?: string | null
           ts?: string | null
+          wind_surgery?: string | null
+          wind_surgery_run?: string | null
         }
         Relationships: [
           {
