@@ -26,17 +26,34 @@ serve(async (req) => {
 
     const messageContent = [];
     
-    // Handle new image upload
-    const imageContent = processBase64Image(message);
-    if (imageContent) {
-      console.log('Processing new image from message');
-      messageContent.push(imageContent);
+    // Check if the message contains an image URL from a new upload
+    if (message.includes('storage/v1/object/public/race_documents/chat-images/')) {
+      console.log('Processing new uploaded image URL');
+      const lines = message.split('\n');
+      const imageUrl = lines[0];
       messageContent.push({
-        type: "text",
-        text: "Please analyze this image."
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: "image/png", // Default to PNG, the API will handle other formats
+          data: await fetchAndConvertToBase64(imageUrl)
+        }
       });
+      
+      // Add any text message that follows the image URL
+      if (lines.length > 1) {
+        messageContent.push({
+          type: "text",
+          text: lines.slice(1).join('\n')
+        });
+      } else {
+        messageContent.push({
+          type: "text",
+          text: "Please analyze this image."
+        });
+      }
     } else {
-      // Only process race documents if no new image is being uploaded
+      // Handle regular text messages with race documents
       console.log('Adding race document images to message');
       const validDocumentImages = await processRaceDocuments(
         race,
@@ -101,3 +118,17 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to fetch and convert image to base64
+async function fetchAndConvertToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let binary = '';
+  const chunkSize = 32768;
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.slice(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return btoa(binary);
+}
