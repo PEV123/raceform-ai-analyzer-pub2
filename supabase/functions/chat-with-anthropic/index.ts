@@ -53,20 +53,44 @@ serve(async (req) => {
       - Trainer: ${runner.trainer}
       - Form: ${runner.form || 'No form'}
       - Weight: ${runner.lbs}lbs
+      - Breeding: By ${runner.sire} (${runner.sire_region}) out of ${runner.dam} (${runner.dam_region})
       ${runner.headgear ? `- Headgear: ${runner.headgear}` : ''}
       ${runner.ofr ? `- Official Rating: ${runner.ofr}` : ''}
       ${runner.ts ? `- Top Speed Rating: ${runner.ts}` : ''}
     `).join('\n');
 
-    // Create a simplified document summary instead of including base64 data
-    const documentSummary = race.race_documents.map((doc: any) => {
+    // Process race documents and handle images
+    console.log('Processing race documents...');
+    const documentDescriptions = await Promise.all(race.race_documents.map(async (doc: any) => {
       const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
-      return `Race document: ${doc.file_name} (${doc.content_type})
+      
+      // For image files, include them directly in the message
+      if (doc.content_type.startsWith('image/')) {
+        return `Race document: ${doc.file_name} (${doc.content_type})
+URL: ${url}
+
+Please analyze this image as part of your response.`;
+      } else {
+        return `Race document: ${doc.file_name} (${doc.content_type})
 URL: ${url}`;
-    }).join('\n\n');
+      }
+    }));
+
+    // Check if the message contains an image URL
+    const imageUrlMatch = message.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
+    let processedMessage = message;
+    
+    if (imageUrlMatch) {
+      console.log('Found image URL in message:', imageUrlMatch[0]);
+      processedMessage = `${message}
+
+Please analyze this image as part of your response.`;
+    }
 
     const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
+
+      ${settings?.knowledge_base || ''}
 
       Race Analysis Context:
       Race: ${race.race_name} at ${race.course}
@@ -77,13 +101,13 @@ URL: ${url}`;
       Prize: ${race.prize}
       Field Size: ${race.field_size} runners
 
-      Runners:
+      Detailed Runner Information:
       ${formattedRunners}
 
-      Available Documents:
-      ${documentSummary}
+      Race Documents:
+      ${documentDescriptions.join('\n\n') || 'No race documents have been uploaded for this race.'}
 
-      Please provide analysis based on this information. The race documents are available at the URLs provided - you can reference them in your analysis but don't need to process them directly.
+      Please provide detailed analysis based on this information. If images are shared in the conversation, please analyze them and incorporate your findings into your response.
     `;
 
     console.log('Making request to Anthropic API');
@@ -99,7 +123,7 @@ URL: ${url}`;
       body: JSON.stringify({
         model: 'claude-3-sonnet-20240229',
         system: systemMessage,
-        messages: [{ role: 'user', content: message }],
+        messages: [{ role: 'user', content: processedMessage }],
         max_tokens: 1024,
       }),
     });
