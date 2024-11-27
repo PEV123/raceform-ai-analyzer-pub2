@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Runner {
   horse_id: string;
@@ -152,18 +153,44 @@ const Index = () => {
     );
   }
 
+  if (!races || races.length === 0) {
+    return (
+      <Card className="p-6">
+        <p className="text-lg text-muted-foreground">No races scheduled for today</p>
+      </Card>
+    );
+  }
+
+  // Group races by venue
+  const racesByVenue = races.reduce((acc, race) => {
+    if (!acc[race.course]) {
+      acc[race.course] = [];
+    }
+    acc[race.course].push(race);
+    return acc;
+  }, {} as Record<string, Race[]>);
+
+  const venues = Object.keys(racesByVenue).sort();
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Today's Races</h1>
-      {races?.length === 0 ? (
-        <Card className="p-6">
-          <p className="text-lg text-muted-foreground">No races scheduled for today</p>
-        </Card>
-      ) : (
-        races?.map((race: Race) => (
-          <RaceCard key={race.id} race={race} />
-        ))
-      )}
+      <Tabs defaultValue={venues[0]} className="w-full">
+        <TabsList className="mb-8 flex flex-wrap gap-2">
+          {venues.map((venue) => (
+            <TabsTrigger key={venue} value={venue} className="px-4 py-2">
+              {venue} ({racesByVenue[venue].length})
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {venues.map((venue) => (
+          <TabsContent key={venue} value={venue}>
+            {racesByVenue[venue].map((race) => (
+              <RaceCard key={race.id} race={race} />
+            ))}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };
