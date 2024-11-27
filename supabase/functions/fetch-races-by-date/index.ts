@@ -5,6 +5,7 @@ const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
 const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -49,17 +50,32 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log('Successfully fetched races for date:', formattedDate)
+    console.log('Successfully fetched races:', data)
 
+    // Ensure we're returning the races array
     return new Response(
-      JSON.stringify(data),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ races: data.races || [] }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+        } 
+      }
     )
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message,
+        races: [] 
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     )
   }
 })

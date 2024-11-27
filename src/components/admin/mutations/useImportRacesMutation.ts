@@ -10,15 +10,13 @@ export const useImportRacesMutation = () => {
   return useMutation({
     mutationFn: async (date: Date) => {
       console.log("Importing races for date:", date);
-      const response = await fetchRacesForDate(date);
+      const races = await fetchRacesForDate(date);
       
-      // Check if response exists and has races property
-      if (!response || !Array.isArray(response)) {
-        console.error("Invalid response format:", response);
-        throw new Error("Invalid response format from Racing API");
+      if (!Array.isArray(races)) {
+        console.error("Invalid races data:", races);
+        throw new Error("Invalid races data received");
       }
 
-      const races = response;
       console.log("Processing races:", races);
 
       for (const race of races) {
@@ -162,11 +160,11 @@ export const useImportRacesMutation = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["races"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error importing races:", error);
       toast({
         title: "Error",
-        description: "Failed to import races. Please try again.",
+        description: error.message || "Failed to import races. Please try again.",
         variant: "destructive",
       });
     },

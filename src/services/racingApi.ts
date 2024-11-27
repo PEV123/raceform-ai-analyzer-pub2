@@ -18,5 +18,11 @@ export const fetchRacesForDate = async (date: Date) => {
     throw error;
   }
 
+  if (!data || !data.races) {
+    console.error('Invalid response format:', data);
+    throw new Error('Invalid response from Racing API');
+  }
+
+  console.log('Successfully fetched races:', data.races);
   return data.races;
 };
