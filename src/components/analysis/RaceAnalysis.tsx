@@ -4,9 +4,11 @@ import { RaceChat } from "./RaceChat";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { OddsDisplay } from "../race/OddsDisplay";
+import { RawDataDialog } from "../admin/RawDataDialog";
+import { useState } from "react";
 
 interface RaceAnalysisProps {
   raceId: string;
@@ -14,6 +16,7 @@ interface RaceAnalysisProps {
 
 export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
   const navigate = useNavigate();
+  const [showRawData, setShowRawData] = useState(false);
   
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -72,6 +75,14 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-3xl font-bold">Race Analysis</h1>
+        <Button
+          variant="outline"
+          className="ml-auto"
+          onClick={() => setShowRawData(true)}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          View Raw Data
+        </Button>
       </div>
 
       <Card className="p-6">
@@ -115,6 +126,12 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           <RaceChat raceId={raceId} />
         </div>
       </Card>
+
+      <RawDataDialog 
+        open={showRawData} 
+        onOpenChange={setShowRawData}
+        race={race}
+      />
     </div>
   );
 };
