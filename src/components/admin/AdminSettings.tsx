@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const TIMEZONES = [
+  "Europe/London",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
 
 export const AdminSettings = () => {
   const { toast } = useToast();
@@ -12,6 +21,7 @@ export const AdminSettings = () => {
   
   const [systemPrompt, setSystemPrompt] = useState("");
   const [knowledgeBase, setKnowledgeBase] = useState("");
+  const [timezone, setTimezone] = useState("Europe/London");
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["adminSettings"],
@@ -23,9 +33,9 @@ export const AdminSettings = () => {
 
       if (error) throw error;
       
-      // Update local state with fetched values
       setSystemPrompt(data.system_prompt);
       setKnowledgeBase(data.knowledge_base);
+      setTimezone(data.timezone);
       
       return data;
     },
@@ -38,6 +48,7 @@ export const AdminSettings = () => {
         .update({
           system_prompt: systemPrompt,
           knowledge_base: knowledgeBase,
+          timezone: timezone,
           updated_at: new Date().toISOString(),
         })
         .eq("id", settings?.id);
@@ -89,6 +100,22 @@ export const AdminSettings = () => {
             placeholder="Enter the knowledge base content..."
             className="min-h-[200px]"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Timezone</label>
+          <Select value={timezone} onValueChange={setTimezone}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select timezone" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIMEZONES.map((tz) => (
+                <SelectItem key={tz} value={tz}>
+                  {tz}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Button 

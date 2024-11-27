@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface RaceAnalysisProps {
   raceId: string;
@@ -13,6 +14,19 @@ interface RaceAnalysisProps {
 export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
   const navigate = useNavigate();
   
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: race, isLoading } = useQuery({
     queryKey: ["race", raceId],
     queryFn: async () => {
@@ -38,6 +52,14 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
     return <div>Race not found</div>;
   }
 
+  const formatDateTime = (date: string) => {
+    return formatInTimeZone(
+      new Date(date),
+      settings?.timezone || 'Europe/London',
+      'PPpp'
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -56,7 +78,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           <div>
             <h2 className="text-2xl font-bold mb-4">{race.course}</h2>
             <p className="text-muted-foreground">
-              {new Date(race.off_time).toLocaleString()}
+              {formatDateTime(race.off_time)}
             </p>
             <p>{race.race_name}</p>
             <p>

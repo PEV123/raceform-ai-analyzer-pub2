@@ -6,6 +6,8 @@ import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { formatInTimeZone } from 'date-fns-tz';
 import { RawDataDialog } from "./RawDataDialog";
 import { FileJson } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -20,8 +22,25 @@ export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
 
-  const formatUKTime = (date: string) => {
-    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const formatTime = (date: string) => {
+    return formatInTimeZone(
+      new Date(date), 
+      settings?.timezone || 'Europe/London',
+      'HH:mm:ss'
+    );
   };
 
   // Create a Map to store unique races by their course and off_time combination
@@ -30,9 +49,6 @@ export const RaceList = ({ races }: RaceListProps) => {
     const key = `${race.course}-${race.off_time}`;
     const existingRace = uniqueRaces.get(key);
     
-    // Only update if:
-    // 1. This race doesn't exist in our Map yet, OR
-    // 2. This race has documents while the existing one doesn't
     if (!existingRace || (race.race_documents?.length > 0 && (!existingRace.race_documents || existingRace.race_documents.length === 0))) {
       uniqueRaces.set(key, race);
     }
@@ -60,7 +76,7 @@ export const RaceList = ({ races }: RaceListProps) => {
             <TableRow key={race.id}>
               <TableCell>{race.course}</TableCell>
               <TableCell>
-                {formatUKTime(race.off_time)}
+                {formatTime(race.off_time)}
               </TableCell>
               <TableCell>{race.field_size}</TableCell>
               <TableCell>0</TableCell>
