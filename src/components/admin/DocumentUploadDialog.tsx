@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentUploadDialogProps {
   race: Tables<"races"> | null;
@@ -31,11 +32,17 @@ export const DocumentUploadDialog = ({
       formData.append("file", file);
       formData.append("raceId", race.id);
 
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch(
         "https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/upload-race-document",
         {
           method: "POST",
           body: formData,
+          headers: {
+            Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY || ''}`,
+          },
         }
       );
 
