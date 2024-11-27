@@ -63,10 +63,14 @@ serve(async (req) => {
       ${runner.ts ? `- Top Speed Rating: ${runner.ts}` : ''}
     `).join('\n');
 
-    // Format race documents (images) as URLs
-    const documentUrls = race.race_documents.map((doc: any) => 
-      `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`
-    );
+    // Format race documents with descriptions
+    const documentDescriptions = race.race_documents.map((doc: any) => {
+      const url = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
+      return `Race document: ${doc.file_name} (${doc.content_type})
+URL: ${url}
+
+Note: This is a race document that has been uploaded for analysis. Please reference this document in your analysis if relevant.`;
+    }).join('\n\n');
 
     // Construct the system message with all available context
     const systemMessage = `
@@ -86,15 +90,13 @@ serve(async (req) => {
       Detailed Runner Information:
       ${formattedRunners}
 
-      ${documentUrls.length > 0 ? `
-      Race Documents/Images Available at:
-      ${documentUrls.join('\n')}
-      ` : 'No race documents uploaded.'}
+      Race Documents:
+      ${documentDescriptions || 'No race documents have been uploaded for this race.'}
 
-      Please provide detailed analysis based on this information.
+      Please provide detailed analysis based on this information. If race documents are available, please reference them in your analysis.
     `;
 
-    console.log('Making request to Anthropic API...');
+    console.log('Making request to Anthropic API with system message:', systemMessage);
 
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
