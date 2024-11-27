@@ -10,7 +10,19 @@ export const useClearRacesMutation = () => {
     mutationFn: async () => {
       console.log("Clearing all races...");
       
-      // First, delete all race documents
+      // First, delete all race chats
+      const { error: chatsError } = await supabase
+        .from("race_chats")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+      
+      if (chatsError) {
+        console.error("Error clearing race chats:", chatsError);
+        throw chatsError;
+      }
+      console.log("Successfully cleared all race chats");
+
+      // Then, delete all race documents
       const { error: docsError } = await supabase
         .from("race_documents")
         .delete()
