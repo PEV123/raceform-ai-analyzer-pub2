@@ -9,11 +9,12 @@ import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { format } from "date-fns";
 
 const Index = () => {
   const [date, setDate] = useState<Date>(new Date());
 
-  // First fetch admin settings for timezone
+  // First fetch admin settings for timezone display
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
@@ -29,27 +30,21 @@ const Index = () => {
 
   const timezone = settings?.timezone || 'Europe/London';
 
-  // Then fetch races using the timezone
+  // Then fetch races using the exact date without timezone manipulation
   const { data: races, isLoading: racesLoading } = useQuery({
-    queryKey: ["races", date.toISOString(), timezone],
+    queryKey: ["races", date.toISOString()],
     queryFn: async () => {
-      // Get the start of the selected day in the target timezone
+      // Create date range for the selected day in UTC
       const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setUTCHours(0, 0, 0, 0);
       
-      // Get the end of the selected day in the target timezone
       const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setUTCHours(23, 59, 59, 999);
       
-      // Format the dates in the correct timezone
-      const startStr = formatInTimeZone(startOfDay, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-      const endStr = formatInTimeZone(endOfDay, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-      
-      console.log("Selected date:", date);
-      console.log("Fetching races for date:", formatInTimeZone(date, timezone, 'PPP'), "in timezone:", timezone);
-      console.log("Date range in timezone:", timezone);
-      console.log("Start:", startStr);
-      console.log("End:", endStr);
+      console.log("Selected date:", format(date, 'yyyy-MM-dd'));
+      console.log("Query date range (UTC):");
+      console.log("Start:", startOfDay.toISOString());
+      console.log("End:", endOfDay.toISOString());
 
       const { data, error } = await supabase
         .from("races")
@@ -57,15 +52,14 @@ const Index = () => {
           *,
           runners (*)
         `)
-        .gte('off_time', startStr)
-        .lte('off_time', endStr)
+        .gte('off_time', startOfDay.toISOString())
+        .lte('off_time', endOfDay.toISOString())
         .order('off_time', { ascending: true });
 
       if (error) throw error;
       console.log("Fetched races:", data);
       return data;
     },
-    enabled: !!timezone,
   });
 
   if (racesLoading || settingsLoading) return <div>Loading...</div>;
@@ -83,8 +77,8 @@ const Index = () => {
   // Get unique venues
   const allVenues = Object.keys(groupedRaces).sort();
 
-  // Format the display date in the correct timezone
-  const displayDate = formatInTimeZone(date, timezone, 'MMMM do, yyyy');
+  // Format the display date
+  const displayDate = format(date, 'MMMM do, yyyy');
 
   return (
     <div className="space-y-8">
