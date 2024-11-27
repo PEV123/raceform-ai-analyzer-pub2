@@ -36,8 +36,8 @@ serve(async (req) => {
     const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results?start_date=${startDate}&end_date=${endDate}`
-    console.log('Making request to:', apiUrl)
-
+    console.log('Full API URL being called:', apiUrl)
+    
     const apiResponse = await fetch(
       apiUrl,
       {
