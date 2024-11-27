@@ -101,7 +101,11 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     e.preventDefault();
     if (!newMessage.trim() && !uploadedImageUrl) return;
 
-    const messageToSend = uploadedImageUrl || newMessage;
+    let messageToSend = newMessage.trim();
+    if (uploadedImageUrl) {
+      messageToSend = messageToSend ? `${uploadedImageUrl}\n${messageToSend}` : uploadedImageUrl;
+    }
+    
     await onSendMessage(messageToSend);
     setNewMessage('');
     setPreviewUrl(null);
@@ -171,8 +175,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
             onPaste={handlePaste}
             className="flex-1 resize-none border rounded-md p-2 w-full"
             rows={3}
-            placeholder={uploadedImageUrl ? "Image ready to send..." : "Type your message or paste an image..."}
-            disabled={!!uploadedImageUrl}
+            placeholder={uploadedImageUrl ? "Add a message (optional)..." : "Type your message or paste an image..."}
           />
         </div>
         <Button type="submit" className="shrink-0" disabled={isLoading || (!newMessage.trim() && !uploadedImageUrl)}>
