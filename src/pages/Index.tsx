@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RaceCard } from "@/components/race/RaceCard";
-import { format } from "date-fns";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,12 +33,15 @@ const Index = () => {
   const { data: races, isLoading: racesLoading } = useQuery({
     queryKey: ["races", date.toISOString(), timezone],
     queryFn: async () => {
-      console.log("Fetching races for date:", date, "in timezone:", timezone);
+      // Set the time to noon to avoid any timezone edge cases
+      const selectedDate = new Date(date);
+      selectedDate.setHours(12, 0, 0, 0);
       
-      // Convert the selected date to the start and end of day in the correct timezone
-      const startStr = formatInTimeZone(date, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
-      const endStr = formatInTimeZone(date, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
+      // Format the dates in the correct timezone for the start and end of the selected date
+      const startStr = formatInTimeZone(selectedDate, timezone, "yyyy-MM-dd'T'00:00:00.000XXX");
+      const endStr = formatInTimeZone(selectedDate, timezone, "yyyy-MM-dd'T'23:59:59.999XXX");
       
+      console.log("Fetching races for date:", formatInTimeZone(selectedDate, timezone, 'PPP'), "in timezone:", timezone);
       console.log("Date range in timezone:", timezone);
       console.log("Start:", startStr);
       console.log("End:", endStr);
