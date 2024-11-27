@@ -22,11 +22,13 @@ const ImportRaces = () => {
         today.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         const timestamp = today.toISOString();
 
+        console.log(`Processing race at ${race.course} - ${race.off_time}`);
+
         // Insert race with properly formatted timestamp
         const { data: raceData, error: raceError } = await supabase
           .from("races")
           .insert([{
-            off_time: timestamp, // Now using proper timestamp
+            off_time: timestamp,
             course: race.course,
             race_name: race.race_name,
             region: race.region,
@@ -44,23 +46,31 @@ const ImportRaces = () => {
           throw raceError;
         }
 
-        // Filter out runners with missing required fields and transform data
+        console.log(`Successfully inserted race: ${raceData.id}`);
+
+        // Transform and validate runners
         const validRunners = race.runners
           .filter(runner => {
-            const isValid = runner.number != null && 
-                          runner.draw != null && 
+            // Log all missing required fields for debugging
+            const missingFields = [];
+            if (!runner.horse_id) missingFields.push('horse_id');
+            if (!runner.horse) missingFields.push('horse');
+            if (!runner.sire) missingFields.push('sire');
+            if (!runner.sire_region) missingFields.push('sire_region');
+            if (!runner.dam) missingFields.push('dam');
+            if (!runner.dam_region) missingFields.push('dam_region');
+            if (!runner.trainer) missingFields.push('trainer');
+
+            const isValid = runner.horse_id && 
                           runner.horse && 
-                          runner.horse_id && 
                           runner.sire && 
                           runner.sire_region && 
                           runner.dam && 
                           runner.dam_region && 
-                          runner.lbs != null && 
-                          runner.jockey && 
                           runner.trainer;
             
             if (!isValid) {
-              console.warn("Skipping invalid runner:", runner);
+              console.warn(`Skipping runner ${runner.horse} due to missing fields:`, missingFields);
             }
             return isValid;
           })
@@ -80,9 +90,11 @@ const ImportRaces = () => {
             headgear: runner.headgear,
             ofr: runner.ofr,
             ts: runner.ts,
-            jockey: runner.jockey,
+            jockey: runner.jockey || 'Unknown',
             trainer: runner.trainer,
           }));
+
+        console.log(`Processing ${validRunners.length} valid runners for race ${raceData.id}`);
 
         if (validRunners.length > 0) {
           const { error: runnersError } = await supabase
@@ -93,6 +105,7 @@ const ImportRaces = () => {
             console.error("Error inserting runners:", runnersError);
             throw runnersError;
           }
+          console.log(`Successfully inserted ${validRunners.length} runners`);
         }
       }
     },
