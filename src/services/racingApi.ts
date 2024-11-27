@@ -1,6 +1,6 @@
-const RACING_API_BASE_URL = "https://the-racing-api1.p.rapidapi.com/v1";
-const RACING_API_KEY = "ac74dad816msh3e7378a264cc01dp1aee4ejsn58139d3bf46b";
-const RACING_API_HOST = "the-racing-api1.p.rapidapi.com";
+const RACING_API_BASE_URL = "https://api.theracingapi.com/v1";
+const RACING_API_USERNAME = "Gj48KGaBbt6ChEW1fiENkB59";
+const RACING_API_PASSWORD = "5v1KqVnUT3xfqBZmD4IEOdaM";
 
 export interface RacingApiRace {
   off_time: string;
@@ -37,22 +37,55 @@ export interface RacingApiRunner {
 export const fetchTodaysRaces = async (): Promise<RacingApiRace[]> => {
   console.log("Fetching today's races from Racing API...");
   
+  const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`);
+  
   const response = await fetch(
-    `${RACING_API_BASE_URL}/racecards?day=today&region_codes=%5B%22gb%22%2C%20%22ire%22%5D`,
+    `${RACING_API_BASE_URL}/racecards/basic?day=today`,
     {
       headers: {
-        "X-RapidAPI-Key": RACING_API_KEY,
-        "X-RapidAPI-Host": RACING_API_HOST,
+        "Authorization": `Basic ${authHeader}`,
       },
     }
   );
 
   if (!response.ok) {
     console.error("Error fetching races:", response.statusText);
+    const errorBody = await response.text();
+    console.error("Error body:", errorBody);
     throw new Error(`Failed to fetch races: ${response.statusText}`);
   }
 
   const data = await response.json();
   console.log("Received races data:", data);
-  return data;
+
+  // Transform the API response to match our expected format
+  return data.racecards.map((racecard: any) => ({
+    off_time: racecard.off_dt,
+    course: racecard.course,
+    race_name: racecard.race_name,
+    region: racecard.region,
+    race_class: racecard.race_class,
+    age_band: racecard.age_band,
+    rating_band: racecard.rating_band,
+    prize: racecard.prize,
+    field_size: parseInt(racecard.field_size),
+    runners: racecard.runners.map((runner: any) => ({
+      horse_id: runner.horse_id,
+      number: parseInt(runner.number),
+      draw: parseInt(runner.draw || '0'),
+      horse: runner.horse,
+      silk_url: runner.silk_url,
+      sire: runner.sire,
+      sire_region: runner.sire_region || '',
+      dam: runner.dam,
+      dam_region: runner.dam_region || '',
+      form: runner.form,
+      lbs: parseInt(runner.lbs),
+      headgear: runner.headgear,
+      ofr: runner.ofr,
+      ts: runner.ts,
+      jockey: runner.jockey,
+      trainer: runner.trainer,
+    })),
+  }));
 };
