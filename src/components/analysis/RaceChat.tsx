@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,60 +13,58 @@ interface RaceChatProps {
   raceId: string;
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  message: string;
-}
-
 export const RaceChat = ({ raceId }: RaceChatProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; message: string; }[]>([]);
+  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const session = useSession();
-  const [chatMode, setChatMode] = useState<'personal' | 'all'>('personal');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadChatHistory();
-  }, [raceId, chatMode]);
+    loadMessages();
+  }, [raceId]);
 
-  const loadChatHistory = async () => {
-    const query = supabase
-      .from('race_chats')
-      .select('*')
-      .eq('race_id', raceId)
-      .order('created_at', { ascending: true });
-
-    if (chatMode === 'personal' && session?.user) {
-      query.eq('user_id', session.user.id);
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
+  }, [messages]);
 
-    const { data, error } = await query;
+  const loadMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('race_chats')
+        .select('*')
+        .eq('race_id', raceId)
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Error loading chat history:', error);
+      if (error) throw error;
+
+      setMessages(
+        data.map((msg) => ({
+          role: msg.role as 'user' | 'assistant',
+          message: msg.message,
+        }))
+      );
+    } catch (error) {
+      console.error('Error loading messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load chat history",
+        description: "Failed to load messages",
         variant: "destructive",
       });
-      return;
     }
-
-    setMessages(data.map(msg => ({
-      role: msg.role as 'user' | 'assistant',
-      message: msg.message
-    })));
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     try {
+      console.log('Starting image upload process');
       const publicUrl = await uploadImage(file);
+      console.log('Image uploaded successfully:', publicUrl);
       setNewMessage(prev => prev + `\n${publicUrl}`);
       toast({
         title: "Success",
@@ -83,50 +80,68 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading || !session?.user) return;
+    if (!newMessage.trim() || !session?.user?.id) return;
 
+    const userMessage = newMessage;
+    setNewMessage('');
+    setMessages((prev) => [...prev, { role: 'user', message: userMessage }]);
     setIsLoading(true);
-    const userMessage = newMessage.trim();
-    setNewMessage("");
 
     try {
-      const { data, error } = await supabase.functions.invoke('chat-with-anthropic', {
-        body: {
-          message: userMessage,
-          raceId,
-          previousMessages: messages.map(m => ({
-            role: m.role,
-            content: m.message
-          }))
-        }
-      });
-
-      if (error) throw error;
-
-      const { error: insertError } = await supabase
+      // Save user message
+      const { error: userMsgError } = await supabase
         .from('race_chats')
-        .insert([
-          { 
-            race_id: raceId, 
-            message: userMessage, 
-            role: 'user',
-            user_id: session.user.id 
+        .insert({
+          race_id: raceId,
+          message: userMessage,
+          role: 'user',
+          user_id: session.user.id,
+        });
+
+      if (userMsgError) throw userMsgError;
+
+      // Call edge function for AI response
+      const response = await fetch(
+        'https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/chat-with-anthropic',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
           },
-          { 
-            race_id: raceId, 
-            message: data.message, 
-            role: 'assistant',
-            user_id: session.user.id 
-          }
-        ]);
+          body: JSON.stringify({
+            message: userMessage,
+            raceId: raceId,
+          }),
+        }
+      );
 
-      if (insertError) throw insertError;
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
 
-      await loadChatHistory();
+      const data = await response.json();
+      
+      // Save AI response
+      const { error: aiMsgError } = await supabase
+        .from('race_chats')
+        .insert({
+          race_id: raceId,
+          message: data.response,
+          role: 'assistant',
+          user_id: session.user.id,
+        });
+
+      if (aiMsgError) throw aiMsgError;
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', message: data.response },
+      ]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in chat:', error);
       toast({
         title: "Error",
         description: "Failed to send message",
@@ -137,27 +152,12 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     }
   };
 
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  if (!session?.user) {
-    return (
-      <div className="p-4 text-center">
-        Please log in to use the chat feature.
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
       <div className="border-b p-2">
-        <Tabs value={chatMode} onValueChange={(value) => setChatMode(value as 'personal' | 'all')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="personal">My Chat</TabsTrigger>
-            <TabsTrigger value="all">All Chats</TabsTrigger>
+        <Tabs defaultValue="chat">
+          <TabsList>
+            <TabsTrigger value="chat">Chat</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -168,36 +168,37 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
         ))}
         {isLoading && (
           <div className="flex items-center justify-center p-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           </div>
         )}
       </ScrollArea>
 
-      <form onSubmit={sendMessage} className="p-4 border-t">
+      <form onSubmit={handleSubmit} className="border-t p-4">
         <div className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isLoading}
-          />
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-          />
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
+            size="icon"
+            className="shrink-0"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = (e) => handleImageUpload(e as any);
+              input.click();
+            }}
           >
             📎
           </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Sending..." : "Send"}
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            className="flex-1 resize-none border rounded-md p-2"
+            rows={3}
+            placeholder="Type your message..."
+          />
+          <Button type="submit" className="shrink-0" disabled={isLoading}>
+            Send
           </Button>
         </div>
       </form>
