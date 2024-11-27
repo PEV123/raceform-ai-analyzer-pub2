@@ -5,6 +5,8 @@ export const fetchRacesFromApi = async (date: string) => {
   console.log('Making request to Racing API for date:', date)
   
   const apiUrl = `https://api.theracingapi.com/v1/racecards/pro?date=${date}`
+  console.log('API URL:', apiUrl)
+  
   const response = await fetch(
     apiUrl,
     {
@@ -26,7 +28,7 @@ export const fetchRacesFromApi = async (date: string) => {
   }
 
   const data = await response.json()
-  console.log('Successfully fetched races:', data)
+  console.log('Successfully fetched races:', JSON.stringify(data, null, 2))
   return data
 }
 
@@ -49,6 +51,6 @@ export const fetchHorseResults = async (horseId: string) => {
   }
 
   const data = await response.json()
-  console.log('Fetched results for horse:', horseId, data)
+  console.log('Fetched results for horse:', horseId, JSON.stringify(data, null, 2))
   return data
 }

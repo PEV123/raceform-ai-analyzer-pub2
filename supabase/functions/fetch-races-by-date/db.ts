@@ -1,14 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 export const getSupabaseClient = () => {
-  return createClient(
+  const client = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
+  console.log('Supabase client initialized')
+  return client
 }
 
 export const insertRace = async (supabase: any, race: any) => {
-  console.log('Inserting race:', race)
+  console.log('Inserting race:', JSON.stringify(race, null, 2))
   
   const { data: raceData, error: raceError } = await supabase
     .from("races")
@@ -117,7 +119,7 @@ export const insertRunner = async (supabase: any, raceId: string, runner: any) =
 }
 
 export const insertHorseResult = async (supabase: any, horseId: string, result: any) => {
-  console.log(`Inserting result for horse ${horseId}:`, result)
+  console.log(`Inserting result for horse ${horseId}:`, JSON.stringify(result, null, 2))
   
   const { error: resultError } = await supabase
     .from('horse_results')
