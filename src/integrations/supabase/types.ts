@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      race_chats: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          race_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          race_id: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          race_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_race"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_chats_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       race_documents: {
         Row: {
           content_type: string
