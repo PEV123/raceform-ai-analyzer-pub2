@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface Runner {
   horse_id: string;
@@ -37,7 +38,7 @@ interface Race {
   runners: Runner[];
 }
 
-const RaceCard = ({ race }: { race: Race }) => {
+const RaceCard = ({ race, timezone }: { race: Race; timezone: string }) => {
   const lbsToStone = (lbs: number) => {
     const stone = Math.floor(lbs / 14);
     const remainder = lbs % 14;
@@ -49,7 +50,7 @@ const RaceCard = ({ race }: { race: Race }) => {
       <div className="flex justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold">
-            {new Date(race.off_time).toLocaleTimeString()} {race.course}
+            {formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm')} {race.course}
           </h2>
           <h3 className="text-xl">{race.race_name}</h3>
         </div>
@@ -102,6 +103,19 @@ const RaceCard = ({ race }: { race: Race }) => {
 };
 
 const Index = () => {
+  const { data: settings } = useQuery({
+    queryKey: ["adminSettings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: races, isLoading } = useQuery({
     queryKey: ["races"],
     queryFn: async () => {
@@ -139,8 +153,21 @@ const Index = () => {
     );
   }
 
+  // Create a Map to store unique races by their course and off_time combination
+  const uniqueRaces = new Map<string, Race>();
+  races.forEach(race => {
+    const key = `${race.course}-${race.off_time}`;
+    if (!uniqueRaces.has(key)) {
+      uniqueRaces.set(key, race);
+    }
+  });
+
+  // Convert the Map back to an array and sort by off_time
+  const dedupedRaces = Array.from(uniqueRaces.values())
+    .sort((a, b) => new Date(a.off_time).getTime() - new Date(b.off_time).getTime());
+
   // Group races by venue
-  const racesByVenue = races.reduce((acc, race) => {
+  const racesByVenue = dedupedRaces.reduce((acc, race) => {
     if (!acc[race.course]) {
       acc[race.course] = [];
     }
@@ -164,7 +191,11 @@ const Index = () => {
         {venues.map((venue) => (
           <TabsContent key={venue} value={venue}>
             {racesByVenue[venue].map((race) => (
-              <RaceCard key={race.id} race={race} />
+              <RaceCard 
+                key={race.id} 
+                race={race} 
+                timezone={settings?.timezone || 'Europe/London'} 
+              />
             ))}
           </TabsContent>
         ))}
