@@ -1,6 +1,15 @@
 import { Tables } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 
+interface BookmakerOdds {
+  decimal: string;
+  updated: string;
+  ew_denom: string;
+  bookmaker: string;
+  ew_places: string;
+  fractional: string;
+}
+
 interface OddsDisplayProps {
   odds: Tables<"runners">["odds"];
   className?: string;
@@ -11,14 +20,17 @@ export const OddsDisplay = ({ odds, className }: OddsDisplayProps) => {
     return <span className={cn("text-muted-foreground", className)}>No odds available</span>;
   }
 
+  // Type assertion to treat odds as BookmakerOdds array
+  const typedOdds = odds as unknown as BookmakerOdds[];
+
   // Get best price (highest decimal odds)
-  const bestPrice = odds.reduce((best, current) => {
+  const bestPrice = typedOdds.reduce((best, current) => {
     const decimal = parseFloat(current.decimal);
     return decimal > best ? decimal : best;
   }, 0);
 
   // Get most common price (mode)
-  const priceFrequency = odds.reduce((acc, curr) => {
+  const priceFrequency = typedOdds.reduce((acc, curr) => {
     const decimal = parseFloat(curr.decimal);
     acc[decimal] = (acc[decimal] || 0) + 1;
     return acc;
