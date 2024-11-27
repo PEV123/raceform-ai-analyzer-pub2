@@ -22,13 +22,21 @@ Runners:
 ${race.runners?.map((runner: any) => {
   const horseResults = historicalResults?.filter(result => result.horse_id === runner.horse_id) || [];
   
+  // Calculate total runners in each historical race
+  const getRunnerCount = (result: any) => {
+    if (result.winner && result.second && result.third) {
+      return '3+';  // We know at least 3 runners
+    }
+    return '-';  // Unknown number of runners
+  };
+  
   return `
 ${runner.horse} (${runner.age}yo ${runner.sex})
 Jockey: ${runner.jockey}
 Trainer: ${runner.trainer}
 Weight: ${runner.weight || runner.lbs}
 Recent Form: ${horseResults.map(result => 
-  `${result.position || '-'}/${result.field_size || '-'} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`
+  `${result.position || '-'}/${getRunnerCount(result)} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`
 ).join(', ') || 'No recent form'}
 Comments: ${horseResults.slice(0, 3).map(result => result.comment).filter(Boolean).join(' | ') || 'No comments'}
   `;
