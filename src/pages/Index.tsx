@@ -1,26 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RaceCard } from "@/components/race/RaceCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { RaceCard } from "@/components/race/RaceCard";
+import { DateSelector } from "@/components/race/DateSelector";
 import { formatInTimeZone } from 'date-fns-tz';
+import { useState } from "react";
 
 const Index = () => {
-  const [date, setDate] = useState<Date>(new Date());
+  // Initialize with today's date in UK timezone
+  const today = formatInTimeZone(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  const [selectedDate, setSelectedDate] = useState<string>(today);
 
   // Fetch races for the selected date
   const { data: races, isLoading: racesLoading } = useQuery({
-    queryKey: ["races", formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd')],
+    queryKey: ["races", selectedDate],
     queryFn: async () => {
-      // Convert selected date to UK timezone range
-      const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
-      const startTime = `${ukDate}T00:00:00.000Z`;
-      const endTime = `${ukDate}T23:59:59.999Z`;
+      // Use the selected date to create UK timezone range
+      const startTime = `${selectedDate}T00:00:00.000Z`;
+      const endTime = `${selectedDate}T23:59:59.999Z`;
 
       console.log("Fetching races between:", startTime, "and", endTime);
 
@@ -56,34 +53,16 @@ const Index = () => {
   const allVenues = Object.keys(groupedRaces).sort();
 
   // Format the display date in UK timezone
-  const displayDate = formatInTimeZone(date, 'Europe/London', 'MMMM do, yyyy');
+  const displayDate = formatInTimeZone(new Date(selectedDate), 'Europe/London', 'MMMM do, yyyy');
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Today's Races</h1>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[240px] justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {displayDate}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(newDate) => newDate && setDate(newDate)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <DateSelector 
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+        />
       </div>
 
       {!races?.length ? (
