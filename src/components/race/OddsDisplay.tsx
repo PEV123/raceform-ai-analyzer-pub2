@@ -1,5 +1,3 @@
-import { Json } from "@/integrations/supabase/types";
-
 interface Odd {
   is_best: boolean;
   decimal: number;
@@ -11,30 +9,33 @@ interface OddsDisplayProps {
 }
 
 export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
+  // If no odds data, return dash
   if (!odds || !Array.isArray(odds) || !odds.length) {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  // Type guard to ensure odds array contains valid Odd objects
-  const isValidOdd = (odd: unknown): odd is Odd => {
-    if (!odd || typeof odd !== 'object') return false;
-    
-    const candidate = odd as Record<string, unknown>;
-    return (
-      'is_best' in candidate &&
-      'decimal' in candidate &&
-      typeof candidate.is_best === 'boolean' &&
-      typeof candidate.decimal === 'number'
-    );
-  };
+  // Convert odds array to properly typed array
+  const typedOdds = odds.reduce<Odd[]>((acc, odd) => {
+    // Skip any invalid odds entries
+    if (
+      typeof odd === 'object' && 
+      odd !== null && 
+      'is_best' in odd && 
+      'decimal' in odd &&
+      typeof odd.is_best === 'boolean' &&
+      typeof odd.decimal === 'number'
+    ) {
+      acc.push(odd as Odd);
+    }
+    return acc;
+  }, []);
 
-  // Filter and sort odds based on type, ensuring type safety
-  const validOdds = odds.filter(isValidOdd);
-  if (!validOdds.length) {
+  if (!typedOdds.length) {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  const relevantOdds = validOdds
+  // Filter odds based on type and sort by decimal value
+  const relevantOdds = typedOdds
     .filter(odd => type === 'best' ? odd.is_best : !odd.is_best)
     .sort((a, b) => a.decimal - b.decimal);
 
@@ -42,6 +43,5 @@ export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  const bestOdd = relevantOdds[0];
-  return <span className="font-medium">{bestOdd.decimal}</span>;
+  return <span className="font-medium">{relevantOdds[0].decimal}</span>;
 };
