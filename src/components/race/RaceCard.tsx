@@ -49,26 +49,39 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
   const formatRaceResult = (result: any) => {
     if (!result) return null;
-    
-    const position = result.position || '-';
-    const course = result.course || '';
-    const going = result.going ? `(${result.going})` : '';
-    const date = result.date ? format(new Date(result.date), 'dd/MM/yy') : '';
-    const distance = result.distance || '';
-    const winner = result.winner;
-    const second = result.second;
-    const third = result.third;
-    
+
+    // Format the position with ordinal suffix
+    const getOrdinal = (n: number) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
+    const position = result.position ? 
+      getOrdinal(parseInt(result.position)) : 
+      '-';
+
+    // Format distance nicely
+    const formatDistance = (distance: string) => {
+      if (!distance) return '';
+      // Remove any trailing 'f' or 'y' and standardize format
+      return distance.replace(/f$|y$/g, '').trim();
+    };
+
     return {
       position,
-      course,
-      going,
-      date,
-      distance,
-      winner,
-      second,
-      third,
-      full: `${position}/${course} ${going} ${distance} ${date}`
+      course: result.course || '',
+      going: result.going || '',
+      distance: formatDistance(result.distance),
+      date: result.date ? format(new Date(result.date), 'dd/MM/yy') : '',
+      class: result.class || '',
+      winner: result.winner || '',
+      second: result.second || '',
+      third: result.third || '',
+      comment: result.comment || '',
+      weight: result.weight_lbs ? `${result.weight_lbs}lbs` : '',
+      winner_weight: result.winner_weight_lbs ? `${result.winner_weight_lbs}lbs` : '',
+      winner_btn: result.winner_btn || '',
     };
   };
 
@@ -110,7 +123,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
                   {/* Recent Form Section */}
                   <div className="mt-4">
                     <p className="text-sm font-medium mb-2">Recent Form:</p>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {getHorseResults(runner.horse_id)
                         .slice(0, 5)
                         .map((result: any, index: number) => {
@@ -119,23 +132,44 @@ export const RaceCard = ({ race }: RaceCardProps) => {
                           
                           return (
                             <div key={index} className="bg-muted p-3 rounded-lg">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold">{formattedResult.position}</span>
+                              {/* Race Details Header */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-bold text-base">
+                                  {formattedResult.position}
+                                </span>
                                 <span className="text-sm">
-                                  {formattedResult.course} {formattedResult.going} {formattedResult.distance} {formattedResult.date}
+                                  {formattedResult.course} 
+                                  {formattedResult.class && ` (${formattedResult.class})`}
                                 </span>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                <span className="font-medium">1st:</span> {formattedResult.winner}
-                                {formattedResult.second && (
-                                  <>
-                                    <span className="font-medium ml-2">2nd:</span> {formattedResult.second}
-                                  </>
+                              
+                              {/* Race Conditions */}
+                              <div className="text-sm text-muted-foreground mb-2">
+                                <span>{formattedResult.distance}</span>
+                                {formattedResult.going && (
+                                  <span className="ml-2">({formattedResult.going})</span>
                                 )}
-                                {formattedResult.third && (
-                                  <>
-                                    <span className="font-medium ml-2">3rd:</span> {formattedResult.third}
-                                  </>
+                                <span className="ml-2">{formattedResult.date}</span>
+                                {formattedResult.weight && (
+                                  <span className="ml-2">{formattedResult.weight}</span>
+                                )}
+                              </div>
+
+                              {/* Race Outcome */}
+                              <div className="text-sm">
+                                <div className="flex flex-wrap gap-x-4">
+                                  {formattedResult.winner && (
+                                    <span>
+                                      <span className="font-medium">1st:</span> {formattedResult.winner}
+                                      {formattedResult.winner_weight && ` (${formattedResult.winner_weight})`}
+                                      {formattedResult.winner_btn && ` by ${formattedResult.winner_btn}`}
+                                    </span>
+                                  )}
+                                </div>
+                                {formattedResult.comment && (
+                                  <p className="mt-1 text-muted-foreground italic">
+                                    {formattedResult.comment}
+                                  </p>
                                 )}
                               </div>
                             </div>
