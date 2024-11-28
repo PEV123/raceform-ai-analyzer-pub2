@@ -3,6 +3,7 @@ import { OddsDisplay } from "./OddsDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from 'date-fns-tz';
+import { format } from 'date-fns';
 
 interface RaceCardProps {
   race: any;
@@ -40,20 +41,25 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         throw error;
       }
       
-      console.log('Fetched historical results:', data);
       return data;
     }
   });
 
   const getHorseResults = (horseId: string) => {
-    const results = historicalResults?.filter(result => result.horse_id === horseId) || [];
-    console.log(`Results for horse ${horseId}:`, results);
-    return results;
+    return historicalResults?.filter(result => result.horse_id === horseId) || [];
   };
 
   const formatResult = (result: any) => {
     if (!result) return '';
-    return `${result.position || '-'}/${result.course} (${result.distance || '-'}) ${result.going || '-'}`;
+    
+    const position = result.position || '-';
+    const course = result.course || '';
+    const going = result.going ? `(${result.going})` : '';
+    const distance = result.distance || '';
+    const date = result.date ? format(new Date(result.date), 'dd/MM/yy') : '';
+    
+    // Format like: "1/Galway (Good) 2m4f 21/07/23"
+    return `${position}/${course} ${going} ${distance} ${date}`;
   };
 
   const timezone = settings?.timezone || 'Europe/London';
@@ -108,6 +114,9 @@ export const RaceCard = ({ race }: RaceCardProps) => {
                             {formatResult(result)}
                           </p>
                         ))}
+                      {getHorseResults(runner.horse_id).length === 0 && (
+                        <p className="text-sm text-muted-foreground italic">No recent form available</p>
+                      )}
                     </div>
                   </div>
                 </div>
