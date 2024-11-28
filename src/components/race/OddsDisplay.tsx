@@ -1,10 +1,12 @@
+import { Json } from "@/integrations/supabase/types";
+
 interface OddsDisplayProps {
-  odds?: any[];
+  odds?: Json;
   type?: 'best' | 'general';
 }
 
 export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
-  if (!odds || !odds.length) {
+  if (!odds || !Array.isArray(odds) || !odds.length) {
     return <span className="text-muted-foreground">-</span>;
   }
 

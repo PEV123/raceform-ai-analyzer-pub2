@@ -9,10 +9,15 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { OddsDisplay } from "../race/OddsDisplay";
 import { RawDataDialog } from "../admin/RawDataDialog";
 import { useState } from "react";
+import { Tables } from "@/integrations/supabase/types";
 
 interface RaceAnalysisProps {
   raceId: string;
 }
+
+type Race = Tables<"races"> & {
+  runners: Tables<"runners">[];
+};
 
 export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
   const navigate = useNavigate();
@@ -44,7 +49,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Race;
     },
   });
 
