@@ -10,7 +10,6 @@ interface RaceCardProps {
 }
 
 export const RaceCard = ({ race }: RaceCardProps) => {
-  // Fetch settings for timezone
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
@@ -24,7 +23,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     },
   });
 
-  // Fetch historical results for all runners in this race
   const { data: historicalResults } = useQuery({
     queryKey: ['historical-results', race.id],
     queryFn: async () => {
@@ -49,27 +47,33 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     return historicalResults?.filter(result => result.horse_id === horseId) || [];
   };
 
-  const formatResult = (result: any) => {
-    if (!result) return '';
+  const formatRaceResult = (result: any) => {
+    if (!result) return null;
     
     const position = result.position || '-';
     const course = result.course || '';
     const going = result.going ? `(${result.going})` : '';
-    const distance = result.distance || '';
     const date = result.date ? format(new Date(result.date), 'dd/MM/yy') : '';
+    const distance = result.distance || '';
+    const winner = result.winner;
+    const second = result.second;
+    const third = result.third;
     
-    // Format like: "1/Galway (Good) 2m4f 21/07/23"
-    return `${position}/${course} ${going} ${distance} ${date}`;
+    return {
+      position,
+      course,
+      going,
+      date,
+      distance,
+      winner,
+      second,
+      third,
+      full: `${position}/${course} ${going} ${distance} ${date}`
+    };
   };
 
   const timezone = settings?.timezone || 'Europe/London';
-
-  // Format the race time in the correct timezone
-  const raceTime = formatInTimeZone(
-    new Date(race.off_time),
-    timezone,
-    'HH:mm'
-  );
+  const raceTime = formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm');
 
   return (
     <Card className="p-6 mb-6">
@@ -104,16 +108,39 @@ export const RaceCard = ({ race }: RaceCardProps) => {
                   </p>
                   
                   {/* Recent Form Section */}
-                  <div className="mt-2">
-                    <p className="text-sm font-medium mb-1">Recent Form:</p>
-                    <div className="space-y-1">
+                  <div className="mt-4">
+                    <p className="text-sm font-medium mb-2">Recent Form:</p>
+                    <div className="space-y-4">
                       {getHorseResults(runner.horse_id)
-                        .slice(0, 3)
-                        .map((result: any, index: number) => (
-                          <p key={index} className="text-sm text-muted-foreground">
-                            {formatResult(result)}
-                          </p>
-                        ))}
+                        .slice(0, 5)
+                        .map((result: any, index: number) => {
+                          const formattedResult = formatRaceResult(result);
+                          if (!formattedResult) return null;
+                          
+                          return (
+                            <div key={index} className="bg-muted p-3 rounded-lg">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold">{formattedResult.position}</span>
+                                <span className="text-sm">
+                                  {formattedResult.course} {formattedResult.going} {formattedResult.distance} {formattedResult.date}
+                                </span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <span className="font-medium">1st:</span> {formattedResult.winner}
+                                {formattedResult.second && (
+                                  <>
+                                    <span className="font-medium ml-2">2nd:</span> {formattedResult.second}
+                                  </>
+                                )}
+                                {formattedResult.third && (
+                                  <>
+                                    <span className="font-medium ml-2">3rd:</span> {formattedResult.third}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       {getHorseResults(runner.horse_id).length === 0 && (
                         <p className="text-sm text-muted-foreground italic">No recent form available</p>
                       )}
