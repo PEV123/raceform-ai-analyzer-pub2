@@ -8,17 +8,21 @@ import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 
 const Index = () => {
   const [date, setDate] = useState<Date>(new Date());
 
   // Fetch races for the selected date
   const { data: races, isLoading: racesLoading } = useQuery({
-    queryKey: ["races", format(date, 'yyyy-MM-dd')],
+    queryKey: ["races", formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd')],
     queryFn: async () => {
-      const selectedDate = format(date, 'yyyy-MM-dd');
-      console.log("Fetching races for date:", selectedDate);
+      // Convert selected date to UK timezone range
+      const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
+      const startTime = `${ukDate}T00:00:00.000Z`;
+      const endTime = `${ukDate}T23:59:59.999Z`;
+
+      console.log("Fetching races between:", startTime, "and", endTime);
 
       const { data, error } = await supabase
         .from("races")
@@ -26,8 +30,8 @@ const Index = () => {
           *,
           runners (*)
         `)
-        .gte('off_time', `${selectedDate}T00:00:00`)
-        .lt('off_time', `${selectedDate}T23:59:59.999`)
+        .gte('off_time', startTime)
+        .lt('off_time', endTime)
         .order('off_time', { ascending: true });
 
       if (error) throw error;
@@ -51,8 +55,8 @@ const Index = () => {
   // Get unique venues
   const allVenues = Object.keys(groupedRaces).sort();
 
-  // Format the display date
-  const displayDate = format(date, 'MMMM do, yyyy');
+  // Format the display date in UK timezone
+  const displayDate = formatInTimeZone(date, 'Europe/London', 'MMMM do, yyyy');
 
   return (
     <div className="space-y-8">
