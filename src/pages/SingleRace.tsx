@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { formatInTimeZone } from 'date-fns-tz';
-import { ResultsTable } from "@/components/admin/horse-results/ResultsTable";
 import { Tables } from "@/integrations/supabase/types";
+import { RaceNavigation } from "@/components/race/RaceNavigation";
+import { RaceDetails } from "@/components/race/RaceDetails";
 
 type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
@@ -28,12 +27,18 @@ const SingleRace = () => {
     },
   });
 
-  // Fetch the specific race (Thurles 3:35 on 28th Nov 2024)
-  const { data: race, isLoading, error } = useQuery({
+  const { data: race, isLoading, error, refetch } = useQuery({
     queryKey: ["single-race"],
-    queryFn: async () => {
-      const targetDate = new Date('2024-11-28T15:35:00Z'); // 3:35 PM UTC
-      console.log("Fetching race for date:", targetDate);
+    enabled: false, // Don't fetch automatically
+    queryFn: async ({ queryKey }) => {
+      const [_, date, venue, time] = queryKey;
+      if (!date || !venue || !time) return null;
+
+      const targetDate = new Date(date);
+      const [hours, minutes] = (time as string).split(':');
+      targetDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      console.log("Fetching race for:", targetDate, venue);
 
       const { data, error } = await supabase
         .from("races")
@@ -41,10 +46,10 @@ const SingleRace = () => {
           *,
           runners (*)
         `)
-        .eq('course', 'Thurles')
+        .eq('course', venue)
         .gte('off_time', targetDate.toISOString())
-        .lt('off_time', new Date(targetDate.getTime() + 60000).toISOString()) // Within 1 minute
-        .maybeSingle(); // Changed from single() to maybeSingle()
+        .lt('off_time', new Date(targetDate.getTime() + 60000).toISOString())
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching race:", error);
@@ -80,50 +85,15 @@ const SingleRace = () => {
     }
   });
 
+  const handleRaceSelect = (date: Date, venue: string, time: string) => {
+    refetch({
+      queryKey: ["single-race", date, venue, time]
+    });
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-
-  if (error) {
-    return <div>Error loading race: {error.message}</div>;
-  }
-
-  if (!race) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Race Not Found</h1>
-        </div>
-        <Card className="p-6">
-          <p>The specified race could not be found. This could be because:</p>
-          <ul className="list-disc ml-6 mt-2">
-            <li>The race hasn't been imported yet</li>
-            <li>The race date or venue is incorrect</li>
-            <li>The race has been removed from the database</li>
-          </ul>
-        </Card>
-      </div>
-    );
-  }
-
-  const formatDateTime = (date: string) => {
-    return formatInTimeZone(
-      new Date(date),
-      settings?.timezone || 'Europe/London',
-      'PPpp'
-    );
-  };
-
-  const getHorseResults = (horseId: string) => {
-    return historicalResults?.filter(result => result.horse_id === horseId) || [];
-  };
 
   return (
     <div className="space-y-6">
@@ -135,71 +105,26 @@ const SingleRace = () => {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold">{race.course} - {formatDateTime(race.off_time)}</h1>
+        <h1 className="text-3xl font-bold">Race Finder</h1>
       </div>
 
-      <Card className="p-6">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold mb-4">{race.race_name}</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p><span className="font-medium">Class:</span> {race.race_class}</p>
-                <p><span className="font-medium">Distance:</span> {race.distance}</p>
-                <p><span className="font-medium">Going:</span> {race.going}</p>
-              </div>
-              <div>
-                <p><span className="font-medium">Prize:</span> {race.prize}</p>
-                <p><span className="font-medium">Age Band:</span> {race.age_band}</p>
-                <p><span className="font-medium">Rating Band:</span> {race.rating_band}</p>
-              </div>
-            </div>
-          </div>
+      <RaceNavigation onRaceSelect={handleRaceSelect} />
 
-          <div className="space-y-6">
-            {race.runners?.map((runner) => (
-              <Card key={runner.id} className="p-4">
-                <div className="flex items-start gap-4">
-                  {runner.silk_url && (
-                    <img
-                      src={runner.silk_url}
-                      alt={`${runner.jockey}'s silks`}
-                      className="w-16 h-16 object-contain"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-lg font-bold">{runner.horse}</h3>
-                      <span className="text-sm text-muted-foreground">
-                        ({runner.age}yo {runner.sex})
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {runner.jockey} • {runner.trainer}
-                    </p>
-                    <div className="text-sm">
-                      <p><span className="font-medium">Weight:</span> {runner.lbs}lbs</p>
-                      <p><span className="font-medium">Draw:</span> {runner.draw}</p>
-                      {runner.ofr && (
-                        <p><span className="font-medium">Official Rating:</span> {runner.ofr}</p>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4">
-                      <h4 className="font-medium mb-2">Recent Form</h4>
-                      <ResultsTable results={getHorseResults(runner.horse_id)} />
-                    </div>
+      {error && (
+        <div>Error loading race: {error.message}</div>
+      )}
 
-                    {runner.comment && (
-                      <p className="mt-4 text-sm italic">{runner.comment}</p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </Card>
+      {!race && !error && (
+        <div>Please select a race using the navigation above.</div>
+      )}
+
+      {race && (
+        <RaceDetails 
+          race={race} 
+          timezone={settings?.timezone || 'Europe/London'} 
+          historicalResults={historicalResults || []} 
+        />
+      )}
     </div>
   );
 };
