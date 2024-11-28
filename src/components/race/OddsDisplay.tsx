@@ -18,6 +18,7 @@ export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
   // Type guard to ensure odds array contains valid Odd objects
   const isValidOdd = (odd: any): odd is Odd => {
     return typeof odd === 'object' && 
+           odd !== null &&
            'is_best' in odd && 
            'decimal' in odd &&
            typeof odd.is_best === 'boolean' &&
@@ -25,8 +26,8 @@ export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
   };
 
   // Filter and sort odds based on type, ensuring type safety
-  const relevantOdds = odds
-    .filter(isValidOdd)
+  const validOdds = odds.filter(isValidOdd);
+  const relevantOdds = validOdds
     .filter(odd => type === 'best' ? odd.is_best : !odd.is_best)
     .sort((a, b) => a.decimal - b.decimal);
 
