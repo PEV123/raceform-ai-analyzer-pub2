@@ -1,3 +1,5 @@
+import { Json } from "@/integrations/supabase/types";
+
 interface Odd {
   is_best: boolean;
   decimal: number;
