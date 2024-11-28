@@ -45,9 +45,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   };
 
   const handleViewRace = (race: Race) => {
-    const date = new Date(race.off_time);
-    const time = formatTime(race.off_time);
-    navigate(`/race?date=${date.toISOString()}&venue=${race.course}&time=${time}`);
+    navigate(`/analysis/${race.id}`);
   };
 
   // Create a Map to store unique races by their course and off_time combination
