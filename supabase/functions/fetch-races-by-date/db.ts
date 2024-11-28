@@ -1,7 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Race, Runner } from './types.ts'
-import { format, parseISO } from 'https://esm.sh/date-fns@2'
-import { formatInTimeZone } from 'https://esm.sh/date-fns-tz@2'
 
 export const getSupabaseClient = () => {
   const client = createClient(
@@ -12,41 +10,16 @@ export const getSupabaseClient = () => {
   return client
 }
 
-const formatTimestamp = (dateStr: string): string => {
-  try {
-    // First try parsing as ISO string
-    const date = parseISO(dateStr)
-    if (isNaN(date.getTime())) {
-      throw new Error('Invalid date from parseISO')
-    }
-    return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX")
-  } catch (error) {
-    console.error('Error parsing date:', dateStr, error)
-    // If parsing fails, try to fix common format issues
-    const fixedDate = dateStr
-      .replace(/(\d{4}-\d{2}-\d{2})(?:T| )(\d{2}:\d{2})(?::00)?/, '$1T$2:00')
-      .replace(/Z$/, '+00:00')
-    
-    console.log('Attempting with fixed date format:', fixedDate)
-    const date = parseISO(fixedDate)
-    if (isNaN(date.getTime())) {
-      throw new Error(`Could not parse date: ${dateStr}`)
-    }
-    return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX")
-  }
-}
-
 export const insertRace = async (supabase: any, race: Race) => {
   console.log(`Inserting race: ${race.course} - ${race.off_time}`)
+  console.log('Raw race data:', JSON.stringify(race, null, 2))
   
   try {
-    const formattedOffTime = formatTimestamp(race.off_time)
-    console.log('Formatted off_time:', formattedOffTime)
-
+    // Store the off_time exactly as it comes from the API without any transformation
     const { data: raceData, error: raceError } = await supabase
       .from("races")
       .insert({
-        off_time: formattedOffTime,
+        off_time: race.off_time, // Store the original off_time without modification
         course: race.course,
         race_name: race.race_name,
         region: race.region,
@@ -89,16 +62,15 @@ export const insertRace = async (supabase: any, race: Race) => {
 }
 
 export const insertRunner = async (supabase: any, raceId: string, runner: Runner) => {
-  console.log(`Inserting runner ${runner.horse} for race ${raceId}`)
-  
+  console.log(`Inserting runner for race ID ${raceId}:`, runner);
   try {
-    const { error: runnerError } = await supabase
+    const { data: runnerData, error: runnerError } = await supabase
       .from("runners")
       .insert({
         race_id: raceId,
         horse_id: runner.horse_id,
-        number: Number(runner.number) || 0,
-        draw: Number(runner.draw) || 0,
+        number: runner.number,
+        draw: runner.draw,
         horse: runner.horse,
         silk_url: runner.silk_url,
         sire: runner.sire,
@@ -106,11 +78,11 @@ export const insertRunner = async (supabase: any, raceId: string, runner: Runner
         dam: runner.dam,
         dam_region: runner.dam_region,
         form: runner.form,
-        lbs: Number(runner.lbs) || 0,
+        lbs: runner.lbs,
         headgear: runner.headgear,
         ofr: runner.ofr,
         ts: runner.ts,
-        jockey: runner.jockey || 'Unknown',
+        jockey: runner.jockey,
         trainer: runner.trainer,
         dob: runner.dob,
         age: runner.age,
@@ -125,35 +97,38 @@ export const insertRunner = async (supabase: any, raceId: string, runner: Runner
         damsire_region: runner.damsire_region,
         trainer_id: runner.trainer_id,
         trainer_location: runner.trainer_location,
-        trainer_14_days: runner.trainer_14_days || [],
+        trainer_14_days: runner.trainer_14_days,
         owner: runner.owner,
         owner_id: runner.owner_id,
-        prev_trainers: runner.prev_trainers || [],
-        prev_owners: runner.prev_owners || [],
+        prev_trainers: runner.prev_trainers,
+        prev_owners: runner.prev_owners,
         comment: runner.comment,
         spotlight: runner.spotlight,
-        quotes: runner.quotes || [],
-        stable_tour: runner.stable_tour || [],
-        medical: runner.medical || [],
+        quotes: runner.quotes,
+        stable_tour: runner.stable_tour,
+        medical: runner.medical,
         headgear_run: runner.headgear_run,
         wind_surgery: runner.wind_surgery,
         wind_surgery_run: runner.wind_surgery_run,
-        past_results_flags: runner.past_results_flags || [],
+        past_results_flags: runner.past_results_flags,
         rpr: runner.rpr,
         jockey_id: runner.jockey_id,
         last_run: runner.last_run,
         trainer_rtf: runner.trainer_rtf,
-        odds: runner.odds || [],
+        odds: runner.odds,
       })
+      .select()
+      .single()
 
     if (runnerError) {
       console.error('Error inserting runner:', runnerError)
       throw runnerError
     }
 
-    console.log(`Successfully inserted runner ${runner.horse}`)
+    console.log('Successfully inserted runner:', runnerData.id)
+    return runnerData
   } catch (error) {
-    console.error(`Error in insertRunner:`, error)
+    console.error('Error in insertRunner:', error)
     throw error
   }
 }
@@ -162,15 +137,12 @@ export const insertHorseResult = async (supabase: any, horseId: string, result: 
   console.log(`Inserting result for horse ${horseId}`)
   
   try {
-    const formattedDate = formatTimestamp(result.off_dt)
-    console.log('Formatted horse result date:', formattedDate)
-
-    const { error: resultError } = await supabase
+    const { data: resultData, error: resultError } = await supabase
       .from('horse_results')
       .insert({
         horse_id: horseId,
         race_id: result.race_id,
-        date: formattedDate,
+        date: result.off_dt,
         course: result.course,
         distance: result.dist,
         class: result.class,
@@ -188,6 +160,8 @@ export const insertHorseResult = async (supabase: any, horseId: string, result: 
         third_btn: result.runners?.find((r: any) => r.position === '3')?.btn,
         comment: result.runners?.find((r: any) => r.horse_id === horseId)?.comment
       })
+      .select()
+      .single()
 
     if (resultError) {
       console.error('Error inserting result:', resultError)
@@ -195,6 +169,7 @@ export const insertHorseResult = async (supabase: any, horseId: string, result: 
     }
 
     console.log(`Successfully inserted result for horse ${horseId}`)
+    return resultData
   } catch (error) {
     console.error(`Error in insertHorseResult:`, error)
     throw error

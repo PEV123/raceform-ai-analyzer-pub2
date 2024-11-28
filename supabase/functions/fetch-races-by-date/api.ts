@@ -31,12 +31,7 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
     }
 
     const data = await response.json()
-    console.log('Raw API Response structure:', {
-      hasData: !!data,
-      hasRacecards: !!data?.racecards,
-      hasDataRacecards: !!data?.data?.racecards,
-      responseKeys: Object.keys(data || {})
-    })
+    console.log('Raw API Response:', JSON.stringify(data, null, 2))
     
     // Handle empty response
     if (!data) {
@@ -57,7 +52,11 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
       return { races: [] }
     }
 
-    console.log(`Successfully processed ${races.length} races`)
+    // Log each race's off_time for debugging
+    races.forEach((race: any) => {
+      console.log(`Race at ${race.course}: off_time = ${race.off_time}`)
+    })
+
     return { races }
 
   } catch (error) {
