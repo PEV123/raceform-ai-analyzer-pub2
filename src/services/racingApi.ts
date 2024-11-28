@@ -24,5 +24,18 @@ export const fetchRacesForDate = async (date: Date) => {
     throw error;
   }
 
+  // Log the raw API response for debugging
+  console.log('Raw API response:', JSON.stringify(data, null, 2));
+  
+  if (!data.races || !Array.isArray(data.races)) {
+    console.warn('No races found in API response');
+    return [];
+  }
+
+  // Log each race's off_time for debugging
+  data.races.forEach((race: any) => {
+    console.log(`Race at ${race.course}: off_time = ${race.off_time}`);
+  });
+
   return data.races;
 };

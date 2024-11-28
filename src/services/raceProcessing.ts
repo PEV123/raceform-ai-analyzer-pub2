@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import { parseISO } from "date-fns";
 
 export const processRace = async (race: any) => {
   console.log(`Processing race at ${race.course} - ${race.off_time}`);
+  console.log('Raw race data:', JSON.stringify(race, null, 2));
   
   try {
     // Check if race already exists
@@ -21,15 +21,13 @@ export const processRace = async (race: any) => {
       return null;
     }
 
-    // Parse the off_time directly from the API response
-    // The API provides times in UK timezone
-    const parsedOffTime = parseISO(race.off_time);
-    console.log('Parsed off_time:', parsedOffTime.toISOString());
+    // Store the off_time exactly as it comes from the API without any transformation
+    console.log('Storing off_time directly from API:', race.off_time);
 
     const { data: raceData, error: raceError } = await supabase
       .from("races")
       .insert({
-        off_time: parsedOffTime.toISOString(), // Store as ISO string
+        off_time: race.off_time, // Store the original off_time without modification
         course: race.course,
         race_name: race.race_name,
         region: race.region,
@@ -63,6 +61,7 @@ export const processRace = async (race: any) => {
       throw raceError;
     }
 
+    console.log('Successfully inserted race:', raceData);
     return raceData;
   } catch (error) {
     console.error(`Error in processRace:`, error);
