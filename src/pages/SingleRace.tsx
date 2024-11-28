@@ -61,34 +61,8 @@ const SingleRace = () => {
     },
   });
 
-  // Fetch historical results for all runners
-  const { data: historicalResults } = useQuery({
-    queryKey: ['historical-results', race?.id],
-    enabled: !!race?.runners,
-    queryFn: async () => {
-      const horseIds = race?.runners.map(runner => runner.horse_id) || [];
-      console.log("Fetching historical results for horses:", horseIds);
-      
-      const { data, error } = await supabase
-        .from('horse_results')
-        .select('*')
-        .in('horse_id', horseIds)
-        .order('date', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching horse results:', error);
-        throw error;
-      }
-      
-      console.log("Fetched historical results:", data);
-      return data;
-    }
-  });
-
   const handleRaceSelect = (date: Date, venue: string, time: string) => {
-    refetch({
-      queryKey: ["single-race", date, venue, time]
-    });
+    refetch();
   };
 
   if (isLoading) {
@@ -122,7 +96,7 @@ const SingleRace = () => {
         <RaceDetails 
           race={race} 
           timezone={settings?.timezone || 'Europe/London'} 
-          historicalResults={historicalResults || []} 
+          historicalResults={[]} 
         />
       )}
     </div>
