@@ -52,10 +52,13 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
       return { races: [] }
     }
 
-    // Log each race's off_time for debugging
+    // Log each race's datetime fields for debugging
     races.forEach((race: any) => {
-      console.log(`Race at ${race.course}: off_time = ${race.off_time}`)
-    })
+      console.log(`Race at ${race.course}:`, {
+        off_time: race.off_time,
+        off_dt: race.off_dt
+      });
+    });
 
     return { races }
 

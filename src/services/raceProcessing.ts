@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const processRace = async (race: any) => {
-  console.log(`Processing race at ${race.course} - ${race.off_time}`);
+  console.log(`Processing race at ${race.course}`);
   console.log('Raw race data:', JSON.stringify(race, null, 2));
   
   try {
@@ -21,13 +21,14 @@ export const processRace = async (race: any) => {
       return null;
     }
 
-    // Store the off_time exactly as it comes from the API without any transformation
-    console.log('Storing off_time directly from API:', race.off_time);
+    // Use off_dt for the full datetime if available, otherwise construct from off_time
+    const raceDateTime = race.off_dt || race.off_time;
+    console.log('Using race datetime:', raceDateTime);
 
     const { data: raceData, error: raceError } = await supabase
       .from("races")
       .insert({
-        off_time: race.off_time, // Store the original off_time without modification
+        off_time: raceDateTime,
         course: race.course,
         race_name: race.race_name,
         region: race.region,
