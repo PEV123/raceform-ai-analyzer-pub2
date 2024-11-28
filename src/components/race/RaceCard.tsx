@@ -52,10 +52,8 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   };
 
   const formatResult = (result: any) => {
-    const position = result.position || '-';
-    const distance = result.distance || '-';
-    const going = result.going || '-';
-    return `${position} - ${result.course} (${distance}) - ${going}`;
+    if (!result) return '';
+    return `${result.position || '-'}/${result.course} (${result.distance || '-'}) ${result.going || '-'}`;
   };
 
   const timezone = settings?.timezone || 'Europe/London';
@@ -68,57 +66,65 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   );
 
   return (
-    <Card className="p-4">
-      <div className="mb-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">{race.race_name}</h3>
+    <Card className="p-6 mb-6">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-xl font-bold mb-2">{race.race_name}</h3>
           <p className="text-sm text-muted-foreground">
-            {raceTime}
+            {race.distance} - {race.going}
           </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {race.distance} - {race.going}
-        </p>
+        <div className="text-right">
+          <p className="text-lg font-semibold">{raceTime}</p>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {race.runners?.map((runner: any) => (
           <div key={runner.horse_id} className="border-t pt-4">
             <div className="flex justify-between items-start">
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 {runner.silk_url && (
                   <img
                     src={runner.silk_url}
                     alt={`${runner.jockey}'s silks`}
-                    className="w-8 h-8 object-contain"
+                    className="w-12 h-12 object-contain"
                   />
                 )}
                 <div>
-                  <h4 className="font-medium">{runner.horse}</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="text-lg font-semibold">{runner.horse}</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
                     {runner.jockey} - {runner.trainer}
                   </p>
                   
-                  {/* Historical Results */}
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm font-medium">Recent Form:</p>
-                    {getHorseResults(runner.horse_id)
-                      .slice(0, 3)
-                      .map((result: any, index: number) => (
-                        <p key={index} className="text-sm text-muted-foreground">
-                          {formatResult(result)}
-                          {result.comment && (
-                            <span className="block text-xs italic mt-1">
-                              {result.comment}
-                            </span>
-                          )}
-                        </p>
-                      ))}
+                  {/* Recent Form Section */}
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1">Recent Form:</p>
+                    <div className="space-y-1">
+                      {getHorseResults(runner.horse_id)
+                        .slice(0, 3)
+                        .map((result: any, index: number) => (
+                          <p key={index} className="text-sm text-muted-foreground">
+                            {formatResult(result)}
+                          </p>
+                        ))}
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <OddsDisplay odds={runner.odds} />
+              <div className="text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">Best:</span>
+                    <OddsDisplay odds={runner.odds} type="best" />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">Gen:</span>
+                    <OddsDisplay odds={runner.odds} type="general" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ))}
