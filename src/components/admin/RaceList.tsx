@@ -4,10 +4,11 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
-import { FileJson, History } from "lucide-react";
+import { FileJson, History, ExternalLink } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -22,6 +23,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const importHorseResults = useImportHorseResultsMutation();
 
@@ -40,6 +42,12 @@ export const RaceList = ({ races }: RaceListProps) => {
 
   const formatTime = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
+  };
+
+  const handleViewRace = (race: Race) => {
+    const date = new Date(race.off_time);
+    const time = formatTime(race.off_time);
+    navigate(`/race?date=${date.toISOString()}&venue=${race.course}&time=${time}`);
   };
 
   // Create a Map to store unique races by their course and off_time combination
@@ -119,6 +127,14 @@ export const RaceList = ({ races }: RaceListProps) => {
                     title="Import Horse Results"
                   >
                     <History className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleViewRace(race)}
+                    title="View Race Card"
+                  >
+                    <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
