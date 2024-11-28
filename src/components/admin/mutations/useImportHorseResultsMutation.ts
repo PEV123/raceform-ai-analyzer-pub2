@@ -14,10 +14,23 @@ export const useImportHorseResultsMutation = () => {
       console.log("Starting horse results import for runners:", runners.length);
       const results = [];
       
+      // First, let's check what's already in the database
       for (const runner of runners) {
         if (!runner.horse_id) {
           console.warn("Skipping runner without horse_id:", runner);
           continue;
+        }
+
+        // Check existing results
+        const { data: existingResults, error: checkError } = await supabase
+          .from('horse_results')
+          .select('*')
+          .eq('horse_id', runner.horse_id);
+
+        if (checkError) {
+          console.error(`Error checking existing results for horse ${runner.horse_id}:`, checkError);
+        } else {
+          console.log(`Found ${existingResults?.length || 0} existing results for horse ${runner.horse} (${runner.horse_id})`);
         }
 
         console.log(`Fetching results for horse ${runner.horse} (${runner.horse_id})`);
@@ -71,6 +84,8 @@ export const useImportHorseResultsMutation = () => {
 
             results.push(...formattedResults);
             console.log(`Stored ${formattedResults.length} results for horse ${runner.horse_id}`);
+          } else {
+            console.log(`No results found for horse ${runner.horse} (${runner.horse_id})`);
           }
         } catch (error) {
           console.error(`Failed to process horse ${runner.horse_id}:`, error);
