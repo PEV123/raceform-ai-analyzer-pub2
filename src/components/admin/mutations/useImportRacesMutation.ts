@@ -27,61 +27,80 @@ export const useImportRacesMutation = () => {
         for (const race of races) {
           console.log(`Processing race at ${race.course} - ${race.off_time}`);
 
-          // Check if race already exists to avoid duplicates
-          const { data: existingRace } = await supabase
-            .from("races")
-            .select("id")
-            .eq("race_id", race.race_id)
-            .single();
+          try {
+            // Check if race already exists
+            const { data: existingRaces, error: queryError } = await supabase
+              .from("races")
+              .select("id")
+              .eq("race_id", race.race_id);
 
-          if (existingRace) {
-            console.log(`Race ${race.race_id} already exists, skipping`);
-            continue;
-          }
+            if (queryError) {
+              console.error("Error checking existing race:", queryError);
+              throw queryError;
+            }
 
-          const { data: raceData, error: raceError } = await supabase
-            .from("races")
-            .insert({
-              off_time: race.off_time,
-              course: race.course,
-              race_name: race.race_name,
-              region: race.region,
-              race_class: race.race_class,
-              age_band: race.age_band,
-              rating_band: race.rating_band,
-              prize: race.prize,
-              field_size: Number(race.field_size) || 0,
-              race_id: race.race_id,
-              course_id: race.course_id,
-              distance_round: race.distance_round,
-              distance: race.distance,
-              distance_f: race.distance_f,
-              pattern: race.pattern,
-              type: race.type,
-              going_detailed: race.going_detailed,
-              rail_movements: race.rail_movements,
-              stalls: race.stalls,
-              weather: race.weather,
-              going: race.going,
-              surface: race.surface,
-              jumps: race.jumps,
-              big_race: race.big_race,
-              is_abandoned: race.is_abandoned,
-            })
-            .select()
-            .single();
+            // Check if we found any existing races
+            if (existingRaces && existingRaces.length > 0) {
+              console.log(`Race ${race.race_id} already exists, skipping`);
+              continue;
+            }
 
-          if (raceError) {
-            console.error("Error inserting race:", raceError);
-            throw raceError;
-          }
+            // Ensure off_time is a complete ISO timestamp
+            const raceDate = new Date(date);
+            const [hours, minutes] = race.off_time.split(':').map(Number);
+            raceDate.setHours(hours, minutes, 0, 0);
+            
+            const formattedOffTime = formatInTimeZone(
+              raceDate,
+              'Europe/London',
+              "yyyy-MM-dd'T'HH:mm:ssXXX"
+            );
 
-          console.log(`Successfully inserted race: ${raceData.id}`);
+            console.log('Formatted off_time:', formattedOffTime);
 
-          if (!race.runners || !Array.isArray(race.runners)) {
-            console.warn(`No runners found for race ${race.race_id}`);
-            continue;
-          }
+            const { data: raceData, error: raceError } = await supabase
+              .from("races")
+              .insert({
+                off_time: formattedOffTime,
+                course: race.course,
+                race_name: race.race_name,
+                region: race.region,
+                race_class: race.race_class,
+                age_band: race.age_band,
+                rating_band: race.rating_band,
+                prize: race.prize,
+                field_size: Number(race.field_size) || 0,
+                race_id: race.race_id,
+                course_id: race.course_id,
+                distance_round: race.distance_round,
+                distance: race.distance,
+                distance_f: race.distance_f,
+                pattern: race.pattern,
+                type: race.type,
+                going_detailed: race.going_detailed,
+                rail_movements: race.rail_movements,
+                stalls: race.stalls,
+                weather: race.weather,
+                going: race.going,
+                surface: race.surface,
+                jumps: race.jumps,
+                big_race: race.big_race,
+                is_abandoned: race.is_abandoned,
+              })
+              .select()
+              .single();
+
+            if (raceError) {
+              console.error("Error inserting race:", raceError);
+              throw raceError;
+            }
+
+            console.log(`Successfully inserted race: ${raceData.id}`);
+
+            if (!race.runners || !Array.isArray(race.runners)) {
+              console.warn(`No runners found for race ${race.race_id}`);
+              continue;
+            }
 
           const validRunners = race.runners
             .filter(runner => {
@@ -171,6 +190,11 @@ export const useImportRacesMutation = () => {
               throw runnersError;
             }
             console.log(`Successfully inserted ${validRunners.length} runners`);
+          }
+
+          } catch (error) {
+            console.error(`Error processing race ${race.race_id}:`, error);
+            throw error;
           }
         }
       } catch (error) {
