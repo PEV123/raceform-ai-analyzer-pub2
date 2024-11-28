@@ -27,7 +27,10 @@ export const OddsDisplay = ({ odds, type = 'best' }: OddsDisplayProps) => {
       typeof odd.is_best === 'boolean' &&
       typeof odd.decimal === 'number'
     ) {
-      acc.push(odd as Odd);
+      acc.push({
+        is_best: odd.is_best,
+        decimal: odd.decimal
+      });
     }
     return acc;
   }, []);
