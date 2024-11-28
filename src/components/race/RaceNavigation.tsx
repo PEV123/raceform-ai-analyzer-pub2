@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
@@ -32,11 +33,11 @@ export const RaceNavigation = ({ onRaceSelect }: RaceNavigationProps) => {
 
       if (error) throw error;
 
-      // Get unique dates
+      // Get unique dates in UK timezone
       const uniqueDates = new Set(
-        data.map((race) => format(new Date(race.off_time), "yyyy-MM-dd"))
+        data.map((race) => formatInTimeZone(new Date(race.off_time), 'Europe/London', 'yyyy-MM-dd'))
       );
-      return Array.from(uniqueDates).map((date) => new Date(date));
+      return Array.from(uniqueDates).map((date) => parseISO(date));
     },
   });
 
@@ -45,17 +46,14 @@ export const RaceNavigation = ({ onRaceSelect }: RaceNavigationProps) => {
     queryKey: ["venues", selectedDate],
     enabled: !!selectedDate,
     queryFn: async () => {
-      const startOfDay = new Date(selectedDate!);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(selectedDate!);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfDay = formatInTimeZone(selectedDate!, 'Europe/London', "yyyy-MM-dd'T'00:00:00.000'Z'");
+      const endOfDay = formatInTimeZone(selectedDate!, 'Europe/London', "yyyy-MM-dd'T'23:59:59.999'Z'");
 
       const { data, error } = await supabase
         .from("races")
         .select("course")
-        .gte("off_time", startOfDay.toISOString())
-        .lte("off_time", endOfDay.toISOString())
+        .gte("off_time", startOfDay)
+        .lte("off_time", endOfDay)
         .order("course");
 
       if (error) throw error;
@@ -70,23 +68,20 @@ export const RaceNavigation = ({ onRaceSelect }: RaceNavigationProps) => {
     queryKey: ["race-times", selectedDate, selectedVenue],
     enabled: !!selectedDate && !!selectedVenue,
     queryFn: async () => {
-      const startOfDay = new Date(selectedDate!);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(selectedDate!);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfDay = formatInTimeZone(selectedDate!, 'Europe/London', "yyyy-MM-dd'T'00:00:00.000'Z'");
+      const endOfDay = formatInTimeZone(selectedDate!, 'Europe/London', "yyyy-MM-dd'T'23:59:59.999'Z'");
 
       const { data, error } = await supabase
         .from("races")
         .select("off_time")
         .eq("course", selectedVenue)
-        .gte("off_time", startOfDay.toISOString())
-        .lte("off_time", endOfDay.toISOString())
+        .gte("off_time", startOfDay)
+        .lte("off_time", endOfDay)
         .order("off_time");
 
       if (error) throw error;
 
-      return data.map((race) => format(new Date(race.off_time), "HH:mm"));
+      return data.map((race) => formatInTimeZone(new Date(race.off_time), 'Europe/London', 'HH:mm'));
     },
   });
 
@@ -120,7 +115,8 @@ export const RaceNavigation = ({ onRaceSelect }: RaceNavigationProps) => {
             disabled={(date) =>
               !raceDates?.some(
                 (raceDate) =>
-                  format(raceDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                  formatInTimeZone(raceDate, 'Europe/London', 'yyyy-MM-dd') === 
+                  formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd')
               )
             }
           />

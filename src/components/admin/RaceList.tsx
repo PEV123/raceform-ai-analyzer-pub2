@@ -41,7 +41,8 @@ export const RaceList = ({ races }: RaceListProps) => {
   };
 
   const formatTime = (date: string) => {
-    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
+    // Always format in UK time
+    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm');
   };
 
   const handleViewRace = (race: Race) => {
