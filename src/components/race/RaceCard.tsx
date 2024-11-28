@@ -35,19 +35,27 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         .in('horse_id', horseIds)
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching horse results:', error);
+        throw error;
+      }
+      
+      console.log('Fetched historical results:', data);
       return data;
     }
   });
 
   const getHorseResults = (horseId: string) => {
-    return historicalResults?.filter(result => result.horse_id === horseId) || [];
+    const results = historicalResults?.filter(result => result.horse_id === horseId) || [];
+    console.log(`Results for horse ${horseId}:`, results);
+    return results;
   };
 
   const formatResult = (result: any) => {
     const position = result.position || '-';
-    const runnerCount = result.winner && result.second && result.third ? '3+' : '-';
-    return `${position}/${runnerCount} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`;
+    const distance = result.distance || '-';
+    const going = result.going || '-';
+    return `${position} - ${result.course} (${distance}) - ${going}`;
   };
 
   const timezone = settings?.timezone || 'Europe/London';
