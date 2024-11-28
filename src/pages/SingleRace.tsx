@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Tables } from "@/integrations/supabase/types";
 import { ResultsTable } from "@/components/admin/horse-results/ResultsTable";
+import { Tables } from "@/integrations/supabase/types";
 
 type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
@@ -29,7 +29,7 @@ const SingleRace = () => {
   });
 
   // Fetch the specific race (Thurles 3:35 on 28th Nov 2024)
-  const { data: race, isLoading } = useQuery({
+  const { data: race, isLoading, error } = useQuery({
     queryKey: ["single-race"],
     queryFn: async () => {
       const targetDate = new Date('2024-11-28T15:35:00Z'); // 3:35 PM UTC
@@ -44,7 +44,7 @@ const SingleRace = () => {
         .eq('course', 'Thurles')
         .gte('off_time', targetDate.toISOString())
         .lt('off_time', new Date(targetDate.getTime() + 60000).toISOString()) // Within 1 minute
-        .single();
+        .maybeSingle(); // Changed from single() to maybeSingle()
 
       if (error) {
         console.error("Error fetching race:", error);
@@ -52,7 +52,7 @@ const SingleRace = () => {
       }
       
       console.log("Fetched race data:", data);
-      return data as Race;
+      return data as Race | null;
     },
   });
 
@@ -84,8 +84,33 @@ const SingleRace = () => {
     return <div>Loading...</div>;
   }
 
+  if (error) {
+    return <div>Error loading race: {error.message}</div>;
+  }
+
   if (!race) {
-    return <div>Race not found</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Race Not Found</h1>
+        </div>
+        <Card className="p-6">
+          <p>The specified race could not be found. This could be because:</p>
+          <ul className="list-disc ml-6 mt-2">
+            <li>The race hasn't been imported yet</li>
+            <li>The race date or venue is incorrect</li>
+            <li>The race has been removed from the database</li>
+          </ul>
+        </Card>
+      </div>
+    );
   }
 
   const formatDateTime = (date: string) => {
