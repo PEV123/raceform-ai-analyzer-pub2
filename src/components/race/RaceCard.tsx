@@ -2,9 +2,7 @@ import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from 'date-fns-tz';
-import { RunnerHeader } from "./RunnerHeader";
-import { RunnerForm } from "./RunnerForm";
-import { RunnerOdds } from "./RunnerOdds";
+import { DetailedHorseForm } from "./DetailedHorseForm";
 
 interface RaceCardProps {
   race: any;
@@ -65,27 +63,13 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {race.runners?.map((runner: any) => (
-          <div key={runner.horse_id} className="border-t pt-4">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <RunnerHeader 
-                  runner={runner} 
-                  silkUrl={runner.silk_url} 
-                />
-                
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Recent Form:</p>
-                  <RunnerForm 
-                    historicalResults={getHorseResults(runner.horse_id)} 
-                  />
-                </div>
-              </div>
-              
-              <RunnerOdds odds={runner.odds} />
-            </div>
-          </div>
+          <DetailedHorseForm
+            key={runner.horse_id}
+            runner={runner}
+            historicalResults={getHorseResults(runner.horse_id)}
+          />
         ))}
       </div>
     </Card>
