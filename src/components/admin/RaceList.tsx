@@ -4,7 +4,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
-import { FileJson, History, ExternalLink } from "lucide-react";
+import { FileJson, History, ExternalLink, Eye } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +46,10 @@ export const RaceList = ({ races }: RaceListProps) => {
 
   const handleViewRace = (race: Race) => {
     navigate(`/analysis/${race.id}`);
+  };
+
+  const handleViewRaceCard = (race: Race) => {
+    navigate(`/race?raceId=${race.id}`);
   };
 
   // Create a Map to store unique races by their course and off_time combination
@@ -130,9 +134,17 @@ export const RaceList = ({ races }: RaceListProps) => {
                     variant="outline"
                     size="icon"
                     onClick={() => handleViewRace(race)}
-                    title="View Race Card"
+                    title="View Race Analysis"
                   >
                     <ExternalLink className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleViewRaceCard(race)}
+                    title="View Race Card"
+                  >
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
