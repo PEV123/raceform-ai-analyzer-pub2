@@ -4,8 +4,10 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
-import { FileJson } from "lucide-react";
+import { FileJson, History } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
+import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
+import { useToast } from "@/hooks/use-toast";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -19,6 +21,22 @@ interface RaceListProps {
 export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
+  const { toast } = useToast();
+  
+  const importHorseResults = useImportHorseResultsMutation();
+
+  const handleImportHorseResults = async (race: Race) => {
+    if (!race.runners?.length) {
+      toast({
+        title: "No runners found",
+        description: "This race has no runners to import results for.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await importHorseResults.mutate(race.runners);
+  };
 
   const formatTime = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm:ss');
@@ -92,6 +110,15 @@ export const RaceList = ({ races }: RaceListProps) => {
                     title="View Raw Data"
                   >
                     <FileJson className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleImportHorseResults(race)}
+                    disabled={importHorseResults.isPending}
+                    title="Import Horse Results"
+                  >
+                    <History className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
