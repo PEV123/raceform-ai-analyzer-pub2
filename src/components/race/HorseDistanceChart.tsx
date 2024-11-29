@@ -26,57 +26,63 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
         <XAxis 
           dataKey="distance" 
           padding={{ left: 20, right: 20 }}
-          scale="band"
-          tick={{ fill: 'currentColor' }}
+          tick={{ fontSize: 12, fill: 'currentColor' }}
+          height={60}
+          interval={0}
         />
         <YAxis 
-          yAxisId="left" 
+          yAxisId="left"
+          domain={[0, 100]}
           label={{ 
             value: 'Rate (%)', 
             angle: -90, 
             position: 'insideLeft',
-            offset: 0,
             style: { textAnchor: 'middle' }
           }}
-          tick={{ fill: 'currentColor' }}
+          tick={{ fontSize: 12, fill: 'currentColor' }}
         />
         <YAxis 
           yAxisId="right" 
-          orientation="right" 
+          orientation="right"
+          domain={[-50, 50]}
           label={{ 
             value: 'Speed Rating', 
             angle: 90, 
             position: 'insideRight',
-            offset: 0,
             style: { textAnchor: 'middle' }
           }}
-          tick={{ fill: 'currentColor' }}
+          tick={{ fontSize: 12, fill: 'currentColor' }}
         />
         {currentRaceDistance && (
           <ReferenceLine
             x={currentRaceDistance}
             stroke="#888"
             strokeDasharray="3 3"
-            yAxisId="left"
             label={{
               value: "Today's Race",
               position: 'top',
               fill: '#888',
-              fontSize: 12,
+              fontSize: 12
             }}
-            isFront={true}
           />
         )}
         <Tooltip 
-          cursor={{ stroke: '#666', strokeWidth: 1 }}
-          content={({ active, payload }) => {
+          wrapperStyle={{ outline: 'none' }}
+          contentStyle={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            border: '1px solid #ccc',
+            borderRadius: '6px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}
+          cursor={{ strokeDasharray: '3 3' }}
+          content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null;
             
             return (
               <div className="bg-background border rounded-lg p-2 shadow-lg">
-                <p className="font-medium">{payload[0].payload.distance}</p>
-                {payload.map((entry: any, index: number) => (
-                  <p key={index} className="text-sm">
+                <p className="font-medium mb-1">{label}</p>
+                {payload.map((entry: any) => (
+                  <p key={entry.name} className="text-sm">
                     {entry.name === 'speedRating' 
                       ? `Pace: ${entry.payload.actualPace}s per furlong`
                       : `${entry.name}: ${Number(entry.value).toFixed(1)}%`

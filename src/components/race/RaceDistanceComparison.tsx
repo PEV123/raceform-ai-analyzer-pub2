@@ -91,7 +91,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
         <ResponsiveContainer width="100%" height="100%">
           <BarChart 
             data={comparisonData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
             barGap={2}
             barSize={20}
           >
@@ -102,43 +102,48 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               textAnchor="end" 
               height={100}
               interval={0}
-              scale="band"
-              padding={{ left: 20, right: 20 }}
-              tick={{ fill: 'currentColor' }}
+              tick={{ fontSize: 12, fill: 'currentColor' }}
             />
             <YAxis 
-              yAxisId="left" 
+              yAxisId="left"
+              domain={[0, 100]}
               label={{ 
                 value: 'Rate (%)', 
                 angle: -90, 
                 position: 'insideLeft',
-                offset: 0,
                 style: { textAnchor: 'middle' }
               }}
-              tick={{ fill: 'currentColor' }}
+              tick={{ fontSize: 12, fill: 'currentColor' }}
             />
             <YAxis 
               yAxisId="right" 
-              orientation="right" 
+              orientation="right"
+              domain={[-50, 50]}
               label={{ 
                 value: 'Speed Rating', 
                 angle: 90, 
                 position: 'insideRight',
-                offset: 0,
                 style: { textAnchor: 'middle' }
               }}
-              tick={{ fill: 'currentColor' }}
+              tick={{ fontSize: 12, fill: 'currentColor' }}
             />
             <Tooltip 
+              wrapperStyle={{ outline: 'none' }}
+              contentStyle={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                border: '1px solid #ccc',
+                borderRadius: '6px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
               cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 
                 return (
                   <div className="bg-background border rounded-lg p-2 shadow-lg">
-                    <p className="font-medium">{payload[0].payload.horse}</p>
-                    {payload.map((entry: any, index: number) => (
-                      <p key={index} className="text-sm">
+                    <p className="font-medium mb-1">{payload[0].payload.horse}</p>
+                    {payload.map((entry: any) => (
+                      <p key={entry.name} className="text-sm">
                         {entry.name === 'speedRating' 
                           ? `Avg Pace: ${entry.payload.actualPace}s per furlong`
                           : `${entry.name}: ${Number(entry.value).toFixed(1)}%`
