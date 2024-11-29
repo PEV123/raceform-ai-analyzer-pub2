@@ -94,7 +94,10 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
       
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={comparisonData}>
+          <BarChart 
+            data={comparisonData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="horse" 
@@ -128,13 +131,13 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               tickCount={5}
             />
             <Tooltip 
+              cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
               formatter={(value: any, name: string, props: any) => {
                 if (name === 'Speed Rating') {
                   return [`${props.payload.actualPace}s per furlong`, 'Avg Pace'];
                 }
                 return [`${value.toFixed(1)}%`, name];
               }}
-              cursor={{ fillOpacity: 0.3 }}
             />
             <Legend verticalAlign="top" height={36} />
             <Bar 

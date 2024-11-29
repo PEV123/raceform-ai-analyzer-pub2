@@ -16,9 +16,24 @@ interface HorseDistanceChartProps {
 }
 
 export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceChartProps) => {
+  const defaultReferenceLineProps = {
+    stroke: "#888",
+    strokeDasharray: "3 3",
+    label: {
+      value: "Today's Race",
+      position: 'top' as const,
+      fill: '#888',
+      fontSize: 12
+    },
+    yAxisId: "left" as const
+  };
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data}>
+      <LineChart 
+        data={data}
+        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
           dataKey="distance" 
@@ -50,25 +65,17 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
         {currentRaceDistance && (
           <ReferenceLine
             x={currentRaceDistance}
-            stroke="#888"
-            strokeDasharray="3 3"
-            label={{ 
-              value: "Today's Race", 
-              position: 'top',
-              fill: '#888',
-              fontSize: 12
-            }}
-            yAxisId="left"
+            {...defaultReferenceLineProps}
           />
         )}
         <Tooltip 
+          cursor={{ stroke: '#666', strokeWidth: 1, strokeDasharray: '3 3' }}
           formatter={(value: any, name: string, props: any) => {
             if (name === 'Speed Rating') {
-              return [`${props.payload.actualPace.toFixed(2)}s per furlong`, 'Pace'];
+              return [`${props.payload.actualPace}s per furlong`, 'Pace'];
             }
             return [`${Number(value).toFixed(1)}%`, name];
           }}
-          cursor={{ strokeDasharray: '3 3' }}
         />
         <Legend verticalAlign="top" height={36} />
         <Line
