@@ -27,9 +27,18 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
   // Calculate average performance metrics for each horse
   const comparisonData = analyses.map(analysis => {
     const details = analysis.horse_distance_details || [];
+    
+    // Calculate average win rate
     const avgWinRate = details.reduce((acc, detail) => 
       acc + (Number(detail.win_percentage) || 0), 0) / (details.length || 1);
     
+    // Calculate average place rate
+    const avgPlaceRate = details.reduce((acc, detail) => {
+      const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs);
+      return acc + (placeRate || 0);
+    }, 0) / (details.length || 1);
+    
+    // Calculate average time
     const avgTime = details.reduce((acc, detail) => {
       const detailAvgTime = detail.horse_distance_times?.reduce((timeAcc, time) => {
         if (time.time && time.time !== '-') {
@@ -43,7 +52,8 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
 
     return {
       horse: analysis.horse,
-      avgWinRate: avgWinRate * 100, // Convert to percentage
+      avgWinRate: avgWinRate * 100,
+      avgPlaceRate: avgPlaceRate * 100,
       avgTime,
       totalRuns: analysis.total_runs
     };
@@ -58,12 +68,13 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
           <BarChart data={comparisonData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="horse" angle={-45} textAnchor="end" height={100} />
-            <YAxis yAxisId="left" label={{ value: 'Win Rate (%)', angle: -90, position: 'insideLeft' }} />
+            <YAxis yAxisId="left" label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft' }} />
             <YAxis yAxisId="right" orientation="right" label={{ value: 'Avg Time (s)', angle: 90, position: 'insideRight' }} />
             <Tooltip />
             <Legend />
             <Bar yAxisId="left" dataKey="avgWinRate" name="Win Rate %" fill="#8884d8" />
-            <Bar yAxisId="right" dataKey="avgTime" name="Avg Time (s)" fill="#82ca9d" />
+            <Bar yAxisId="left" dataKey="avgPlaceRate" name="Place Rate %" fill="#82ca9d" />
+            <Bar yAxisId="right" dataKey="avgTime" name="Avg Time (s)" fill="#ffc658" />
           </BarChart>
         </ResponsiveContainer>
       </div>
