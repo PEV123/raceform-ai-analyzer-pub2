@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from "../_shared/cors.ts"
 
 const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
 const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
-const RACING_API_BASE_URL = 'https://api.theracingapi.com/v1'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -13,7 +16,7 @@ serve(async (req) => {
 
   try {
     const { raceId, type } = await req.json()
-    console.log('Fetching race data:', { raceId, type })
+    console.log('Processing request:', { raceId, type })
 
     if (!raceId) {
       throw new Error('Race ID is required')
@@ -23,11 +26,10 @@ serve(async (req) => {
       throw new Error('Racing API credentials not configured')
     }
 
-    // Construct the appropriate endpoint based on type
-    // For pro analysis, we use the /racecards/{race_id}/pro endpoint
+    // Construct the API endpoint based on the request type
     const endpoint = type === 'pro' 
-      ? `${RACING_API_BASE_URL}/racecards/${raceId}/pro`
-      : `${RACING_API_BASE_URL}/races/${raceId}`
+      ? `https://api.theracingapi.com/v1/racecards/${raceId}/pro`
+      : `https://api.theracingapi.com/v1/races/${raceId}`
 
     console.log('Making request to Racing API endpoint:', endpoint)
 
@@ -39,14 +41,13 @@ serve(async (req) => {
     })
 
     if (!response.ok) {
-      console.error('Racing API error:', {
+      const errorText = await response.text()
+      console.error('Racing API Error Response:', {
         status: response.status,
         statusText: response.statusText,
-        endpoint: endpoint
+        endpoint: endpoint,
+        body: errorText
       })
-      
-      const errorBody = await response.text()
-      console.error('Racing API error response:', errorBody)
       
       throw new Error(`Racing API error: ${response.status} - ${response.statusText}`)
     }
