@@ -24,8 +24,9 @@ serve(async (req) => {
     }
 
     // Construct the appropriate endpoint based on type
+    // For pro analysis, we use the /racecards/pro endpoint with the race_id parameter
     const endpoint = type === 'pro' 
-      ? `${RACING_API_BASE_URL}/races/${raceId}/analysis`
+      ? `${RACING_API_BASE_URL}/racecards/pro?race_id=${raceId}`
       : `${RACING_API_BASE_URL}/races/${raceId}`
 
     console.log('Making request to Racing API endpoint:', endpoint)
@@ -40,13 +41,14 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('Racing API error:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        endpoint: endpoint
       })
       
       const errorBody = await response.text()
       console.error('Racing API error response:', errorBody)
       
-      throw new Error(`Racing API responded with ${response.status}: ${response.statusText}`)
+      throw new Error(`Racing API error: ${response.status} - ${response.statusText}`)
     }
 
     const data = await response.json()
