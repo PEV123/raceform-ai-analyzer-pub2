@@ -69,7 +69,7 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
               {typedOdds.map((odd) => (
                 <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium border-r last:border-r-0">
                   <div className="flex items-end h-auto">
-                    <span className="-rotate-270 origin-bottom-left translate-y-3 translate-x-2 inline-block whitespace-nowrap text-xs pb-1">
+                    <span className="rotate-90 origin-bottom-left translate-y-3 -translate-x-2 inline-block whitespace-nowrap text-xs pb-1">
                       {odd.bookmaker}
                     </span>
                   </div>
