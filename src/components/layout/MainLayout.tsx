@@ -31,6 +31,7 @@ const NavItem = ({ href, children }: NavItemProps) => {
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -63,6 +64,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               {isAuthenticated ? (
                 <>
                   <NavItem href="/admin">Admin</NavItem>
+                  {location.pathname.startsWith('/admin') && (
+                    <NavItem href="/admin/race-documents">Race Documents</NavItem>
+                  )}
                   <Button
                     variant="outline"
                     onClick={async () => {

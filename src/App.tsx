@@ -9,6 +9,7 @@ import Analysis from "./pages/Analysis";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import SingleRace from "./pages/SingleRace";
+import RaceDocuments from "./pages/RaceDocuments";
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from "./integrations/supabase/client";
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/analysis" element={<Analysis />} />
               <Route path="/analysis/:raceId" element={<Analysis />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/race-documents" element={<RaceDocuments />} />
               <Route path="/login" element={<Login />} />
               <Route path="/race" element={<SingleRace />} />
             </Routes>
