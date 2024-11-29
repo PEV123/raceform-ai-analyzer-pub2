@@ -15,8 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId } = await req.json();
-    console.log('Received request:', { raceId, messageType: typeof message });
+    const { message, raceId, conversationHistory } = await req.json();
+    console.log('Received request:', { raceId, messageType: typeof message, historyLength: conversationHistory?.length });
 
     if (!message || !raceId) {
       throw new Error('Missing required parameters: message or raceId');
@@ -89,9 +89,30 @@ serve(async (req) => {
       
       Race Analysis Context:
       ${raceContext}
+
+      Raw Race Data for Reference:
+      ${JSON.stringify(race, null, 2)}
     `;
 
     console.log('Making request to OpenAI API with model:', settings.openai_model);
+    
+    // Convert conversation history to OpenAI format
+    const messages = [
+      { 
+        role: "system", 
+        content: systemMessage
+      },
+      ...(conversationHistory?.map(msg => ({
+        role: msg.role,
+        content: msg.message
+      })) || []),
+      { 
+        role: "user", 
+        content: messageContent
+      }
+    ];
+
+    console.log('Sending messages to OpenAI:', messages.length);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -101,16 +122,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: settings.openai_model,
-        messages: [
-          { 
-            role: "system", 
-            content: systemMessage
-          },
-          { 
-            role: "user", 
-            content: messageContent
-          }
-        ],
+        messages,
         max_tokens: 1024,
       }),
     });

@@ -45,7 +45,7 @@ export const useRaceChat = (raceId: string) => {
     if (!message.trim() || !session?.user?.id) return;
     
     setIsLoading(true);
-    console.log('Sending message:', message);
+    console.log('Sending message with conversation history');
 
     try {
       // Save user message
@@ -60,9 +60,11 @@ export const useRaceChat = (raceId: string) => {
 
       if (userMsgError) throw userMsgError;
 
-      setMessages((prev) => [...prev, { role: 'user', message }]);
+      // Update local state immediately
+      const updatedMessages = [...messages, { role: 'user', message }];
+      setMessages(updatedMessages);
 
-      // Call edge function for AI response
+      // Call edge function with full conversation history
       const response = await fetch(
         'https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/chat-with-anthropic',
         {
@@ -74,6 +76,7 @@ export const useRaceChat = (raceId: string) => {
           body: JSON.stringify({
             message,
             raceId,
+            conversationHistory: updatedMessages,
           }),
         }
       );

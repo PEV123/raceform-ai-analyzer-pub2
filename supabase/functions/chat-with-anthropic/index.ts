@@ -15,8 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId } = await req.json();
-    console.log('Received request:', { raceId, messageType: typeof message });
+    const { message, raceId, conversationHistory } = await req.json();
+    console.log('Received request:', { raceId, messageType: typeof message, historyLength: conversationHistory?.length });
 
     if (!message || !raceId) {
       throw new Error('Missing required parameters: message or raceId');
@@ -37,7 +37,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message, raceId }),
+          body: JSON.stringify({ message, raceId, conversationHistory }),
         }
       );
 
@@ -103,18 +103,35 @@ serve(async (req) => {
       
       Race Analysis Context:
       ${raceContext}
+
+      Raw Race Data for Reference:
+      ${JSON.stringify(race, null, 2)}
     `;
 
     console.log('Making request to Anthropic API with model:', settings.anthropic_model);
+    
+    // Convert conversation history to Anthropic format
+    const messages = conversationHistory ? [
+      ...conversationHistory.map(msg => ({
+        role: msg.role,
+        content: msg.message
+      })),
+      {
+        role: "user",
+        content: messageContent
+      }
+    ] : [{
+      role: "user",
+      content: messageContent
+    }];
+
+    console.log('Sending messages to Anthropic:', messages.length);
     
     const response = await anthropic.messages.create({
       model: settings.anthropic_model,
       max_tokens: 1024,
       system: systemMessage,
-      messages: [{
-        role: "user",
-        content: messageContent
-      }]
+      messages
     });
 
     console.log('Received response from Anthropic');
