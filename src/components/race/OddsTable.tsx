@@ -61,7 +61,7 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
   return (
     <div className="mt-4 space-y-2">
       <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
+        <div className="overflow-x-auto max-w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
           <table className="w-full text-sm divide-y divide-gray-200">
             <thead>
               <tr className="bg-muted/50">
@@ -71,19 +71,11 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
                 {typedOdds.map((odd) => (
                   <th 
                     key={odd.bookmaker} 
-                    className="px-2 py-1 text-left font-medium border-r last:border-r-0"
-                    style={{ width: '40px', minWidth: '40px' }}
+                    className="px-2 py-1 text-left font-medium border-r last:border-r-0 min-w-[40px]"
                   >
-                    <div className="h-[120px] relative">
+                    <div className="h-[120px] flex items-end justify-center">
                       <span 
-                        className="absolute origin-bottom-left -rotate-90 whitespace-nowrap"
-                        style={{ 
-                          bottom: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%) rotate(-90deg)',
-                          transformOrigin: 'bottom left',
-                          marginBottom: '10px'
-                        }}
+                        className="block origin-bottom-left -rotate-90 whitespace-nowrap absolute bottom-2"
                       >
                         {odd.bookmaker}
                       </span>
