@@ -29,9 +29,23 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
         'decimal' in odd &&
         'updated' in odd &&
         'ew_denom' in odd &&
-        'ew_places' in odd
+        'ew_places' in odd &&
+        'fractional' in odd &&
+        typeof odd.bookmaker === 'string' &&
+        typeof odd.decimal === 'string' &&
+        typeof odd.updated === 'string' &&
+        typeof odd.ew_denom === 'string' &&
+        typeof odd.ew_places === 'string' &&
+        typeof odd.fractional === 'string'
       ) {
-        acc.push(odd as Odd);
+        acc.push({
+          bookmaker: odd.bookmaker,
+          decimal: odd.decimal,
+          updated: odd.updated,
+          ew_denom: odd.ew_denom,
+          ew_places: odd.ew_places,
+          fractional: odd.fractional
+        });
       }
       return acc;
     }, [])
