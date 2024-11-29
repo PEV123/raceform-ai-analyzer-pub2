@@ -61,7 +61,7 @@ export const useRaceChat = (raceId: string) => {
       if (userMsgError) throw userMsgError;
 
       // Update local state immediately
-      const updatedMessages = [...messages, { role: 'user', message }];
+      const updatedMessages: Message[] = [...messages, { role: 'user', message }];
       setMessages(updatedMessages);
 
       // Call edge function with full conversation history
