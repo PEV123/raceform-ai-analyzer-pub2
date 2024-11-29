@@ -16,6 +16,12 @@ interface HorseDistanceChartProps {
 }
 
 export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceChartProps) => {
+  const defaultAxisProps = {
+    scale: "auto" as const,
+    tickMargin: 5,
+    padding: { top: 20, bottom: 20 },
+  };
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart 
@@ -24,12 +30,13 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
+          {...defaultAxisProps}
           dataKey="distance" 
           padding={{ left: 20, right: 20 }}
           scale="band"
-          tickMargin={5}
         />
         <YAxis 
+          {...defaultAxisProps}
           yAxisId="left" 
           label={{ 
             value: 'Rate (%)', 
@@ -37,10 +44,9 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
             position: 'insideLeft',
             offset: 0
           }}
-          padding={{ top: 20, bottom: 20 }}
-          tickCount={5}
         />
         <YAxis 
+          {...defaultAxisProps}
           yAxisId="right" 
           orientation="right" 
           label={{ 
@@ -49,8 +55,6 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
             position: 'insideRight',
             offset: 0
           }}
-          padding={{ top: 20, bottom: 20 }}
-          tickCount={5}
         />
         {currentRaceDistance && (
           <ReferenceLine
@@ -68,20 +72,24 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
           />
         )}
         <Tooltip 
-          cursor={{ 
-            stroke: '#666', 
-            strokeWidth: 1, 
-            strokeDasharray: '3 3',
-            radius: 2
+          cursor={false}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            
+            return (
+              <div className="bg-background border rounded-lg p-2 shadow-lg">
+                <p className="font-medium">{payload[0].payload.distance}</p>
+                {payload.map((entry: any, index: number) => (
+                  <p key={index} className="text-sm">
+                    {entry.name === 'speedRating' 
+                      ? `Pace: ${entry.payload.actualPace}s per furlong`
+                      : `${entry.name}: ${Number(entry.value).toFixed(1)}%`
+                    }
+                  </p>
+                ))}
+              </div>
+            );
           }}
-          formatter={(value: any, name: string, props: any) => {
-            if (name === 'Speed Rating') {
-              return [`${props.payload.actualPace}s per furlong`, 'Pace'];
-            }
-            return [`${Number(value).toFixed(1)}%`, name];
-          }}
-          wrapperStyle={{ zIndex: 100 }}
-          offset={10}
         />
         <Legend verticalAlign="top" height={36} />
         <Line

@@ -26,7 +26,6 @@ const convertTimeToSeconds = (timeStr: string): number => {
 };
 
 const convertDistanceToFurlongs = (dist: string): number => {
-  // Extract numbers and units from distance string (e.g., "2m4½f" -> 20.5f)
   const miles = dist.match(/(\d+)m/)?.[1] ? Number(dist.match(/(\d+)m/)[1]) : 0;
   const furlongs = dist.match(/(\d+)f/)?.[1] ? Number(dist.match(/(\d+)f/)[1]) : 0;
   const halfFurlong = dist.includes('½') ? 0.5 : 0;
@@ -43,17 +42,14 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
   const comparisonData = analyses.map(analysis => {
     const details = analysis.horse_distance_details || [];
     
-    // Calculate average win rate
     const avgWinRate = details.reduce((acc, detail) => 
       acc + (Number(detail.win_percentage) || 0), 0) / (details.length || 1);
     
-    // Calculate average place rate
     const avgPlaceRate = details.reduce((acc, detail) => {
       const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
       return acc + (placeRate || 0);
     }, 0) / (details.length || 1);
     
-    // Calculate average seconds per furlong
     let totalSecondsPerFurlong = 0;
     let validTimeCount = 0;
 
@@ -73,20 +69,25 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
     const avgSecondsPerFurlong = validTimeCount > 0 ? 
       totalSecondsPerFurlong / validTimeCount : 0;
 
-    // Invert the time metric so faster times show as higher bars
-    const maxPossibleTime = 20; // Assuming no horse takes more than 20 seconds per furlong
+    const maxPossibleTime = 20;
     const invertedTimeMetric = avgSecondsPerFurlong > 0 ? 
-      (maxPossibleTime - avgSecondsPerFurlong) * 5 : 0; // Multiply by 5 to make the differences more visible
+      (maxPossibleTime - avgSecondsPerFurlong) * 5 : 0;
 
     return {
       horse: analysis.horse,
       avgWinRate: avgWinRate * 100,
       avgPlaceRate: avgPlaceRate,
-      speedRating: invertedTimeMetric, // Now higher is better
-      actualPace: avgSecondsPerFurlong.toFixed(2), // Store actual pace for tooltip
+      speedRating: invertedTimeMetric,
+      actualPace: avgSecondsPerFurlong.toFixed(2),
       totalRuns: analysis.total_runs
     };
   });
+
+  const defaultAxisProps = {
+    scale: "auto" as const,
+    tickMargin: 5,
+    padding: { top: 20, bottom: 20 },
+  };
 
   return (
     <Card className="p-4 space-y-4">
@@ -102,16 +103,17 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
+              {...defaultAxisProps}
               dataKey="horse" 
-              angle={-45} 
+              angle={-45}
               textAnchor="end" 
               height={100}
               interval={0}
               scale="band"
-              tickMargin={5}
               padding={{ left: 20, right: 20 }}
             />
             <YAxis 
+              {...defaultAxisProps}
               yAxisId="left" 
               label={{ 
                 value: 'Rate (%)', 
@@ -119,10 +121,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 position: 'insideLeft',
                 offset: 0
               }}
-              padding={{ top: 20, bottom: 20 }}
-              tickCount={5}
             />
             <YAxis 
+              {...defaultAxisProps}
               yAxisId="right" 
               orientation="right" 
               label={{ 
@@ -131,22 +132,26 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 position: 'insideRight',
                 offset: 0
               }}
-              padding={{ top: 20, bottom: 20 }}
-              tickCount={5}
             />
             <Tooltip 
-              cursor={{ 
-                fill: 'rgba(0, 0, 0, 0.1)',
-                radius: 2
+              cursor={false}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                
+                return (
+                  <div className="bg-background border rounded-lg p-2 shadow-lg">
+                    <p className="font-medium">{payload[0].payload.horse}</p>
+                    {payload.map((entry: any, index: number) => (
+                      <p key={index} className="text-sm">
+                        {entry.name === 'speedRating' 
+                          ? `Avg Pace: ${entry.payload.actualPace}s per furlong`
+                          : `${entry.name}: ${Number(entry.value).toFixed(1)}%`
+                        }
+                      </p>
+                    ))}
+                  </div>
+                );
               }}
-              formatter={(value: any, name: string, props: any) => {
-                if (name === 'Speed Rating') {
-                  return [`${props.payload.actualPace}s per furlong`, 'Avg Pace'];
-                }
-                return [`${value.toFixed(1)}%`, name];
-              }}
-              wrapperStyle={{ zIndex: 100 }}
-              offset={10}
             />
             <Legend verticalAlign="top" height={36} />
             <Bar 
