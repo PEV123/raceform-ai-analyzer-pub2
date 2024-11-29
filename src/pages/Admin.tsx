@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RaceList } from "@/components/admin/RaceList";
 import ImportRaces from "@/components/admin/ImportRaces";
 import { HorseResults } from "@/components/admin/HorseResults";
+import { ApiTesting } from "@/components/admin/api-testing/ApiTesting";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
@@ -81,6 +82,7 @@ const Admin = () => {
           <ImportRaces />
           <AdminSettings />
           <HorseResults />
+          <ApiTesting />
         </div>
         
         <div className="space-y-4">
