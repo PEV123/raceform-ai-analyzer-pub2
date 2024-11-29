@@ -56,6 +56,7 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
         {currentRaceDistance && (
           <ReferenceLine
             x={currentRaceDistance}
+            yAxisId="left"
             stroke="#888"
             strokeDasharray="3 3"
             label={{
