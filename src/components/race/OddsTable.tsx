@@ -65,15 +65,21 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
         <table className="w-full text-sm">
           <thead>
             <tr>
+              <th className="px-2 py-1 text-left font-medium w-24">Bookmaker</th>
               {typedOdds.map((odd) => (
                 <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium">
-                  {odd.bookmaker}
+                  <div className="h-24 flex items-end">
+                    <span className="-rotate-90 origin-left translate-y-8 whitespace-nowrap">
+                      {odd.bookmaker}
+                    </span>
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             <tr>
+              <td className="px-2 py-1 font-medium">Odds</td>
               {typedOdds.map((odd) => (
                 <td key={`${odd.bookmaker}-decimal`} className="px-2 py-1 font-medium">
                   {odd.decimal}
@@ -81,6 +87,7 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
               ))}
             </tr>
             <tr>
+              <td className="px-2 py-1 font-medium">E/W Odds</td>
               {typedOdds.map((odd) => (
                 <td key={`${odd.bookmaker}-ew`} className="px-2 py-1 text-muted-foreground">
                   1/{odd.ew_denom}
@@ -88,9 +95,10 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
               ))}
             </tr>
             <tr>
+              <td className="px-2 py-1 font-medium">E/W Places</td>
               {typedOdds.map((odd) => (
                 <td key={`${odd.bookmaker}-places`} className="px-2 py-1 text-muted-foreground">
-                  {odd.ew_places} places
+                  {odd.ew_places}
                 </td>
               ))}
             </tr>
