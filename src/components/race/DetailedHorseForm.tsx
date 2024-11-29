@@ -2,16 +2,27 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Card } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
 import { OddsTable } from "./OddsTable";
+import { HorseDistanceAnalysis } from "./HorseDistanceAnalysis";
 
 type Runner = Tables<"runners">;
 type HorseResult = Tables<"horse_results">;
+type HorseDistanceAnalysis = Tables<"horse_distance_analysis"> & {
+  horse_distance_details: (Tables<"horse_distance_details"> & {
+    horse_distance_times: Tables<"horse_distance_times">[];
+  })[];
+};
 
 interface DetailedHorseFormProps {
   runner: Runner;
   historicalResults: HorseResult[];
+  distanceAnalysis?: HorseDistanceAnalysis;
 }
 
-export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFormProps) => {
+export const DetailedHorseForm = ({ 
+  runner, 
+  historicalResults,
+  distanceAnalysis 
+}: DetailedHorseFormProps) => {
   const formatDate = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'dd/MM/yyyy');
   };
@@ -56,8 +67,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           <OddsTable odds={runner.odds} />
         </div>
       </div>
-
-      {/* Horse Details */}
+      
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
         <div>
           <p><span className="font-medium">Age:</span> {runner.age} years old</p>
@@ -71,7 +81,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           {runner.dob && <p><span className="font-medium">Foaled:</span> {formatDate(runner.dob)}</p>}
         </div>
       </div>
-
+      
       {/* Performance Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
         <div>
@@ -91,8 +101,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           <p>--</p>
         </div>
       </div>
-
-      {/* Track Performance */}
+      
       <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
         <div>
           <p className="font-medium">1st Up</p>
@@ -111,6 +120,13 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           <p>--</p>
         </div>
       </div>
+
+      {/* Distance Analysis Section */}
+      {distanceAnalysis && (
+        <div className="mb-6">
+          <HorseDistanceAnalysis analysis={distanceAnalysis} />
+        </div>
+      )}
 
       {/* Race History */}
       <div className="space-y-2">

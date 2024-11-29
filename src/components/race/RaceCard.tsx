@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from 'date-fns-tz';
 import { DetailedHorseForm } from "./DetailedHorseForm";
 import { Separator } from "@/components/ui/separator";
+import { RaceDistanceComparison } from "./RaceDistanceComparison";
 
 interface RaceCardProps {
   race: any;
@@ -34,17 +35,38 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         .in('horse_id', horseIds)
         .order('date', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching horse results:', error);
-        throw error;
-      }
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: distanceAnalyses } = useQuery({
+    queryKey: ['distance-analyses', race.id],
+    queryFn: async () => {
+      const horseIds = race.runners.map((runner: any) => runner.horse_id);
       
+      const { data, error } = await supabase
+        .from('horse_distance_analysis')
+        .select(`
+          *,
+          horse_distance_details (
+            *,
+            horse_distance_times (*)
+          )
+        `)
+        .in('horse_id', horseIds);
+
+      if (error) throw error;
       return data;
     }
   });
 
   const getHorseResults = (horseId: string) => {
     return historicalResults?.filter(result => result.horse_id === horseId) || [];
+  };
+
+  const getHorseDistanceAnalysis = (horseId: string) => {
+    return distanceAnalyses?.find(analysis => analysis.horse_id === horseId);
   };
 
   const timezone = settings?.timezone || 'Europe/London';
@@ -84,6 +106,12 @@ export const RaceCard = ({ race }: RaceCardProps) => {
           </div>
         </div>
 
+        {distanceAnalyses?.length > 0 && (
+          <div className="mb-6">
+            <RaceDistanceComparison analyses={distanceAnalyses} />
+          </div>
+        )}
+
         <Separator className="my-4" />
 
         <div className="space-y-4">
@@ -92,6 +120,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
               key={runner.horse_id}
               runner={runner}
               historicalResults={getHorseResults(runner.horse_id)}
+              distanceAnalysis={getHorseDistanceAnalysis(runner.horse_id)}
             />
           ))}
         </div>
