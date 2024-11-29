@@ -28,67 +28,77 @@ export const formatRaceContext = async (race: any) => {
   console.log('Fetched historical results:', historicalResults.data?.length);
   console.log('Fetched distance analyses:', distanceAnalyses.data?.length);
 
-  const getHorseAnalysis = (horseId: string) => {
-    return distanceAnalyses.data?.find(analysis => analysis.horse_id === horseId);
+  // Create a structured context object that includes both formatted and raw data
+  const raceContext = {
+    race_overview: {
+      name: race.race_name,
+      course: race.course,
+      datetime: race.off_time,
+      distance: race.distance,
+      going: race.going,
+      class: race.race_class,
+      prize: race.prize,
+      surface: race.surface,
+      jumps: race.jumps,
+      field_size: race.field_size
+    },
+    runners: race.runners?.map((runner: any) => {
+      const horseResults = historicalResults.data?.filter(result => result.horse_id === runner.horse_id) || [];
+      const timeAnalysis = distanceAnalyses.data?.find(analysis => analysis.horse_id === runner.horse_id);
+      
+      return {
+        // Basic info
+        horse: runner.horse,
+        horse_id: runner.horse_id,
+        number: runner.number,
+        draw: runner.draw,
+        weight_lbs: runner.lbs,
+        
+        // Breeding info
+        age: runner.age,
+        sex: runner.sex,
+        sire: runner.sire,
+        sire_region: runner.sire_region,
+        dam: runner.dam,
+        dam_region: runner.dam_region,
+        damsire: runner.damsire,
+        breeder: runner.breeder,
+        
+        // Connections
+        jockey: runner.jockey,
+        trainer: runner.trainer,
+        trainer_location: runner.trainer_location,
+        owner: runner.owner,
+        
+        // Form and ratings
+        official_rating: runner.ofr,
+        rpr: runner.rpr,
+        form: runner.form,
+        spotlight: runner.spotlight,
+        comment: runner.comment,
+        
+        // Equipment and medical
+        headgear: runner.headgear,
+        wind_surgery: runner.wind_surgery,
+        medical_history: runner.medical,
+        
+        // Statistics
+        trainer_14_day_stats: runner.trainer_14_days,
+        trainer_rtf: runner.trainer_rtf,
+        
+        // Historical performance
+        historical_results: horseResults,
+        distance_analysis: timeAnalysis,
+        
+        // Additional insights
+        stable_tour_comments: runner.stable_tour,
+        quotes: runner.quotes,
+        flags: runner.past_results_flags
+      };
+    }) || [],
+    raw_data: race // Include complete raw data
   };
 
-  const formatTimeAnalysis = (analysis: any) => {
-    if (!analysis?.horse_distance_details?.length) return 'No time analysis available';
-
-    return analysis.horse_distance_details.map((detail: any) => {
-      const times = detail.horse_distance_times || [];
-      const avgTime = times.reduce((acc: number, time: any) => {
-        if (!time.time || time.time === '-') return acc;
-        const [mins, secs] = time.time.split(':').map(Number);
-        return acc + (mins * 60 + secs);
-      }, 0) / (times.length || 1);
-
-      return `
-Distance: ${detail.dist}
-Runs: ${detail.runs || 0}
-Win Rate: ${detail.win_percentage || 0}%
-Place Rate: ${((detail.wins + detail.second_places + detail.third_places) / (detail.runs || 1) * 100).toFixed(1)}%
-Average Time: ${avgTime ? `${Math.floor(avgTime / 60)}:${(avgTime % 60).toFixed(2)}` : 'N/A'}
-Recent Times: ${times.slice(0, 3).map((t: any) => `${t.time || '-'} (${t.going || 'unknown going'})`).join(', ')}`;
-    }).join('\n');
-  };
-
-  const raceContext = `
-Race Details:
-${race.race_name} at ${race.course}
-${race.off_time} - ${race.distance} - ${race.going}
-Class: ${race.race_class}
-Prize: ${race.prize}
-
-Runners:
-${race.runners?.map((runner: any) => {
-  const horseResults = historicalResults.data?.filter(result => result.horse_id === runner.horse_id) || [];
-  const timeAnalysis = getHorseAnalysis(runner.horse_id);
-  
-  // Calculate total runners in each historical race
-  const getRunnerCount = (result: any) => {
-    if (result.winner && result.second && result.third) {
-      return '3+';  // We know at least 3 runners
-    }
-    return '-';  // Unknown number of runners
-  };
-  
-  return `
-${runner.horse} (${runner.age}yo ${runner.sex})
-Jockey: ${runner.jockey}
-Trainer: ${runner.trainer}
-Weight: ${runner.lbs}
-Recent Form: ${horseResults.map(result => 
-  `${result.position || '-'}/${getRunnerCount(result)} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`
-).join(', ') || 'No recent form'}
-Comments: ${horseResults.slice(0, 3).map(result => result.comment).filter(Boolean).join(' | ') || 'No comments'}
-
-Time Analysis:
-${formatTimeAnalysis(timeAnalysis)}
-  `;
-}).join('\n') || 'No runners available'}
-`;
-
-  console.log('Generated race context with details for all runners including time analysis');
-  return raceContext;
+  console.log('Generated comprehensive race context with enhanced runner details');
+  return JSON.stringify(raceContext, null, 2); // Pretty print JSON
 };
