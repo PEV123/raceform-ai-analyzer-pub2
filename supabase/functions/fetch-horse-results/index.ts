@@ -1,78 +1,82 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { corsHeaders } from "../_shared/cors.ts"
 
 const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
 const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const RACING_API_BASE_URL = 'https://api.theracingapi.com/v1'
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { horseName, horseId } = await req.json()
-    
-    if (!horseName && !horseId) {
-      return new Response(
-        JSON.stringify({ error: 'Either horse name or ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { horseId, type } = await req.json()
+    console.log('Fetching horse data:', { horseId, type })
+
+    if (!horseId) {
+      throw new Error('Horse ID is required')
     }
 
     if (!RACING_API_USERNAME || !RACING_API_PASSWORD) {
-      throw new Error('API credentials are not configured')
+      throw new Error('Racing API credentials not configured')
     }
 
-    let apiUrl;
-    if (horseId) {
-      // Get date range for the last year
-      const endDate = new Date().toISOString().split('T')[0];
-      const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      apiUrl = `https://api.theracingapi.com/v1/horses/${horseId}/results?start_date=${startDate}&end_date=${endDate}`;
-      console.log('Fetching results for horse ID:', horseId);
-    } else {
-      apiUrl = `https://api.theracingapi.com/v1/horses/search?name=${encodeURIComponent(horseName)}`;
-      console.log('Searching for horse:', horseName);
+    // Construct the appropriate endpoint based on type
+    const endpoint = type === 'distance-analysis'
+      ? `${RACING_API_BASE_URL}/horses/${horseId}/analysis/distance-times`
+      : `${RACING_API_BASE_URL}/horses/${horseId}/results`
+
+    console.log('Making request to Racing API endpoint:', endpoint)
+
+    const response = await fetch(endpoint, {
+      headers: {
+        'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      console.error('Racing API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        endpoint: endpoint
+      })
+      
+      const errorBody = await response.text()
+      console.error('Racing API error response:', errorBody)
+      
+      throw new Error(`Racing API error: ${response.status} - ${response.statusText}`)
     }
 
-    const apiResponse = await fetch(
-      apiUrl,
-      {
-        headers: {
-          'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
-          'Accept': 'application/json'
-        }
+    const data = await response.json()
+    console.log('Successfully fetched horse data')
+
+    return new Response(
+      JSON.stringify(data),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200,
       }
     )
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text()
-      console.error('API Error Response:', {
-        status: apiResponse.status,
-        statusText: apiResponse.statusText,
-        body: errorText
-      })
-
-      throw new Error(`Racing API error: ${apiResponse.statusText}`)
-    }
-
-    const data = await apiResponse.json()
-    console.log('Successfully retrieved', horseId ? 'horse results' : 'horse search results')
-    
-    return new Response(
-      JSON.stringify(data),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in fetch-horse-results function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 500,
+      }
     )
   }
 })

@@ -24,16 +24,16 @@ serve(async (req) => {
     }
 
     // Construct the appropriate endpoint based on type
-    // For pro analysis, we use the /racecards/pro endpoint with the race_id parameter
+    // For pro analysis, we use the /racecards/{race_id}/pro endpoint
     const endpoint = type === 'pro' 
-      ? `${RACING_API_BASE_URL}/racecards/pro?race_id=${raceId}`
+      ? `${RACING_API_BASE_URL}/racecards/${raceId}/pro`
       : `${RACING_API_BASE_URL}/races/${raceId}`
 
     console.log('Making request to Racing API endpoint:', endpoint)
 
     const response = await fetch(endpoint, {
       headers: {
-        'Authorization': 'Basic ' + btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`),
+        'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
         'Accept': 'application/json'
       }
     })
