@@ -16,12 +16,14 @@ interface DetailedHorseFormProps {
   runner: Runner;
   historicalResults: HorseResult[];
   distanceAnalysis?: HorseDistanceAnalysis;
+  raceDistance?: string;
 }
 
 export const DetailedHorseForm = ({ 
   runner, 
   historicalResults,
-  distanceAnalysis 
+  distanceAnalysis,
+  raceDistance
 }: DetailedHorseFormProps) => {
   const formatDate = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'dd/MM/yyyy');
@@ -120,11 +122,14 @@ export const DetailedHorseForm = ({
           <p>--</p>
         </div>
       </div>
-
+      
       {/* Distance Analysis Section */}
       {distanceAnalysis && (
         <div className="mb-6">
-          <HorseDistanceAnalysis analysis={distanceAnalysis} />
+          <HorseDistanceAnalysis 
+            analysis={distanceAnalysis} 
+            currentRaceDistance={raceDistance}
+          />
         </div>
       )}
 

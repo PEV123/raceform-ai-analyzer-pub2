@@ -121,6 +121,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
               runner={runner}
               historicalResults={getHorseResults(runner.horse_id)}
               distanceAnalysis={getHorseDistanceAnalysis(runner.horse_id)}
+              raceDistance={race.distance}
             />
           ))}
         </div>

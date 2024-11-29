@@ -16,7 +16,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ReferenceLine
 } from 'recharts';
 
 interface HorseDistanceAnalysisProps {
@@ -25,6 +26,7 @@ interface HorseDistanceAnalysisProps {
       horse_distance_times: Tables<"horse_distance_times">[];
     })[];
   };
+  currentRaceDistance?: string;
 }
 
 const convertTimeToSeconds = (timeStr: string): number => {
@@ -45,13 +47,23 @@ const formatSecondsPerFurlong = (seconds: number): string => {
   return seconds.toFixed(2);
 };
 
-export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) => {
+// Sort distances from shortest to longest
+const sortDistances = (a: Tables<"horse_distance_details">, b: Tables<"horse_distance_details">) => {
+  const aFurlongs = convertDistanceToFurlongs(a.dist);
+  const bFurlongs = convertDistanceToFurlongs(b.dist);
+  return aFurlongs - bFurlongs;
+};
+
+export const HorseDistanceAnalysis = ({ analysis, currentRaceDistance }: HorseDistanceAnalysisProps) => {
   if (!analysis) {
     return <div className="text-sm text-muted-foreground">No distance analysis data available</div>;
   }
 
+  // Sort the distance details
+  const sortedDetails = [...analysis.horse_distance_details].sort(sortDistances);
+
   // Transform data for the graph and table
-  const chartData = analysis.horse_distance_details?.map(detail => {
+  const chartData = sortedDetails.map(detail => {
     // Calculate place rate (1st, 2nd, 3rd positions)
     const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
     
@@ -84,7 +96,8 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
       placeRate: placeRate,
       speedRating: speedRating,
       actualPace: avgSecondsPerFurlong,
-      runs: detail.runs
+      runs: detail.runs,
+      isCurrentDistance: detail.dist === currentRaceDistance
     };
   });
 
@@ -103,7 +116,7 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {analysis.horse_distance_details?.map((detail) => {
+          {sortedDetails.map((detail) => {
             let secondsPerFurlong = 0;
             let validTimeCount = 0;
 
@@ -123,9 +136,19 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
 
             const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
 
+            const isCurrentDistance = detail.dist === currentRaceDistance;
+
             return (
-              <TableRow key={detail.id}>
-                <TableCell>{detail.dist}</TableCell>
+              <TableRow 
+                key={detail.id}
+                className={isCurrentDistance ? "bg-muted/50" : ""}
+              >
+                <TableCell>
+                  {detail.dist}
+                  {isCurrentDistance && (
+                    <span className="ml-2 text-xs text-muted-foreground">(Today)</span>
+                  )}
+                </TableCell>
                 <TableCell>{detail.runs}</TableCell>
                 <TableCell>{detail.win_percentage ? `${(Number(detail.win_percentage) * 100).toFixed(1)}%` : '0%'}</TableCell>
                 <TableCell>{`${placeRate.toFixed(1)}%`}</TableCell>
@@ -143,6 +166,14 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
             <XAxis dataKey="distance" />
             <YAxis yAxisId="left" label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft' }} />
             <YAxis yAxisId="right" orientation="right" label={{ value: 'Speed Rating', angle: 90, position: 'insideRight' }} />
+            {currentRaceDistance && (
+              <ReferenceLine
+                x={currentRaceDistance}
+                stroke="#888"
+                strokeDasharray="3 3"
+                label={{ value: "Today's Race", position: 'top' }}
+              />
+            )}
             <Tooltip 
               formatter={(value: any, name: string, props: any) => {
                 if (name === 'Speed Rating') {
