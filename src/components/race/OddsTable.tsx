@@ -1,0 +1,91 @@
+import { Json } from "@/integrations/supabase/types";
+import { formatInTimeZone } from 'date-fns-tz';
+
+interface Odd {
+  decimal: string;
+  updated: string;
+  ew_denom: string;
+  bookmaker: string;
+  ew_places: string;
+  fractional: string;
+}
+
+interface OddsTableProps {
+  odds?: Json;
+}
+
+export const OddsTable = ({ odds }: OddsTableProps) => {
+  if (!odds || !Array.isArray(odds) || odds.length === 0) {
+    return null;
+  }
+
+  // Convert odds array to properly typed array and sort by bookmaker name
+  const typedOdds = odds
+    .reduce<Odd[]>((acc, odd) => {
+      if (
+        typeof odd === 'object' &&
+        odd !== null &&
+        'bookmaker' in odd &&
+        'decimal' in odd &&
+        'updated' in odd &&
+        'ew_denom' in odd &&
+        'ew_places' in odd
+      ) {
+        acc.push(odd as Odd);
+      }
+      return acc;
+    }, [])
+    .sort((a, b) => a.bookmaker.localeCompare(b.bookmaker));
+
+  if (typedOdds.length === 0) {
+    return null;
+  }
+
+  // Find Bet365 odds for last updated time
+  const bet365Odds = typedOdds.find(odd => odd.bookmaker === 'Bet365');
+  const lastUpdated = bet365Odds?.updated || typedOdds[0].updated;
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              {typedOdds.map((odd) => (
+                <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium">
+                  {odd.bookmaker}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {typedOdds.map((odd) => (
+                <td key={`${odd.bookmaker}-decimal`} className="px-2 py-1 font-medium">
+                  {odd.decimal}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              {typedOdds.map((odd) => (
+                <td key={`${odd.bookmaker}-ew`} className="px-2 py-1 text-muted-foreground">
+                  1/{odd.ew_denom}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              {typedOdds.map((odd) => (
+                <td key={`${odd.bookmaker}-places`} className="px-2 py-1 text-muted-foreground">
+                  {odd.ew_places} places
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Odds Subject to Change. Last updated: {formatInTimeZone(new Date(lastUpdated), 'Europe/London', 'PPpp')}
+      </p>
+    </div>
+  );
+};

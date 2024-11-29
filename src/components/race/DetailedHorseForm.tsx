@@ -1,6 +1,7 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { Card } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
+import { OddsTable } from "./OddsTable";
 
 type Runner = Tables<"runners">;
 type HorseResult = Tables<"horse_results">;
@@ -45,6 +46,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           <p className="text-sm text-muted-foreground">
             T: {runner.trainer} J: {runner.jockey} ({runner.lbs}kg)
           </p>
+          <OddsTable odds={runner.odds} />
         </div>
       </div>
 
@@ -63,7 +65,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
         </div>
       </div>
 
-      {/* Performance Stats - Placeholders for now */}
+      {/* Performance Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
         <div>
           <p className="font-medium">Prizemoney</p>
@@ -83,7 +85,7 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
         </div>
       </div>
 
-      {/* Track Performance - Placeholders */}
+      {/* Track Performance */}
       <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
         <div>
           <p className="font-medium">1st Up</p>
