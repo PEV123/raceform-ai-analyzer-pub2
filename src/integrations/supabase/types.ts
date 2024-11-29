@@ -45,6 +45,148 @@ export type Database = {
         }
         Relationships: []
       }
+      horse_distance_analysis: {
+        Row: {
+          created_at: string | null
+          dam: string | null
+          dam_id: string | null
+          damsire: string | null
+          damsire_id: string | null
+          horse: string
+          horse_id: string
+          id: string
+          sire: string | null
+          sire_id: string | null
+          total_runs: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          dam?: string | null
+          dam_id?: string | null
+          damsire?: string | null
+          damsire_id?: string | null
+          horse: string
+          horse_id: string
+          id?: string
+          sire?: string | null
+          sire_id?: string | null
+          total_runs?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          dam?: string | null
+          dam_id?: string | null
+          damsire?: string | null
+          damsire_id?: string | null
+          horse?: string
+          horse_id?: string
+          id?: string
+          sire?: string | null
+          sire_id?: string | null
+          total_runs?: number | null
+        }
+        Relationships: []
+      }
+      horse_distance_details: {
+        Row: {
+          ae_index: number | null
+          analysis_id: string | null
+          dist: string
+          dist_f: string | null
+          dist_m: string | null
+          dist_y: string | null
+          fourth_places: number | null
+          id: string
+          place_index: number | null
+          runs: number | null
+          second_places: number | null
+          third_places: number | null
+          win_percentage: number | null
+          wins: number | null
+        }
+        Insert: {
+          ae_index?: number | null
+          analysis_id?: string | null
+          dist: string
+          dist_f?: string | null
+          dist_m?: string | null
+          dist_y?: string | null
+          fourth_places?: number | null
+          id?: string
+          place_index?: number | null
+          runs?: number | null
+          second_places?: number | null
+          third_places?: number | null
+          win_percentage?: number | null
+          wins?: number | null
+        }
+        Update: {
+          ae_index?: number | null
+          analysis_id?: string | null
+          dist?: string
+          dist_f?: string | null
+          dist_m?: string | null
+          dist_y?: string | null
+          fourth_places?: number | null
+          id?: string
+          place_index?: number | null
+          runs?: number | null
+          second_places?: number | null
+          third_places?: number | null
+          win_percentage?: number | null
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horse_distance_details_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "horse_distance_analysis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horse_distance_times: {
+        Row: {
+          course: string | null
+          date: string
+          distance_detail_id: string | null
+          going: string | null
+          id: string
+          position: string | null
+          region: string | null
+          time: string | null
+        }
+        Insert: {
+          course?: string | null
+          date: string
+          distance_detail_id?: string | null
+          going?: string | null
+          id?: string
+          position?: string | null
+          region?: string | null
+          time?: string | null
+        }
+        Update: {
+          course?: string | null
+          date?: string
+          distance_detail_id?: string | null
+          going?: string | null
+          id?: string
+          position?: string | null
+          region?: string | null
+          time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horse_distance_times_distance_detail_id_fkey"
+            columns: ["distance_detail_id"]
+            isOneToOne: false
+            referencedRelation: "horse_distance_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       horse_results: {
         Row: {
           class: string | null

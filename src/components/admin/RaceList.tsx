@@ -4,9 +4,10 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
-import { FileJson, History, ExternalLink, Eye } from "lucide-react";
+import { FileJson, History, ExternalLink, Eye, BarChart2 } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
+import { useImportHorseDistanceAnalysisMutation } from "./mutations/useImportHorseDistanceAnalysisMutation";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +27,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   const navigate = useNavigate();
   
   const importHorseResults = useImportHorseResultsMutation();
+  const importDistanceAnalysis = useImportHorseDistanceAnalysisMutation();
 
   const handleImportHorseResults = async (race: Race) => {
     if (!race.runners?.length) {
@@ -40,8 +42,20 @@ export const RaceList = ({ races }: RaceListProps) => {
     await importHorseResults.mutate(race.runners);
   };
 
+  const handleImportDistanceAnalysis = async (race: Race) => {
+    if (!race.runners?.length) {
+      toast({
+        title: "No runners found",
+        description: "This race has no runners to analyze.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await importDistanceAnalysis.mutate(race.runners);
+  };
+
   const formatTime = (date: string) => {
-    // Always format in UK time
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm');
   };
 
@@ -130,6 +144,15 @@ export const RaceList = ({ races }: RaceListProps) => {
                     title="Import Horse Results"
                   >
                     <History className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleImportDistanceAnalysis(race)}
+                    disabled={importDistanceAnalysis.isPending}
+                    title="Import Distance Analysis"
+                  >
+                    <BarChart2 className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
