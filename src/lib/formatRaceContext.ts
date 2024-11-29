@@ -55,10 +55,10 @@ Recent Times: ${times.slice(0, 3).map((t: any) => `${t.time || '-'} (${t.going |
 
   const raceContext = `
 Race Details:
-${race.race_name || 'Unnamed Race'} at ${race.course || 'Unknown Course'}
-${race.off_time || 'No time'} - ${race.distance || 'Unknown distance'} - ${race.going || 'Unknown going'}
-Class: ${race.race_class || 'Unknown class'}
-Prize: ${race.prize || 'Unknown prize'}
+${race.race_name} at ${race.course}
+${race.off_time} - ${race.distance} - ${race.going}
+Class: ${race.race_class}
+Prize: ${race.prize}
 
 Runners:
 ${race.runners?.map((runner: any) => {
@@ -77,7 +77,7 @@ ${race.runners?.map((runner: any) => {
 ${runner.horse} (${runner.age}yo ${runner.sex})
 Jockey: ${runner.jockey}
 Trainer: ${runner.trainer}
-Weight: ${runner.weight || runner.lbs}
+Weight: ${runner.lbs}
 Recent Form: ${horseResults.map(result => 
   `${result.position || '-'}/${getRunnerCount(result)} - ${result.course} (${result.distance || '-'}) - ${result.going || '-'}`
 ).join(', ') || 'No recent form'}
