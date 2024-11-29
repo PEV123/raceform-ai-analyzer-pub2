@@ -42,9 +42,16 @@ export const DetailedHorseForm = ({ runner, historicalResults }: DetailedHorseFo
           )}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold">{runner.horse}</h3>
+          <h3 className="text-lg font-bold">
+            {runner.horse} ({runner.draw})
+          </h3>
+          {runner.form && (
+            <p className="text-sm text-muted-foreground">
+              Last 5 Starts: {runner.form}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
-            T: {runner.trainer} J: {runner.jockey} ({runner.lbs}kg)
+            T: {runner.trainer} J: {runner.jockey} ({runner.lbs}lbs)
           </p>
           <OddsTable odds={runner.odds} />
         </div>
