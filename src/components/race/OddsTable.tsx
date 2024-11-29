@@ -61,7 +61,7 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
   return (
     <div className="mt-4 space-y-2">
       <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto" style={{ maxWidth: '100%' }}>
+        <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
           <table className="w-full text-sm divide-y divide-gray-200">
             <thead>
               <tr className="bg-muted/50">
@@ -71,22 +71,18 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
                 {typedOdds.map((odd) => (
                   <th 
                     key={odd.bookmaker} 
-                    className="relative px-2 py-1 text-left font-medium border-r last:border-r-0"
-                    style={{ height: '120px', width: '40px', minWidth: '40px' }}
+                    className="px-2 py-1 text-left font-medium border-r last:border-r-0"
+                    style={{ width: '40px', minWidth: '40px' }}
                   >
-                    <div 
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2"
-                      style={{ 
-                        transformOrigin: 'bottom left',
-                        width: '120px',
-                        height: '40px'
-                      }}
-                    >
+                    <div className="h-[120px] relative">
                       <span 
-                        className="absolute bottom-2 left-0 whitespace-nowrap text-xs"
+                        className="absolute origin-bottom-left -rotate-90 whitespace-nowrap"
                         style={{ 
-                          transform: 'rotate(-90deg)',
-                          transformOrigin: 'left bottom'
+                          bottom: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%) rotate(-90deg)',
+                          transformOrigin: 'bottom left',
+                          marginBottom: '10px'
                         }}
                       >
                         {odd.bookmaker}
