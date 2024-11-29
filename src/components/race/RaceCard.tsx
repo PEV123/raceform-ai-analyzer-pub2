@@ -5,6 +5,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { DetailedHorseForm } from "./DetailedHorseForm";
 import { Separator } from "@/components/ui/separator";
 import { RaceDistanceComparison } from "./RaceDistanceComparison";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface RaceCardProps {
   race: any;
@@ -24,9 +26,10 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     },
   });
 
-  const { data: historicalResults } = useQuery({
+  const { data: historicalResults, error: historicalError } = useQuery({
     queryKey: ['historical-results', race.id],
     queryFn: async () => {
+      console.log('Fetching historical results for race:', race.id);
       const horseIds = race.runners.map((runner: any) => runner.horse_id);
       
       const { data, error } = await supabase
@@ -35,14 +38,21 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         .in('horse_id', horseIds)
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching historical results:', error);
+        throw error;
+      }
+      
+      console.log('Fetched historical results:', data);
       return data;
-    }
+    },
+    retry: 2
   });
 
-  const { data: distanceAnalyses } = useQuery({
+  const { data: distanceAnalyses, error: analysesError } = useQuery({
     queryKey: ['distance-analyses', race.id],
     queryFn: async () => {
+      console.log('Fetching distance analyses for race:', race.id);
       const horseIds = race.runners.map((runner: any) => runner.horse_id);
       
       const { data, error } = await supabase
@@ -56,9 +66,15 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         `)
         .in('horse_id', horseIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching distance analyses:', error);
+        throw error;
+      }
+
+      console.log('Fetched distance analyses:', data);
       return data;
-    }
+    },
+    retry: 2
   });
 
   const getHorseResults = (horseId: string) => {
@@ -71,6 +87,17 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
   const timezone = settings?.timezone || 'Europe/London';
   const raceTime = formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm');
+
+  if (historicalError || analysesError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Error loading race data. Please try again later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <Card className="p-6 mb-6">

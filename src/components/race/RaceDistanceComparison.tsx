@@ -73,8 +73,14 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
     const invertedTimeMetric = avgSecondsPerFurlong > 0 ? 
       (maxPossibleTime - avgSecondsPerFurlong) * 5 : 0;
 
+    // Truncate horse name if too long
+    const truncatedHorse = analysis.horse.length > 12 
+      ? analysis.horse.substring(0, 12) + '...'
+      : analysis.horse;
+
     return {
-      horse: analysis.horse,
+      horse: truncatedHorse,
+      fullName: analysis.horse,
       avgWinRate: avgWinRate * 100,
       avgPlaceRate: avgPlaceRate,
       speedRating: invertedTimeMetric,
@@ -91,7 +97,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
         <ResponsiveContainer width="100%" height="100%">
           <BarChart 
             data={comparisonData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
             barGap={2}
             barSize={20}
           >
@@ -102,7 +108,11 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               textAnchor="end" 
               height={100}
               interval={0}
-              tick={{ fontSize: 12, fill: 'currentColor' }}
+              tick={{ 
+                fontSize: 11,
+                fill: 'currentColor',
+                dy: 10
+              }}
             />
             <YAxis 
               yAxisId="left"
@@ -111,21 +121,29 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 value: 'Rate (%)', 
                 angle: -90, 
                 position: 'insideLeft',
-                style: { textAnchor: 'middle' }
+                style: { 
+                  textAnchor: 'middle',
+                  fontSize: 12,
+                  fill: 'currentColor'
+                }
               }}
-              tick={{ fontSize: 12, fill: 'currentColor' }}
+              tick={{ fontSize: 11, fill: 'currentColor' }}
             />
             <YAxis 
               yAxisId="right" 
               orientation="right"
-              domain={[-50, 50]}
+              domain={[0, 50]}
               label={{ 
                 value: 'Speed Rating', 
                 angle: 90, 
                 position: 'insideRight',
-                style: { textAnchor: 'middle' }
+                style: { 
+                  textAnchor: 'middle',
+                  fontSize: 12,
+                  fill: 'currentColor'
+                }
               }}
-              tick={{ fontSize: 12, fill: 'currentColor' }}
+              tick={{ fontSize: 11, fill: 'currentColor' }}
             />
             <Tooltip 
               wrapperStyle={{ outline: 'none' }}
@@ -141,7 +159,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 
                 return (
                   <div className="bg-background border rounded-lg p-2 shadow-lg">
-                    <p className="font-medium mb-1">{payload[0].payload.horse}</p>
+                    <p className="font-medium mb-1">{payload[0].payload.fullName}</p>
                     {payload.map((entry: any) => (
                       <p key={entry.name} className="text-sm">
                         {entry.name === 'speedRating' 
@@ -150,11 +168,20 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                         }
                       </p>
                     ))}
+                    <p className="text-sm mt-1">
+                      Total Runs: {payload[0].payload.totalRuns}
+                    </p>
                   </div>
                 );
               }}
             />
-            <Legend verticalAlign="top" height={36} />
+            <Legend 
+              verticalAlign="top" 
+              height={36}
+              wrapperStyle={{
+                fontSize: '12px'
+              }}
+            />
             <Bar 
               yAxisId="left" 
               dataKey="avgWinRate" 
