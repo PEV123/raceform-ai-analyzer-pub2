@@ -61,15 +61,15 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
 
   return (
     <div className="mt-4 space-y-2">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto border rounded-lg">
+        <table className="w-full text-sm divide-y divide-gray-200">
           <thead>
-            <tr>
-              <th className="px-2 py-1 text-left font-medium w-24">Bookmaker</th>
+            <tr className="bg-muted/50">
+              <th className="px-2 py-1 text-left font-medium w-24 border-r">Bookmaker</th>
               {typedOdds.map((odd) => (
-                <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium">
-                  <div className="h-24 flex items-end">
-                    <span className="-rotate-90 origin-left translate-y-8 whitespace-nowrap">
+                <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium border-r last:border-r-0">
+                  <div className="h-20 flex items-end">
+                    <span className="-rotate-270 origin-left translate-y-6 whitespace-nowrap text-xs">
                       {odd.bookmaker}
                     </span>
                   </div>
@@ -77,27 +77,27 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white divide-y divide-gray-200">
             <tr>
-              <td className="px-2 py-1 font-medium">Odds</td>
+              <td className="px-2 py-1.5 font-medium border-r">Odds</td>
               {typedOdds.map((odd) => (
-                <td key={`${odd.bookmaker}-decimal`} className="px-2 py-1 font-medium">
+                <td key={`${odd.bookmaker}-decimal`} className="px-2 py-1.5 text-center border-r last:border-r-0">
                   {odd.decimal}
                 </td>
               ))}
             </tr>
             <tr>
-              <td className="px-2 py-1 font-medium">E/W Odds</td>
+              <td className="px-2 py-1.5 font-medium border-r">E/W Odds</td>
               {typedOdds.map((odd) => (
-                <td key={`${odd.bookmaker}-ew`} className="px-2 py-1 text-muted-foreground">
+                <td key={`${odd.bookmaker}-ew`} className="px-2 py-1.5 text-center text-muted-foreground border-r last:border-r-0">
                   1/{odd.ew_denom}
                 </td>
               ))}
             </tr>
             <tr>
-              <td className="px-2 py-1 font-medium">E/W Places</td>
+              <td className="px-2 py-1.5 font-medium border-r">E/W Places</td>
               {typedOdds.map((odd) => (
-                <td key={`${odd.bookmaker}-places`} className="px-2 py-1 text-muted-foreground">
+                <td key={`${odd.bookmaker}-places`} className="px-2 py-1.5 text-center text-muted-foreground border-r last:border-r-0">
                   {odd.ew_places}
                 </td>
               ))}
