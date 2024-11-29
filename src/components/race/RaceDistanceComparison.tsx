@@ -83,12 +83,6 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
     };
   });
 
-  const defaultAxisProps = {
-    scale: "auto" as const,
-    tickMargin: 5,
-    padding: { top: 20, bottom: 20 },
-  };
-
   return (
     <Card className="p-4 space-y-4">
       <h3 className="text-lg font-semibold">Race Distance Comparison</h3>
@@ -103,7 +97,6 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              {...defaultAxisProps}
               dataKey="horse" 
               angle={-45}
               textAnchor="end" 
@@ -111,30 +104,33 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               interval={0}
               scale="band"
               padding={{ left: 20, right: 20 }}
+              tick={{ fill: 'currentColor' }}
             />
             <YAxis 
-              {...defaultAxisProps}
               yAxisId="left" 
               label={{ 
                 value: 'Rate (%)', 
                 angle: -90, 
                 position: 'insideLeft',
-                offset: 0
+                offset: 0,
+                style: { textAnchor: 'middle' }
               }}
+              tick={{ fill: 'currentColor' }}
             />
             <YAxis 
-              {...defaultAxisProps}
               yAxisId="right" 
               orientation="right" 
               label={{ 
                 value: 'Speed Rating', 
                 angle: 90, 
                 position: 'insideRight',
-                offset: 0
+                offset: 0,
+                style: { textAnchor: 'middle' }
               }}
+              tick={{ fill: 'currentColor' }}
             />
             <Tooltip 
-              cursor={false}
+              cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 

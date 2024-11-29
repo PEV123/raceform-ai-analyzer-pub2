@@ -16,12 +16,6 @@ interface HorseDistanceChartProps {
 }
 
 export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceChartProps) => {
-  const defaultAxisProps = {
-    scale: "auto" as const,
-    tickMargin: 5,
-    padding: { top: 20, bottom: 20 },
-  };
-
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart 
@@ -30,31 +24,33 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
-          {...defaultAxisProps}
           dataKey="distance" 
           padding={{ left: 20, right: 20 }}
           scale="band"
+          tick={{ fill: 'currentColor' }}
         />
         <YAxis 
-          {...defaultAxisProps}
           yAxisId="left" 
           label={{ 
             value: 'Rate (%)', 
             angle: -90, 
             position: 'insideLeft',
-            offset: 0
+            offset: 0,
+            style: { textAnchor: 'middle' }
           }}
+          tick={{ fill: 'currentColor' }}
         />
         <YAxis 
-          {...defaultAxisProps}
           yAxisId="right" 
           orientation="right" 
           label={{ 
             value: 'Speed Rating', 
             angle: 90, 
             position: 'insideRight',
-            offset: 0
+            offset: 0,
+            style: { textAnchor: 'middle' }
           }}
+          tick={{ fill: 'currentColor' }}
         />
         {currentRaceDistance && (
           <ReferenceLine
@@ -72,7 +68,7 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
           />
         )}
         <Tooltip 
-          cursor={false}
+          cursor={{ stroke: '#666', strokeWidth: 1 }}
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null;
             
