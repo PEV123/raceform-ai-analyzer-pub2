@@ -61,16 +61,32 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
 
   return (
     <div className="mt-4 space-y-2">
-      <div className="overflow-x-auto border rounded-lg" style={{ maxWidth: '100%' }}>
-        <div className="min-w-max">
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm divide-y divide-gray-200">
             <thead>
               <tr className="bg-muted/50">
-                <th className="px-2 py-1 text-left font-medium w-24 border-r">Bookmaker</th>
+                <th className="sticky left-0 z-10 bg-muted/50 px-2 py-1 text-left font-medium w-24 border-r">
+                  Bookmaker
+                </th>
                 {typedOdds.map((odd) => (
-                  <th key={odd.bookmaker} className="px-2 py-1 text-left font-medium border-r last:border-r-0 relative" style={{ height: '100px' }}>
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom" style={{ width: '20px' }}>
-                      <span className="-rotate-270 block whitespace-nowrap text-xs transform -translate-y-2">
+                  <th 
+                    key={odd.bookmaker} 
+                    className="relative px-2 py-1 text-left font-medium border-r last:border-r-0"
+                    style={{ height: '120px', minWidth: '40px' }}
+                  >
+                    <div 
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 transform origin-bottom"
+                      style={{ width: '20px' }}
+                    >
+                      <span 
+                        className="block whitespace-nowrap text-xs"
+                        style={{ 
+                          transform: 'rotate(-90deg) translateX(-50%)',
+                          transformOrigin: 'left bottom',
+                          width: 'max-content'
+                        }}
+                      >
                         {odd.bookmaker}
                       </span>
                     </div>
@@ -80,7 +96,9 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr>
-                <td className="px-2 py-1.5 font-medium border-r">Odds</td>
+                <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-medium border-r">
+                  Odds
+                </td>
                 {typedOdds.map((odd) => (
                   <td key={`${odd.bookmaker}-decimal`} className="px-2 py-1.5 text-center border-r last:border-r-0">
                     {odd.decimal}
@@ -88,7 +106,9 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
                 ))}
               </tr>
               <tr>
-                <td className="px-2 py-1.5 font-medium border-r">E/W Odds</td>
+                <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-medium border-r">
+                  E/W Odds
+                </td>
                 {typedOdds.map((odd) => (
                   <td key={`${odd.bookmaker}-ew`} className="px-2 py-1.5 text-center text-muted-foreground border-r last:border-r-0">
                     1/{odd.ew_denom}
@@ -96,7 +116,9 @@ export const OddsTable = ({ odds }: OddsTableProps) => {
                 ))}
               </tr>
               <tr>
-                <td className="px-2 py-1.5 font-medium border-r">E/W Places</td>
+                <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-medium border-r">
+                  E/W Places
+                </td>
                 {typedOdds.map((odd) => (
                   <td key={`${odd.bookmaker}-places`} className="px-2 py-1.5 text-center text-muted-foreground border-r last:border-r-0">
                     {odd.ew_places}
