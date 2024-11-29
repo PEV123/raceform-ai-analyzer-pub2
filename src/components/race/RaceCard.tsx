@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from 'date-fns-tz';
 import { DetailedHorseForm } from "./DetailedHorseForm";
+import { Separator } from "@/components/ui/separator";
 
 interface RaceCardProps {
   race: any;
@@ -51,26 +52,49 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
   return (
     <Card className="p-6 mb-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-xl font-bold mb-2">{race.race_name}</h3>
-          <p className="text-sm text-muted-foreground">
-            {race.distance} - {race.going}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-lg font-semibold">{raceTime}</p>
-        </div>
-      </div>
-
       <div className="space-y-4">
-        {race.runners?.map((runner: any) => (
-          <DetailedHorseForm
-            key={runner.horse_id}
-            runner={runner}
-            historicalResults={getHorseResults(runner.horse_id)}
-          />
-        ))}
+        <div>
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="text-xl font-bold">{race.race_name}</h3>
+              <p className="text-lg">{race.course}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-semibold">{raceTime}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4">
+            <div>
+              <p><span className="font-medium">Class:</span> {race.race_class}</p>
+              <p><span className="font-medium">Age:</span> {race.age_band}</p>
+            </div>
+            <div>
+              <p><span className="font-medium">Rating Band:</span> {race.rating_band}</p>
+              <p><span className="font-medium">Prizemoney:</span> {race.prize}</p>
+            </div>
+            <div>
+              <p><span className="font-medium">Going:</span> {race.going}</p>
+              <p><span className="font-medium">Surface:</span> {race.surface}</p>
+            </div>
+            <div>
+              <p><span className="font-medium">Type:</span> {race.type}</p>
+              <p><span className="font-medium">Distance:</span> {race.distance}</p>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="space-y-4">
+          {race.runners?.map((runner: any) => (
+            <DetailedHorseForm
+              key={runner.horse_id}
+              runner={runner}
+              historicalResults={getHorseResults(runner.horse_id)}
+            />
+          ))}
+        </div>
       </div>
     </Card>
   );
