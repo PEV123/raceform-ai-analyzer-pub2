@@ -35,6 +35,11 @@ export const useImportHorseDistanceAnalysisMutation = () => {
             throw apiError;
           }
 
+          if (!apiData || !apiData.id) {
+            console.log(`No data found for horse ${runner.horse_id}`);
+            continue;
+          }
+
           console.log(`Successfully fetched analysis for horse ${runner.horse_id}:`, apiData);
 
           // Store the analysis in the database
@@ -43,58 +48,71 @@ export const useImportHorseDistanceAnalysisMutation = () => {
             .upsert({
               horse_id: apiData.id,
               horse: apiData.horse,
-              sire: apiData.sire,
-              sire_id: apiData.sire_id,
-              dam: apiData.dam,
-              dam_id: apiData.dam_id,
-              damsire: apiData.damsire,
-              damsire_id: apiData.damsire_id,
-              total_runs: apiData.total_runs
+              sire: apiData.sire || null,
+              sire_id: apiData.sire_id || null,
+              dam: apiData.dam || null,
+              dam_id: apiData.dam_id || null,
+              damsire: apiData.damsire || null,
+              damsire_id: apiData.damsire_id || null,
+              total_runs: apiData.total_runs || 0
             })
             .select()
             .single();
 
-          if (analysisError) throw analysisError;
+          if (analysisError) {
+            console.error(`Error storing analysis for horse ${runner.horse_id}:`, analysisError);
+            throw analysisError;
+          }
 
           // Store distance details and times
-          for (const distance of apiData.distances) {
-            const { data: distanceDetail, error: distanceError } = await supabase
-              .from('horse_distance_details')
-              .upsert({
-                analysis_id: analysis.id,
-                dist: distance.dist,
-                dist_y: distance.dist_y,
-                dist_m: distance.dist_m,
-                dist_f: distance.dist_f,
-                runs: distance.runs,
-                wins: distance['1st'],
-                second_places: distance['2nd'],
-                third_places: distance['3rd'],
-                fourth_places: distance['4th'],
-                ae_index: distance['a/e'],
-                win_percentage: distance['win_%'],
-                place_index: distance['1_pl']
-              })
-              .select()
-              .single();
-
-            if (distanceError) throw distanceError;
-
-            // Store times for this distance
-            for (const time of distance.times) {
-              const { error: timeError } = await supabase
-                .from('horse_distance_times')
+          if (apiData.distances && Array.isArray(apiData.distances)) {
+            for (const distance of apiData.distances) {
+              const { data: distanceDetail, error: distanceError } = await supabase
+                .from('horse_distance_details')
                 .upsert({
-                  distance_detail_id: distanceDetail.id,
-                  date: time.date,
-                  region: time.region,
-                  course: time.course,
-                  time: time.time,
-                  going: time.going,
-                  position: time.position
-                });
+                  analysis_id: analysis.id,
+                  dist: distance.dist,
+                  dist_y: distance.dist_y || null,
+                  dist_m: distance.dist_m || null,
+                  dist_f: distance.dist_f || null,
+                  runs: distance.runs || 0,
+                  wins: distance['1st'] || 0,
+                  second_places: distance['2nd'] || 0,
+                  third_places: distance['3rd'] || 0,
+                  fourth_places: distance['4th'] || 0,
+                  ae_index: distance['a/e'] || null,
+                  win_percentage: distance['win_%'] || null,
+                  place_index: distance['1_pl'] || null
+                })
+                .select()
+                .single();
 
-              if (timeError) throw timeError;
+              if (distanceError) {
+                console.error(`Error storing distance details for horse ${runner.horse_id}:`, distanceError);
+                throw distanceError;
+              }
+
+              // Store times for this distance
+              if (distance.times && Array.isArray(distance.times)) {
+                for (const time of distance.times) {
+                  const { error: timeError } = await supabase
+                    .from('horse_distance_times')
+                    .upsert({
+                      distance_detail_id: distanceDetail.id,
+                      date: time.date,
+                      region: time.region || null,
+                      course: time.course || null,
+                      time: time.time || null,
+                      going: time.going || null,
+                      position: time.position || null
+                    });
+
+                  if (timeError) {
+                    console.error(`Error storing time for horse ${runner.horse_id}:`, timeError);
+                    throw timeError;
+                  }
+                }
+              }
             }
           }
 
