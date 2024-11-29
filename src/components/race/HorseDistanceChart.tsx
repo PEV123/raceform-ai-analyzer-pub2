@@ -20,14 +20,21 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="distance" />
+        <XAxis 
+          dataKey="distance" 
+          padding={{ left: 0, right: 0 }}
+          scale="band"
+          tickMargin={5}
+        />
         <YAxis 
           yAxisId="left" 
           label={{ 
             value: 'Rate (%)', 
             angle: -90, 
             position: 'insideLeft' 
-          }} 
+          }}
+          padding={{ top: 20, bottom: 20 }}
+          tickCount={5}
         />
         <YAxis 
           yAxisId="right" 
@@ -36,14 +43,21 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
             value: 'Speed Rating', 
             angle: 90, 
             position: 'insideRight' 
-          }} 
+          }}
+          padding={{ top: 20, bottom: 20 }}
+          tickCount={5}
         />
         {currentRaceDistance && (
           <ReferenceLine
             x={currentRaceDistance}
             stroke="#888"
             strokeDasharray="3 3"
-            label={{ value: "Today's Race", position: 'top' }}
+            label={{ 
+              value: "Today's Race", 
+              position: 'top',
+              fill: '#888',
+              fontSize: 12
+            }}
             yAxisId="left"
           />
         )}
@@ -54,14 +68,17 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
             }
             return [`${Number(value).toFixed(1)}%`, name];
           }}
+          cursor={{ strokeDasharray: '3 3' }}
         />
-        <Legend />
+        <Legend verticalAlign="top" height={36} />
         <Line
           yAxisId="left"
           type="monotone"
           dataKey="winRate"
           name="Win Rate %"
           stroke="#8884d8"
+          dot={{ r: 4 }}
+          activeDot={{ r: 6 }}
         />
         <Line
           yAxisId="left"
@@ -69,6 +86,8 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
           dataKey="placeRate"
           name="Place Rate %"
           stroke="#82ca9d"
+          dot={{ r: 4 }}
+          activeDot={{ r: 6 }}
         />
         <Line
           yAxisId="right"
@@ -76,6 +95,8 @@ export const HorseDistanceChart = ({ data, currentRaceDistance }: HorseDistanceC
           dataKey="speedRating"
           name="Speed Rating"
           stroke="#ffc658"
+          dot={{ r: 4 }}
+          activeDot={{ r: 6 }}
         />
       </LineChart>
     </ResponsiveContainer>

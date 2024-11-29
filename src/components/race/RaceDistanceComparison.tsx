@@ -102,6 +102,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               textAnchor="end" 
               height={100}
               interval={0}
+              padding={{ left: 0, right: 0 }}
+              scale="band"
+              tickMargin={5}
             />
             <YAxis 
               yAxisId="left" 
@@ -109,7 +112,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 value: 'Rate (%)', 
                 angle: -90, 
                 position: 'insideLeft' 
-              }} 
+              }}
+              padding={{ top: 20, bottom: 20 }}
+              tickCount={5}
             />
             <YAxis 
               yAxisId="right" 
@@ -118,7 +123,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 value: 'Speed Rating', 
                 angle: 90, 
                 position: 'insideRight' 
-              }} 
+              }}
+              padding={{ top: 20, bottom: 20 }}
+              tickCount={5}
             />
             <Tooltip 
               formatter={(value: any, name: string, props: any) => {
@@ -127,25 +134,29 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
                 }
                 return [`${value.toFixed(1)}%`, name];
               }}
+              cursor={{ fillOpacity: 0.3 }}
             />
-            <Legend />
+            <Legend verticalAlign="top" height={36} />
             <Bar 
               yAxisId="left" 
               dataKey="avgWinRate" 
               name="Win Rate %" 
               fill="#8884d8" 
+              radius={[4, 4, 0, 0]}
             />
             <Bar 
               yAxisId="left" 
               dataKey="avgPlaceRate" 
               name="Place Rate %" 
               fill="#82ca9d" 
+              radius={[4, 4, 0, 0]}
             />
             <Bar 
               yAxisId="right" 
               dataKey="speedRating" 
               name="Speed Rating" 
               fill="#ffc658" 
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
