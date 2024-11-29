@@ -27,6 +27,24 @@ interface HorseDistanceAnalysisProps {
   };
 }
 
+const convertTimeToSeconds = (timeStr: string): number => {
+  if (!timeStr || timeStr === '-') return 0;
+  const [mins, secs] = timeStr.split(':').map(Number);
+  return mins * 60 + secs;
+};
+
+const convertDistanceToFurlongs = (dist: string): number => {
+  const miles = dist.match(/(\d+)m/)?.[1] ? Number(dist.match(/(\d+)m/)[1]) : 0;
+  const furlongs = dist.match(/(\d+)f/)?.[1] ? Number(dist.match(/(\d+)f/)[1]) : 0;
+  const halfFurlong = dist.includes('½') ? 0.5 : 0;
+  return (miles * 8) + furlongs + halfFurlong;
+};
+
+const formatSecondsPerFurlong = (seconds: number): string => {
+  if (!seconds || seconds === 0) return '-';
+  return seconds.toFixed(2);
+};
+
 export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) => {
   if (!analysis) {
     return <div className="text-sm text-muted-foreground">No distance analysis data available</div>;
@@ -37,19 +55,35 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
     // Calculate place rate (1st, 2nd, 3rd positions)
     const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
     
-    const avgTime = detail.horse_distance_times?.reduce((acc, time) => {
+    // Calculate seconds per furlong
+    let secondsPerFurlong = 0;
+    let validTimeCount = 0;
+
+    detail.horse_distance_times?.forEach(time => {
       if (time.time && time.time !== '-') {
-        const [mins, secs] = time.time.split(':').map(Number);
-        return acc + (mins * 60 + secs);
+        const seconds = convertTimeToSeconds(time.time);
+        const furlongs = convertDistanceToFurlongs(detail.dist);
+        if (seconds > 0 && furlongs > 0) {
+          secondsPerFurlong += seconds / furlongs;
+          validTimeCount++;
+        }
       }
-      return acc;
-    }, 0) / (detail.horse_distance_times?.filter(t => t.time && t.time !== '-').length || 1);
+    });
+
+    const avgSecondsPerFurlong = validTimeCount > 0 ? 
+      secondsPerFurlong / validTimeCount : 0;
+
+    // Invert the time metric so faster times show as higher bars
+    const maxPossibleTime = 20; // Assuming no horse takes more than 20 seconds per furlong
+    const speedRating = avgSecondsPerFurlong > 0 ? 
+      (maxPossibleTime - avgSecondsPerFurlong) * 5 : 0;
 
     return {
       distance: detail.dist,
       winRate: Number(detail.win_percentage || 0) * 100,
       placeRate: placeRate,
-      averageTime: avgTime,
+      speedRating: speedRating,
+      actualPace: avgSecondsPerFurlong,
       runs: detail.runs
     };
   });
@@ -65,18 +99,27 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
             <TableHead>Runs</TableHead>
             <TableHead>Win Rate</TableHead>
             <TableHead>Place Rate</TableHead>
-            <TableHead>Avg Time</TableHead>
+            <TableHead>Pace (s/f)</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {analysis.horse_distance_details?.map((detail) => {
-            const avgTime = detail.horse_distance_times?.reduce((acc, time) => {
+            let secondsPerFurlong = 0;
+            let validTimeCount = 0;
+
+            detail.horse_distance_times?.forEach(time => {
               if (time.time && time.time !== '-') {
-                const [mins, secs] = time.time.split(':').map(Number);
-                return acc + (mins * 60 + secs);
+                const seconds = convertTimeToSeconds(time.time);
+                const furlongs = convertDistanceToFurlongs(detail.dist);
+                if (seconds > 0 && furlongs > 0) {
+                  secondsPerFurlong += seconds / furlongs;
+                  validTimeCount++;
+                }
               }
-              return acc;
-            }, 0) / (detail.horse_distance_times?.filter(t => t.time && t.time !== '-').length || 1);
+            });
+
+            const avgSecondsPerFurlong = validTimeCount > 0 ? 
+              secondsPerFurlong / validTimeCount : 0;
 
             const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
 
@@ -86,9 +129,7 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
                 <TableCell>{detail.runs}</TableCell>
                 <TableCell>{detail.win_percentage ? `${(Number(detail.win_percentage) * 100).toFixed(1)}%` : '0%'}</TableCell>
                 <TableCell>{`${placeRate.toFixed(1)}%`}</TableCell>
-                <TableCell>
-                  {avgTime ? `${Math.floor(avgTime / 60)}:${(avgTime % 60).toFixed(2).padStart(5, '0')}` : '-'}
-                </TableCell>
+                <TableCell>{formatSecondsPerFurlong(avgSecondsPerFurlong)}</TableCell>
               </TableRow>
             );
           })}
@@ -101,8 +142,15 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="distance" />
             <YAxis yAxisId="left" label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft' }} />
-            <YAxis yAxisId="right" orientation="right" label={{ value: 'Avg Time (s)', angle: 90, position: 'insideRight' }} />
-            <Tooltip />
+            <YAxis yAxisId="right" orientation="right" label={{ value: 'Speed Rating', angle: 90, position: 'insideRight' }} />
+            <Tooltip 
+              formatter={(value: any, name: string, props: any) => {
+                if (name === 'Speed Rating') {
+                  return [`${props.payload.actualPace.toFixed(2)}s per furlong`, 'Pace'];
+                }
+                return [`${Number(value).toFixed(1)}%`, name];
+              }}
+            />
             <Legend />
             <Line
               yAxisId="left"
@@ -121,8 +169,8 @@ export const HorseDistanceAnalysis = ({ analysis }: HorseDistanceAnalysisProps) 
             <Line
               yAxisId="right"
               type="monotone"
-              dataKey="averageTime"
-              name="Avg Time (s)"
+              dataKey="speedRating"
+              name="Speed Rating"
               stroke="#ffc658"
             />
           </LineChart>
