@@ -96,7 +96,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
         <ResponsiveContainer width="100%" height="100%">
           <BarChart 
             data={comparisonData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            barGap={2}
+            barSize={20}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
@@ -105,16 +107,17 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               textAnchor="end" 
               height={100}
               interval={0}
-              padding={{ left: 0, right: 0 }}
               scale="band"
               tickMargin={5}
+              padding={{ left: 20, right: 20 }}
             />
             <YAxis 
               yAxisId="left" 
               label={{ 
                 value: 'Rate (%)', 
                 angle: -90, 
-                position: 'insideLeft' 
+                position: 'insideLeft',
+                offset: 0
               }}
               padding={{ top: 20, bottom: 20 }}
               tickCount={5}
@@ -125,19 +128,25 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               label={{ 
                 value: 'Speed Rating', 
                 angle: 90, 
-                position: 'insideRight' 
+                position: 'insideRight',
+                offset: 0
               }}
               padding={{ top: 20, bottom: 20 }}
               tickCount={5}
             />
             <Tooltip 
-              cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+              cursor={{ 
+                fill: 'rgba(0, 0, 0, 0.1)',
+                radius: 2
+              }}
               formatter={(value: any, name: string, props: any) => {
                 if (name === 'Speed Rating') {
                   return [`${props.payload.actualPace}s per furlong`, 'Avg Pace'];
                 }
                 return [`${value.toFixed(1)}%`, name];
               }}
+              wrapperStyle={{ zIndex: 100 }}
+              offset={10}
             />
             <Legend verticalAlign="top" height={36} />
             <Bar 
