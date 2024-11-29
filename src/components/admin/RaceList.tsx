@@ -1,17 +1,14 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
-import { FileJson, History, ExternalLink, Eye, BarChart2, CheckCircle } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
 import { useImportHorseDistanceAnalysisMutation } from "./mutations/useImportHorseDistanceAnalysisMutation";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { RaceActionButtons } from "./RaceActionButtons";
+import { useRaceData } from "./useRaceData";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -26,58 +23,10 @@ export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   const importHorseResults = useImportHorseResultsMutation();
   const importDistanceAnalysis = useImportHorseDistanceAnalysisMutation();
-
-  // Query to check for existing horse results
-  const { data: existingResults } = useQuery({
-    queryKey: ["existingHorseResults"],
-    queryFn: async () => {
-      const horseIds = races.flatMap(race => race.runners?.map(runner => runner.horse_id) || []);
-      if (horseIds.length === 0) return [];
-      
-      const { data, error } = await supabase
-        .from('horse_results')
-        .select('horse_id')
-        .in('horse_id', horseIds);
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Query to check for existing distance analysis
-  const { data: existingAnalysis } = useQuery({
-    queryKey: ["existingDistanceAnalysis"],
-    queryFn: async () => {
-      const horseIds = races.flatMap(race => race.runners?.map(runner => runner.horse_id) || []);
-      if (horseIds.length === 0) return [];
-      
-      const { data, error } = await supabase
-        .from('horse_distance_analysis')
-        .select('horse_id')
-        .in('horse_id', horseIds);
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const hasImportedResults = (race: Race) => {
-    if (!race.runners || !existingResults) return false;
-    return race.runners.every(runner => 
-      existingResults.some(result => result.horse_id === runner.horse_id)
-    );
-  };
-
-  const hasImportedAnalysis = (race: Race) => {
-    if (!race.runners || !existingAnalysis) return false;
-    return race.runners.every(runner => 
-      existingAnalysis.some(analysis => analysis.horse_id === runner.horse_id)
-    );
-  };
+  const { hasImportedResults, hasImportedAnalysis } = useRaceData(races);
 
   const handleImportHorseResults = async (race: Race) => {
     if (!race.runners?.length) {
@@ -107,14 +56,6 @@ export const RaceList = ({ races }: RaceListProps) => {
 
   const formatTime = (date: string) => {
     return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm');
-  };
-
-  const handleViewRace = (race: Race) => {
-    navigate(`/analysis/${race.id}`);
-  };
-
-  const handleViewRaceCard = (race: Race) => {
-    navigate(`/race?raceId=${race.id}`);
   };
 
   // Create a Map to store unique races by their course and off_time combination
@@ -171,66 +112,17 @@ export const RaceList = ({ races }: RaceListProps) => {
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedRace(race)}
-                  >
-                    Upload Docs
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setRawDataRace(race)}
-                    title="View Raw Data"
-                  >
-                    <FileJson className="h-4 w-4" />
-                  </Button>
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleImportHorseResults(race)}
-                      disabled={importHorseResults.isPending}
-                      title="Import Horse Results"
-                    >
-                      <History className="h-4 w-4" />
-                    </Button>
-                    {hasImportedResults(race) && (
-                      <CheckCircle className="h-3 w-3 text-green-500 absolute -top-1 -right-1" />
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleImportDistanceAnalysis(race)}
-                      disabled={importDistanceAnalysis.isPending}
-                      title="Import Distance Analysis"
-                    >
-                      <BarChart2 className="h-4 w-4" />
-                    </Button>
-                    {hasImportedAnalysis(race) && (
-                      <CheckCircle className="h-3 w-3 text-green-500 absolute -top-1 -right-1" />
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleViewRace(race)}
-                    title="View Race Analysis"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleViewRaceCard(race)}
-                    title="View Race Card"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </div>
+                <RaceActionButtons
+                  race={race}
+                  onUploadDocs={() => setSelectedRace(race)}
+                  onViewRawData={() => setRawDataRace(race)}
+                  onImportHorseResults={() => handleImportHorseResults(race)}
+                  onImportDistanceAnalysis={() => handleImportDistanceAnalysis(race)}
+                  hasImportedResults={hasImportedResults(race)}
+                  hasImportedAnalysis={hasImportedAnalysis(race)}
+                  isImportingResults={importHorseResults.isPending}
+                  isImportingAnalysis={importDistanceAnalysis.isPending}
+                />
               </TableCell>
             </TableRow>
           ))}
