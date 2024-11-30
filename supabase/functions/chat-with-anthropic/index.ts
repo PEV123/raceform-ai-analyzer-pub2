@@ -26,29 +26,8 @@ serve(async (req) => {
     const settings = await fetchSettings();
     console.log('Fetched race data with runners:', race.runners?.length);
 
-    // Redirect to OpenAI function if selected
-    if (settings.selected_provider === 'openai') {
-      console.log('Redirecting to OpenAI function');
-      const response = await fetch(
-        `${Deno.env.get('SUPABASE_URL')}/functions/v1/chat-with-openai`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message, raceId, conversationHistory }),
-        }
-      );
-
-      const data = await response.json();
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const messageContent = [];
+    const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
     
     // Check if the message contains an image URL from a new upload
     if (message.includes('storage/v1/object/public/race_documents/chat-images/')) {
@@ -76,22 +55,34 @@ serve(async (req) => {
         });
       }
     } else {
-      console.log('Adding race document images to message');
-      const validDocumentImages = await processRaceDocuments(
-        race,
-        Deno.env.get('SUPABASE_URL') || ''
-      );
-      messageContent.push(...validDocumentImages);
+      // Only include race documents in first message to save on tokens
+      if (isFirstMessage) {
+        console.log('Processing race documents for first message');
+        const validDocumentImages = await processRaceDocuments(
+          race,
+          Deno.env.get('SUPABASE_URL') || ''
+        );
+        messageContent.push(...validDocumentImages);
+      }
       
-      // For the first message, include the race context
-      if (!conversationHistory || conversationHistory.length === 0) {
+      if (isFirstMessage) {
+        // For first message, include comprehensive race context
         const raceContext = formatRaceContext(race);
-        console.log('Including race context in first message');
+        console.log('Including comprehensive race context in first message');
         messageContent.push({
           type: "text",
-          text: `Race Context:\n${raceContext}\n\nUser Question: ${message}`
+          text: `[CONTEXT START]
+Race Analysis Context:
+${raceContext}
+
+Raw Race Data:
+${JSON.stringify(race, null, 2)}
+[CONTEXT END]
+
+User Question: ${message}`
         });
       } else {
+        // For subsequent messages, just include the user's message
         messageContent.push({
           type: "text",
           text: message
@@ -105,17 +96,17 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
     });
     
-    // Prepare system message
-    const systemMessage = `
-      ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
-      ${settings?.knowledge_base || ''}
-      
-      Raw Race Data for Reference:
-      ${JSON.stringify(race, null, 2)}
-    `;
+    // Minimal system prompt - context is in first message
+    const systemMessage = isFirstMessage ? 
+      `You are a horse racing expert analyst. Use the provided race context to answer questions accurately and concisely. Format your responses clearly.` : 
+      undefined;
 
-    console.log('Making request to Anthropic API with model:', settings.anthropic_model);
-    console.log('Is first message:', !conversationHistory || conversationHistory.length === 0);
+    console.log('Making request to Anthropic API:', {
+      model: settings.anthropic_model,
+      isFirstMessage,
+      hasSystemMessage: !!systemMessage,
+      messageContentLength: messageContent.length
+    });
     
     // Convert conversation history to Anthropic format
     const messages = conversationHistory ? [
