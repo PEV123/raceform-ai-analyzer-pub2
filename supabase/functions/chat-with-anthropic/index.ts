@@ -36,19 +36,26 @@ serve(async (req) => {
 
     // Prepare the messages array
     const messages = [];
+    let processedImageCount = 0;
+    let failedImageCount = 0;
 
     // Process any race documents and add them as image messages
     if (race.race_documents?.length) {
-      console.log('Processing race documents for vision analysis');
+      console.log(`Processing ${race.race_documents.length} race documents for vision analysis`);
       const imageDocuments = race.race_documents
         .filter(doc => doc.content_type?.startsWith('image/'));
+      
+      console.log(`Found ${imageDocuments.length} image documents to process`);
 
       for (const doc of imageDocuments) {
         try {
           const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
+          console.log('Processing image:', doc.file_name);
+          
           const response = await fetch(imageUrl);
           if (!response.ok) {
-            console.error('Failed to fetch image:', response.statusText);
+            console.error(`Failed to fetch image ${doc.file_name}:`, response.statusText);
+            failedImageCount++;
             continue;
           }
 
@@ -72,10 +79,19 @@ serve(async (req) => {
               }
             ]
           });
+          processedImageCount++;
+          console.log(`Successfully processed image ${doc.file_name}`);
         } catch (error) {
-          console.error('Error processing document image:', error);
+          console.error(`Error processing document image ${doc.file_name}:`, error);
+          failedImageCount++;
         }
       }
+      
+      console.log(`Image processing summary:`, {
+        total: imageDocuments.length,
+        processed: processedImageCount,
+        failed: failedImageCount
+      });
     }
 
     // Add previous conversation history
@@ -88,7 +104,7 @@ serve(async (req) => {
 
     // Process current message
     if (message.startsWith('data:image')) {
-      // Handle base64 image upload
+      console.log('Processing new uploaded image');
       const imageData = processBase64Image(message);
       if (imageData) {
         messages.push({
@@ -101,6 +117,7 @@ serve(async (req) => {
             }
           ]
         });
+        processedImageCount++;
       }
     } else {
       // Regular text message
@@ -113,7 +130,9 @@ serve(async (req) => {
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
       systemPromptLength: raceContext.length,
-      historyLength: conversationHistory?.length || 0
+      historyLength: conversationHistory?.length || 0,
+      totalImagesProcessed: processedImageCount,
+      failedImages: failedImageCount
     });
 
     // Make the API call to Claude
@@ -126,7 +145,8 @@ serve(async (req) => {
 
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
-      estimatedTokens: Math.ceil(response.content[0].text.length / 4)
+      estimatedTokens: Math.ceil(response.content[0].text.length / 4),
+      imagesIncluded: processedImageCount
     });
 
     return new Response(
@@ -139,7 +159,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: true,
-        message: error.message || 'An unexpected error occurred'
+        message: error.message || 'An unexpected error occurred',
+        details: {
+          processedImages: processedImageCount,
+          failedImages: failedImageCount
+        }
       }),
       {
         status: 500,
