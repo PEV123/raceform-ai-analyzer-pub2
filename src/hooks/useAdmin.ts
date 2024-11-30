@@ -1,5 +1,6 @@
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from '@/components/ui/use-toast';
 
 export const useAdmin = () => {
   const session = useSession();
@@ -8,23 +9,31 @@ export const useAdmin = () => {
   const { data: isAdmin, isLoading } = useQuery({
     queryKey: ['admin-status', session?.user?.id],
     queryFn: async () => {
-      if (!session?.user?.id) return false;
+      if (!session?.user?.id) {
+        console.log('No session or user ID available');
+        return false;
+      }
       
-      console.log('Checking admin status for user:', session.user.id);
+      console.log('Checking admin status for user ID:', session.user.id);
       
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', session.user.id)
-        .maybeSingle(); // Use maybeSingle() instead of single()
+        .single();
       
       if (error) {
         console.error('Error fetching admin status:', error);
+        toast({
+          title: "Error",
+          description: "Could not verify admin status. Please try logging out and back in.",
+          variant: "destructive"
+        });
         return false;
       }
       
       console.log('Admin status response:', data);
-      return data?.is_admin || false;
+      return !!data?.is_admin;
     },
     enabled: !!session?.user?.id,
   });

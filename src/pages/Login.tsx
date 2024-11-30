@@ -27,7 +27,8 @@ const Login = () => {
       }
       
       if (session) {
-        navigate('/admin');
+        console.log('User is logged in, checking admin status...');
+        // We'll let the useAdmin hook handle the admin check and redirection
       }
     };
 
@@ -35,39 +36,15 @@ const Login = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
+      console.log('Auth state changed:', event, session?.user?.email);
+      
       if (event === 'SIGNED_IN' && session) {
-        // Check if user is admin after sign in
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          toast({
-            title: "Error",
-            description: "Could not verify admin status.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        if (!data?.is_admin) {
-          toast({
-            title: "Access Denied",
-            description: "You do not have admin privileges.",
-            variant: "destructive"
-          });
-          return;
-        }
-
         toast({
           title: "Success!",
-          description: "You have been successfully logged in.",
+          description: "You have been successfully logged in. Checking admin status...",
         });
-        navigate('/admin');
+        
+        // The useAdmin hook will handle the admin check
       }
       
       if (event === 'SIGNED_OUT') {
@@ -75,6 +52,7 @@ const Login = () => {
           title: "Signed out",
           description: "You have been successfully logged out.",
         });
+        navigate('/login');
       }
     });
 
@@ -82,6 +60,14 @@ const Login = () => {
       subscription.unsubscribe();
     };
   }, [navigate, toast]);
+
+  // Redirect to admin page if user is admin
+  useEffect(() => {
+    if (isAdmin) {
+      console.log('User is admin, redirecting to admin page');
+      navigate('/admin');
+    }
+  }, [isAdmin, navigate]);
 
   return (
     <div className="max-w-md mx-auto mt-8">
