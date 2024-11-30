@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 interface NavItemProps {
   href: string;
@@ -32,23 +33,49 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session);
       setIsAuthenticated(!!session);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed in MainLayout:', event);
       setIsAuthenticated(!!session);
+      
+      if (event === 'SIGNED_OUT') {
+        toast({
+          title: "Signed out",
+          description: "You have been successfully logged out.",
+        });
+        navigate('/login');
+      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, toast]);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      console.log('Sign out successful');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,10 +96,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                   )}
                   <Button
                     variant="outline"
-                    onClick={async () => {
-                      await supabase.auth.signOut();
-                      navigate('/login');
-                    }}
+                    onClick={handleSignOut}
                   >
                     Sign Out
                   </Button>

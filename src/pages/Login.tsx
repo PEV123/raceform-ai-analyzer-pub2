@@ -27,8 +27,8 @@ const Login = () => {
       }
       
       if (session) {
-        console.log('User is logged in, checking admin status...');
-        // We'll let the useAdmin hook handle the admin check and redirection
+        console.log('User is already logged in:', session.user.email);
+        // Let the useAdmin hook handle admin check and redirection
       }
     };
 
@@ -39,15 +39,17 @@ const Login = () => {
       console.log('Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
+        console.log('Sign in successful, redirecting...');
         toast({
           title: "Success!",
-          description: "You have been successfully logged in. Checking admin status...",
+          description: "You have been successfully logged in.",
         });
         
-        // The useAdmin hook will handle the admin check
+        // The useAdmin hook will handle the admin check and redirect
       }
       
       if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
         toast({
           title: "Signed out",
           description: "You have been successfully logged out.",
@@ -69,7 +71,7 @@ const Login = () => {
         console.log('User is admin, redirecting to admin page');
         navigate('/admin');
       } else if (!isLoading) {
-        console.log('User is not an admin, redirecting...');
+        console.log('User is not an admin, redirecting to home');
         navigate('/');
       }
     }
@@ -90,7 +92,6 @@ const Login = () => {
           }}
           theme="light"
           providers={[]}
-          magicLink={false}
           redirectTo={`${window.location.origin}/admin`}
         />
       </Card>
