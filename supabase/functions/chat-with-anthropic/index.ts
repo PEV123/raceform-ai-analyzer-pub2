@@ -31,22 +31,16 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
 
+    // Format the race context
+    const raceContext = formatRaceContext(race);
+    console.log('Generated race context length:', raceContext.length);
+
     // Prepare the messages array for the conversation
     const messages = [];
 
-    // Always include the system message first
-    messages.push({
-      role: "system",
-      content: settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."
-    });
-
-    // Add the race context as the first assistant message
-    const raceContext = formatRaceContext(race);
-    messages.push({
-      role: "system",
-      content: `Here is the race context you should use for your analysis:\n\n${raceContext}`
-    });
-
+    // Add the system context as a system message
+    const systemPrompt = `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`;
+    
     // Add previous conversation history if it exists
     if (conversationHistory?.length > 0) {
       messages.push(...conversationHistory.map(msg => ({
@@ -61,10 +55,9 @@ serve(async (req) => {
       content: message
     });
 
-    console.log('Prepared messages for Claude:', {
+    console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      systemPromptLength: messages[0].content.length,
-      contextLength: raceContext.length,
+      systemPromptLength: systemPrompt.length,
       historyLength: conversationHistory?.length || 0
     });
 
@@ -72,6 +65,7 @@ serve(async (req) => {
     const response = await anthropic.messages.create({
       model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
       max_tokens: 1024,
+      system: systemPrompt,
       messages: messages
     });
 
