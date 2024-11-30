@@ -37,8 +37,20 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Current session:', session);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('Checking auth in MainLayout:', session);
+      
+      if (error) {
+        console.error('Auth check error:', error);
+        return;
+      }
+
+      if (!session && location.pathname !== '/login') {
+        console.log('No session found, redirecting to login');
+        navigate('/login');
+        return;
+      }
+
       setIsAuthenticated(!!session);
     };
 
@@ -48,7 +60,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed in MainLayout:', event);
       setIsAuthenticated(!!session);
       
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        console.log('User signed out or deleted');
         toast({
           title: "Signed out",
           description: "You have been successfully logged out.",
@@ -60,7 +73,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate, location.pathname, toast]);
 
   const handleSignOut = async () => {
     try {

@@ -13,48 +13,33 @@ const Login = () => {
   const { isAdmin, isLoading } = useAdmin();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
+    const checkSession = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('Checking current session:', session);
+      
       if (error) {
-        console.error('Error checking auth session:', error);
-        toast({
-          title: "Authentication Error",
-          description: "There was an error checking your login status. Please try again.",
-          variant: "destructive"
-        });
+        console.error('Session check error:', error);
         return;
       }
       
-      if (session) {
-        console.log('User is already logged in:', session.user.email);
-        // Let the useAdmin hook handle admin check and redirection
+      if (session?.user) {
+        console.log('User already logged in:', session.user.email);
+        navigate('/');
       }
     };
 
-    checkUser();
+    checkSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('Sign in successful, redirecting...');
+        console.log('Sign in successful');
         toast({
           title: "Success!",
           description: "You have been successfully logged in.",
         });
-        
-        // The useAdmin hook will handle the admin check and redirect
-      }
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        toast({
-          title: "Signed out",
-          description: "You have been successfully logged out.",
-        });
-        navigate('/login');
+        navigate('/');
       }
     });
 
@@ -63,24 +48,10 @@ const Login = () => {
     };
   }, [navigate, toast]);
 
-  // Redirect to admin page if user is admin
-  useEffect(() => {
-    if (!isLoading) {
-      console.log('Admin check completed. Is admin?', isAdmin);
-      if (isAdmin) {
-        console.log('User is admin, redirecting to admin page');
-        navigate('/admin');
-      } else if (!isLoading) {
-        console.log('User is not an admin, redirecting to home');
-        navigate('/');
-      }
-    }
-  }, [isAdmin, isLoading, navigate]);
-
   return (
     <div className="max-w-md mx-auto mt-8">
       <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Admin Login</h1>
+        <h1 className="text-2xl font-bold mb-6">Sign In</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{ 
@@ -88,11 +59,12 @@ const Login = () => {
             style: {
               button: { background: 'rgb(var(--primary))', color: 'white' },
               anchor: { color: 'rgb(var(--primary))' },
+              container: { width: '100%' },
             }
           }}
           theme="light"
           providers={[]}
-          redirectTo={`${window.location.origin}/admin`}
+          redirectTo={window.location.origin}
         />
       </Card>
     </div>
