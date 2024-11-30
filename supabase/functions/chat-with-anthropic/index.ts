@@ -94,21 +94,22 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
     });
     
-    const raceContext = formatRaceContext(race);
-    console.log('Generated race context length:', raceContext.length);
+    // Only generate and send race context for the first message
+    const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
     
-    const systemMessage = `
+    const systemMessage = isFirstMessage ? `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
       ${settings?.knowledge_base || ''}
       
       Race Analysis Context:
-      ${raceContext}
+      ${formatRaceContext(race)}
 
       Raw Race Data for Reference:
       ${JSON.stringify(race, null, 2)}
-    `;
+    ` : undefined;
 
     console.log('Making request to Anthropic API with model:', settings.anthropic_model);
+    console.log('Is first message:', isFirstMessage);
     
     // Convert conversation history to Anthropic format
     const messages = conversationHistory ? [
@@ -131,7 +132,10 @@ serve(async (req) => {
       model: settings.anthropic_model,
       max_tokens: 1024,
       system: systemMessage,
-      messages
+      messages,
+      metadata: {
+        use_model_context_protocol: true  // Enable MCP
+      }
     });
 
     console.log('Received response from Anthropic');
