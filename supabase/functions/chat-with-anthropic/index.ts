@@ -132,10 +132,7 @@ serve(async (req) => {
       model: settings.anthropic_model,
       max_tokens: 1024,
       system: systemMessage,
-      messages,
-      metadata: {
-        use_model_context_protocol: true  // Enable MCP
-      }
+      messages
     });
 
     console.log('Received response from Anthropic');
