@@ -63,15 +63,14 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_URL') || ''
         );
         messageContent.push(...validDocumentImages);
+        console.log('Added document images:', validDocumentImages.length);
       }
       
       if (isFirstMessage) {
         // For first message, include comprehensive race context
         const raceContext = formatRaceContext(race);
         console.log('Including comprehensive race context in first message');
-        messageContent.push({
-          type: "text",
-          text: `[CONTEXT START]
+        const contextMessage = `[CONTEXT START]
 Race Analysis Context:
 ${raceContext}
 
@@ -79,7 +78,20 @@ Raw Race Data:
 ${JSON.stringify(race, null, 2)}
 [CONTEXT END]
 
-User Question: ${message}`
+User Question: ${message}`;
+
+        messageContent.push({
+          type: "text",
+          text: contextMessage
+        });
+
+        // Log the full context being sent
+        console.log('First message context:', {
+          contextLength: contextMessage.length,
+          estimatedTokens: Math.ceil(contextMessage.length / 4), // Rough estimation
+          raceContextLength: raceContext.length,
+          rawDataLength: JSON.stringify(race, null, 2).length,
+          documentCount: validDocumentImages.length
         });
       } else {
         // For subsequent messages, just include the user's message
@@ -92,10 +104,6 @@ User Question: ${message}`
 
     console.log('Message content types:', messageContent.map(content => content.type));
 
-    const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
-    });
-    
     // Minimal system prompt - context is in first message
     const systemMessage = isFirstMessage ? 
       `You are a horse racing expert analyst. Use the provided race context to answer questions accurately and concisely. Format your responses clearly.` : 
@@ -105,7 +113,9 @@ User Question: ${message}`
       model: settings.anthropic_model,
       isFirstMessage,
       hasSystemMessage: !!systemMessage,
-      messageContentLength: messageContent.length
+      messageContentLength: messageContent.length,
+      systemPromptLength: systemMessage?.length || 0,
+      estimatedSystemTokens: systemMessage ? Math.ceil(systemMessage.length / 4) : 0
     });
     
     // Convert conversation history to Anthropic format
@@ -123,7 +133,25 @@ User Question: ${message}`
       content: messageContent
     }];
 
-    console.log('Sending messages to Anthropic:', messages.length);
+    // Log the complete message payload
+    console.log('Complete Claude message payload:', {
+      model: settings.anthropic_model,
+      systemMessage,
+      messages: messages.map(msg => ({
+        role: msg.role,
+        contentTypes: Array.isArray(msg.content) 
+          ? msg.content.map((c: any) => c.type)
+          : typeof msg.content,
+        textLength: Array.isArray(msg.content)
+          ? msg.content.reduce((acc: number, c: any) => 
+              acc + (c.type === 'text' ? c.text.length : 0), 0)
+          : msg.content.length,
+        estimatedTokens: Array.isArray(msg.content)
+          ? Math.ceil(msg.content.reduce((acc: number, c: any) => 
+              acc + (c.type === 'text' ? c.text.length : 0), 0) / 4)
+          : Math.ceil(msg.content.length / 4)
+      }))
+    });
     
     const response = await anthropic.messages.create({
       model: settings.anthropic_model,
@@ -132,7 +160,10 @@ User Question: ${message}`
       messages
     });
 
-    console.log('Received response from Anthropic');
+    console.log('Received response from Anthropic:', {
+      responseLength: response.content[0].text.length,
+      estimatedResponseTokens: Math.ceil(response.content[0].text.length / 4)
+    });
     
     return new Response(
       JSON.stringify({ message: response.content[0].text }),
