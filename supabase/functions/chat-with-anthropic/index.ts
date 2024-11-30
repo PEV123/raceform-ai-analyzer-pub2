@@ -8,6 +8,8 @@ import {
   formatRaceContext 
 } from "./utils.ts";
 
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB limit
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -59,7 +61,16 @@ serve(async (req) => {
             continue;
           }
 
+          const contentLength = response.headers.get('content-length');
+          if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE) {
+            console.error(`Image ${doc.file_name} exceeds size limit of ${MAX_IMAGE_SIZE} bytes`);
+            failedImageCount++;
+            continue;
+          }
+
           const arrayBuffer = await response.arrayBuffer();
+          console.log(`Successfully downloaded image ${doc.file_name}, size: ${arrayBuffer.byteLength} bytes`);
+          
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
           messages.push({
@@ -90,7 +101,8 @@ serve(async (req) => {
       console.log(`Image processing summary:`, {
         total: imageDocuments.length,
         processed: processedImageCount,
-        failed: failedImageCount
+        failed: failedImageCount,
+        messageCount: messages.length
       });
     }
 
@@ -132,7 +144,8 @@ serve(async (req) => {
       systemPromptLength: raceContext.length,
       historyLength: conversationHistory?.length || 0,
       totalImagesProcessed: processedImageCount,
-      failedImages: failedImageCount
+      failedImages: failedImageCount,
+      totalMessagesInPayload: messages.length
     });
 
     // Make the API call to Claude
