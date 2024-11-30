@@ -67,7 +67,14 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex gap-4 items-center">
               <NavItem href="/">Today's Races</NavItem>
               <NavItem href="/analysis">Analysis</NavItem>
-              {isAuthenticated && (
+              {!isAuthenticated ? (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/login')}
+                >
+                  Sign In
+                </Button>
+              ) : (
                 <>
                   {isAdmin && (
                     <>
@@ -87,13 +94,6 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     Sign Out
                   </Button>
                 </>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/login')}
-                >
-                  Sign In
-                </Button>
               )}
             </nav>
           </div>
