@@ -104,6 +104,11 @@ User Question: ${message}`;
 
     console.log('Message content types:', messageContent.map(content => content.type));
 
+    // Initialize Anthropic client with API key
+    const anthropic = new Anthropic({
+      apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
+    });
+
     // Minimal system prompt - context is in first message
     const systemMessage = isFirstMessage ? 
       `You are a horse racing expert analyst. Use the provided race context to answer questions accurately and concisely. Format your responses clearly.` : 
