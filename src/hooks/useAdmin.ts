@@ -15,33 +15,6 @@ export const useAdmin = () => {
       
       console.log('Checking admin status for user:', session.user.id);
       
-      // First check if profile exists
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Error checking profile existence:', profileError);
-        return false;
-      }
-
-      // If profile doesn't exist, create it
-      if (!profile) {
-        console.log('Profile not found, creating new profile for user:', session.user.id);
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{ id: session.user.id, is_admin: false }]);
-
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          return false;
-        }
-        return false; // New profiles are not admin by default
-      }
-
-      // Now check admin status
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
