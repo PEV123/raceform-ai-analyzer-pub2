@@ -10,10 +10,20 @@ import {
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB limit
 
+// Efficient base64 encoding function that avoids call stack issues
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join('');
+  return btoa(binString);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  let processedImageCount = 0;
+  let failedImageCount = 0;
 
   try {
     const { message, raceId, conversationHistory } = await req.json();
@@ -38,8 +48,6 @@ serve(async (req) => {
 
     // Prepare the messages array
     const messages = [];
-    let processedImageCount = 0;
-    let failedImageCount = 0;
 
     // Process any race documents and add them as image messages
     if (race.race_documents?.length) {
@@ -71,27 +79,33 @@ serve(async (req) => {
           const arrayBuffer = await response.arrayBuffer();
           console.log(`Successfully downloaded image ${doc.file_name}, size: ${arrayBuffer.byteLength} bytes`);
           
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          
-          messages.push({
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: doc.content_type,
-                  data: base64
+          try {
+            const base64 = arrayBufferToBase64(arrayBuffer);
+            console.log(`Successfully encoded image ${doc.file_name} to base64`);
+            
+            messages.push({
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: doc.content_type,
+                    data: base64
+                  }
+                },
+                {
+                  type: "text",
+                  text: "Please analyze this race document."
                 }
-              },
-              {
-                type: "text",
-                text: "Please analyze this race document."
-              }
-            ]
-          });
-          processedImageCount++;
-          console.log(`Successfully processed image ${doc.file_name}`);
+              ]
+            });
+            processedImageCount++;
+            console.log(`Successfully added image ${doc.file_name} to messages array`);
+          } catch (encodingError) {
+            console.error(`Error encoding image ${doc.file_name}:`, encodingError);
+            failedImageCount++;
+          }
         } catch (error) {
           console.error(`Error processing document image ${doc.file_name}:`, error);
           failedImageCount++;
