@@ -82,10 +82,21 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_URL') || ''
       );
       messageContent.push(...validDocumentImages);
-      messageContent.push({
-        type: "text",
-        text: message
-      });
+      
+      // For the first message, include the race context
+      if (!conversationHistory || conversationHistory.length === 0) {
+        const raceContext = formatRaceContext(race);
+        console.log('Including race context in first message');
+        messageContent.push({
+          type: "text",
+          text: `Race Context:\n${raceContext}\n\nUser Question: ${message}`
+        });
+      } else {
+        messageContent.push({
+          type: "text",
+          text: message
+        });
+      }
     }
 
     console.log('Message content types:', messageContent.map(content => content.type));
@@ -94,27 +105,17 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
     });
     
-    // Only generate and send race context for the first message
-    const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
-    
-    // Format the race context
-    const raceContext = formatRaceContext(race);
-    console.log('Generated race context length:', raceContext.length);
-    
-    // Prepare system message with race context for the first message
-    const systemMessage = isFirstMessage ? `
+    // Prepare system message
+    const systemMessage = `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
       ${settings?.knowledge_base || ''}
       
-      Race Analysis Context:
-      ${raceContext}
-
       Raw Race Data for Reference:
       ${JSON.stringify(race, null, 2)}
-    ` : undefined;
+    `;
 
     console.log('Making request to Anthropic API with model:', settings.anthropic_model);
-    console.log('Is first message:', isFirstMessage);
+    console.log('Is first message:', !conversationHistory || conversationHistory.length === 0);
     
     // Convert conversation history to Anthropic format
     const messages = conversationHistory ? [
