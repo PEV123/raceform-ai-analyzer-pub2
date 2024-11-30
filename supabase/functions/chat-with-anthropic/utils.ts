@@ -56,6 +56,8 @@ export const fetchSettings = async () => {
 };
 
 export const formatRaceContext = (race: any) => {
+  if (!race) return "No race data available";
+  
   const raceDetails = `
 Race Details:
 - Name: ${race.race_name}
@@ -89,8 +91,7 @@ ${runner.comment ? `- Comment: ${runner.comment}` : ''}
 ${runner.spotlight ? `- Spotlight: ${runner.spotlight}` : ''}
 ${runner.quotes?.length ? `\nQuotes:\n${runner.quotes.map((q: any) => `"${q.quote}"`).join('\n')}` : ''}
 ${runner.stable_tour?.length ? `\nStable Tour:\n${runner.stable_tour.map((t: any) => `"${t.quote}"`).join('\n')}` : ''}
-`).join('\n')}
-`;
+`).join('\n')}`;
 
   console.log('Generated race context with details for all runners');
   return raceDetails;

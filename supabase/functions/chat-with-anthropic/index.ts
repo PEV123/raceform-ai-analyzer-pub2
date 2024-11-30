@@ -97,12 +97,17 @@ serve(async (req) => {
     // Only generate and send race context for the first message
     const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
     
+    // Format the race context
+    const raceContext = formatRaceContext(race);
+    console.log('Generated race context length:', raceContext.length);
+    
+    // Prepare system message with race context for the first message
     const systemMessage = isFirstMessage ? `
       ${settings?.system_prompt || 'You are a horse racing expert analyst who maintains a great knowledge of horse racing.'}
       ${settings?.knowledge_base || ''}
       
       Race Analysis Context:
-      ${formatRaceContext(race)}
+      ${raceContext}
 
       Raw Race Data for Reference:
       ${JSON.stringify(race, null, 2)}
