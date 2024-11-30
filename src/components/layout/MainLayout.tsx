@@ -14,13 +14,6 @@ interface NavItemProps {
 const NavItem = ({ href, children, requiresAdmin }: NavItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === href;
-  const { isAdmin, isLoading } = useAdmin();
-
-  // If the item requires admin access and we're still loading or user is not admin,
-  // don't render the item
-  if (requiresAdmin && (isLoading || !isAdmin)) {
-    return null;
-  }
 
   return (
     <Link
@@ -41,6 +34,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin, isLoading } = useAdmin();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,6 +53,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  const showAdminItems = isAuthenticated && !isLoading && isAdmin;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -72,9 +68,13 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               <NavItem href="/analysis">Analysis</NavItem>
               {isAuthenticated ? (
                 <>
-                  <NavItem href="/admin" requiresAdmin>Admin</NavItem>
-                  {location.pathname.startsWith('/admin') && (
-                    <NavItem href="/admin/race-documents" requiresAdmin>Race Documents</NavItem>
+                  {showAdminItems && (
+                    <>
+                      <NavItem href="/admin">Admin</NavItem>
+                      {location.pathname.startsWith('/admin') && (
+                        <NavItem href="/admin/race-documents">Race Documents</NavItem>
+                      )}
+                    </>
                   )}
                   <Button
                     variant="outline"
