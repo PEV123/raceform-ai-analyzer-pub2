@@ -2,10 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 import { 
   corsHeaders, 
-  processBase64Image, 
   fetchRaceData, 
   fetchSettings,
-  processRaceDocuments,
   formatRaceContext 
 } from "./utils.ts";
 
@@ -16,63 +14,76 @@ serve(async (req) => {
 
   try {
     const { message, raceId, conversationHistory } = await req.json();
-    console.log('Received request:', { raceId, messageType: typeof message, historyLength: conversationHistory?.length });
+    console.log('Received request:', { 
+      raceId, 
+      messageLength: message?.length,
+      historyLength: conversationHistory?.length 
+    });
 
     if (!message || !raceId) {
       throw new Error('Missing required parameters: message or raceId');
     }
 
-    const race = await fetchRaceData(raceId);
-    const settings = await fetchSettings();
-    console.log('Fetched race data with runners:', race.runners?.length);
+    // Fetch race data and settings only if this is the first message
+    const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
+    let systemMessages = [];
+    
+    if (isFirstMessage) {
+      console.log('First message in conversation, fetching full context');
+      const [race, settings] = await Promise.all([
+        fetchRaceData(raceId),
+        fetchSettings()
+      ]);
 
-    // Initialize Anthropic client with API key
+      // Format race context
+      const raceContext = formatRaceContext(race);
+      console.log('Generated race context length:', raceContext.length);
+
+      // Add system prompt and context only for the first message
+      systemMessages = [
+        {
+          role: "system",
+          content: settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."
+        },
+        {
+          role: "system",
+          content: `Here is the race context you should use for your analysis:\n\n${raceContext}`
+        }
+      ];
+    } else {
+      console.log('Continuing conversation, using existing context');
+    }
+
+    // Initialize Anthropic client
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
 
-    // Prepare the messages array for the conversation
-    const messages = [];
-
-    // Always include the system message first
-    messages.push({
-      role: "system",
-      content: settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."
-    });
-
-    // Add the race context as the first assistant message
-    const raceContext = formatRaceContext(race);
-    messages.push({
-      role: "system",
-      content: `Here is the race context you should use for your analysis:\n\n${raceContext}`
-    });
-
-    // Add previous conversation history if it exists
-    if (conversationHistory?.length > 0) {
-      messages.push(...conversationHistory.map(msg => ({
+    // Prepare messages array
+    const messages = [
+      ...systemMessages,
+      ...(conversationHistory?.map(msg => ({
         role: msg.role,
         content: msg.message
-      })));
-    }
+      })) || []),
+      {
+        role: "user",
+        content: message
+      }
+    ];
 
-    // Add the current user message
-    messages.push({
-      role: "user",
-      content: message
-    });
-
-    console.log('Prepared messages for Claude:', {
+    console.log('Sending request to Claude with:', {
       messageCount: messages.length,
-      systemPromptLength: messages[0].content.length,
-      contextLength: raceContext.length,
+      systemMessagesCount: systemMessages.length,
       historyLength: conversationHistory?.length || 0
     });
 
     // Make the API call to Claude
     const response = await anthropic.messages.create({
-      model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
+      model: 'claude-3-haiku-20240307', // Using the most cost-effective model
       max_tokens: 1024,
-      messages: messages
+      messages: messages,
+      temperature: 0.7,
     });
 
     console.log('Received response from Claude:', {
