@@ -3,15 +3,24 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface NavItemProps {
   href: string;
   children: React.ReactNode;
+  requiresAdmin?: boolean;
 }
 
-const NavItem = ({ href, children }: NavItemProps) => {
+const NavItem = ({ href, children, requiresAdmin }: NavItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === href;
+  const { isAdmin, isLoading } = useAdmin();
+
+  // If the item requires admin access and we're still loading or user is not admin,
+  // don't render the item
+  if (requiresAdmin && (isLoading || !isAdmin)) {
+    return null;
+  }
 
   return (
     <Link
@@ -63,9 +72,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               <NavItem href="/analysis">Analysis</NavItem>
               {isAuthenticated ? (
                 <>
-                  <NavItem href="/admin">Admin</NavItem>
+                  <NavItem href="/admin" requiresAdmin>Admin</NavItem>
                   {location.pathname.startsWith('/admin') && (
-                    <NavItem href="/admin/race-documents">Race Documents</NavItem>
+                    <NavItem href="/admin/race-documents" requiresAdmin>Race Documents</NavItem>
                   )}
                   <Button
                     variant="outline"
