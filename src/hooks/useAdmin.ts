@@ -8,10 +8,7 @@ export const useAdmin = () => {
   const { data: isAdmin, isLoading } = useQuery({
     queryKey: ['admin-status', session?.user?.id],
     queryFn: async () => {
-      if (!session?.user?.id) {
-        console.log('No user session found in useAdmin');
-        return false;
-      }
+      if (!session?.user?.id) return false;
       
       console.log('Checking admin status for user:', session.user.id);
       
@@ -19,7 +16,7 @@ export const useAdmin = () => {
         .from('profiles')
         .select('is_admin')
         .eq('id', session.user.id)
-        .maybeSingle();
+        .maybeSingle(); // Use maybeSingle() instead of single()
       
       if (error) {
         console.error('Error fetching admin status:', error);
@@ -27,13 +24,10 @@ export const useAdmin = () => {
       }
       
       console.log('Admin status response:', data);
-      return !!data?.is_admin;
+      return data?.is_admin || false;
     },
     enabled: !!session?.user?.id,
-    retry: false,
   });
-
-  console.log('useAdmin hook result:', { isAdmin, isLoading, userId: session?.user?.id });
 
   return {
     isAdmin: !!isAdmin,

@@ -3,8 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useAdmin } from "@/hooks/useAdmin";
-import { useToast } from "@/components/ui/use-toast";
 
 interface NavItemProps {
   href: string;
@@ -34,53 +32,23 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isLoading } = useAdmin();
-  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error checking auth session:', error);
-        toast({
-          title: "Authentication Error",
-          description: "There was an error checking your login status.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Auth session check:', { 
-        hasSession: !!session,
-        userId: session?.user?.id
-      });
-      
+      const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', { 
-        event, 
-        userId: session?.user?.id,
-        isAuthenticated: !!session 
-      });
       setIsAuthenticated(!!session);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast]);
-
-  console.log('MainLayout render state:', { 
-    isAuthenticated, 
-    isAdmin,
-    isLoading,
-    pathname: location.pathname 
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,22 +61,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex gap-4 items-center">
               <NavItem href="/">Today's Races</NavItem>
               <NavItem href="/analysis">Analysis</NavItem>
-              {!isAuthenticated ? (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/login')}
-                >
-                  Sign In
-                </Button>
-              ) : (
+              {isAuthenticated ? (
                 <>
-                  {isAdmin && (
-                    <>
-                      <NavItem href="/admin">Admin</NavItem>
-                      {location.pathname.startsWith('/admin') && (
-                        <NavItem href="/admin/race-documents">Race Documents</NavItem>
-                      )}
-                    </>
+                  <NavItem href="/admin">Admin</NavItem>
+                  {location.pathname.startsWith('/admin') && (
+                    <NavItem href="/admin/race-documents">Race Documents</NavItem>
                   )}
                   <Button
                     variant="outline"
@@ -120,6 +77,13 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     Sign Out
                   </Button>
                 </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/login')}
+                >
+                  Sign In
+                </Button>
               )}
             </nav>
           </div>
