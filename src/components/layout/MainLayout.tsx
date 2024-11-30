@@ -60,8 +60,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed in MainLayout:', event);
       setIsAuthenticated(!!session);
       
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        console.log('User signed out or deleted');
+      if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
         toast({
           title: "Signed out",
           description: "You have been successfully logged out.",
