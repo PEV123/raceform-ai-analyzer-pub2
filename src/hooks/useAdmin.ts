@@ -30,6 +30,7 @@ export const useAdmin = () => {
       return !!data?.is_admin;
     },
     enabled: !!session?.user?.id,
+    retry: false,
   });
 
   console.log('useAdmin hook result:', { isAdmin, isLoading, userId: session?.user?.id });
