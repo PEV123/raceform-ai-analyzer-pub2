@@ -41,6 +41,34 @@ serve(async (req) => {
     // Add the system context as a system message
     const systemPrompt = `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`;
     
+    // Process any race documents and add them as image messages
+    if (race.race_documents?.length) {
+      console.log('Processing race documents for vision analysis');
+      const imageUrls = race.race_documents
+        .filter(doc => doc.content_type?.startsWith('image/'))
+        .map(doc => `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`);
+      
+      // Add images as separate messages with content arrays
+      for (const url of imageUrls) {
+        messages.push({
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "url",
+                url
+              }
+            },
+            {
+              type: "text",
+              text: "Please analyze this race document."
+            }
+          ]
+        });
+      }
+    }
+
     // Add previous conversation history if it exists
     if (conversationHistory?.length > 0) {
       messages.push(...conversationHistory.map(msg => ({
@@ -49,11 +77,36 @@ serve(async (req) => {
       })));
     }
 
-    // Add the current user message
-    messages.push({
-      role: "user",
-      content: message
-    });
+    // Check if current message contains an image URL
+    if (message.startsWith('https://') && message.includes('/storage/v1/object/public/race_documents/')) {
+      // Handle new image upload
+      const messageLines = message.split('\n');
+      const imageUrl = messageLines[0];
+      const textContent = messageLines.slice(1).join('\n') || "Please analyze this image.";
+      
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "url",
+              url: imageUrl
+            }
+          },
+          {
+            type: "text",
+            text: textContent
+          }
+        ]
+      });
+    } else {
+      // Regular text message
+      messages.push({
+        role: "user",
+        content: message
+      });
+    }
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
