@@ -63,11 +63,17 @@ const Login = () => {
 
   // Redirect to admin page if user is admin
   useEffect(() => {
-    if (isAdmin) {
-      console.log('User is admin, redirecting to admin page');
-      navigate('/admin');
+    if (!isLoading) {
+      console.log('Admin check completed. Is admin?', isAdmin);
+      if (isAdmin) {
+        console.log('User is admin, redirecting to admin page');
+        navigate('/admin');
+      } else if (!isLoading) {
+        console.log('User is not an admin, redirecting...');
+        navigate('/');
+      }
     }
-  }, [isAdmin, navigate]);
+  }, [isAdmin, isLoading, navigate]);
 
   return (
     <div className="max-w-md mx-auto mt-8">

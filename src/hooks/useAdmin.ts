@@ -16,24 +16,45 @@ export const useAdmin = () => {
       
       console.log('Checking admin status for user ID:', session.user.id);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching admin status:', error);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching admin status:', error);
+          toast({
+            title: "Error",
+            description: "Could not verify admin status. Please try logging out and back in.",
+            variant: "destructive"
+          });
+          return false;
+        }
+        
+        console.log('Admin status response:', data);
+        const isUserAdmin = !!data?.is_admin;
+        console.log('Is user admin?', isUserAdmin);
+        
+        if (!isUserAdmin) {
+          toast({
+            title: "Access Restricted",
+            description: "You do not have admin privileges.",
+            variant: "destructive"
+          });
+        }
+        
+        return isUserAdmin;
+      } catch (err) {
+        console.error('Unexpected error checking admin status:', err);
         toast({
           title: "Error",
-          description: "Could not verify admin status. Please try logging out and back in.",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive"
         });
         return false;
       }
-      
-      console.log('Admin status response:', data);
-      return !!data?.is_admin;
     },
     enabled: !!session?.user?.id,
   });
