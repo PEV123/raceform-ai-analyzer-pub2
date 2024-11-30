@@ -2,10 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 import { 
   corsHeaders, 
-  processBase64Image, 
+  processBase64Image,
   fetchRaceData, 
   fetchSettings,
-  processRaceDocuments,
   formatRaceContext 
 } from "./utils.ts";
 
@@ -26,7 +25,7 @@ serve(async (req) => {
     const settings = await fetchSettings();
     console.log('Fetched race data with runners:', race.runners?.length);
 
-    // Initialize Anthropic client with API key
+    // Initialize Anthropic client
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
@@ -35,41 +34,51 @@ serve(async (req) => {
     const raceContext = formatRaceContext(race);
     console.log('Generated race context length:', raceContext.length);
 
-    // Prepare the messages array for the conversation
+    // Prepare the messages array
     const messages = [];
 
-    // Add the system context as a system message
-    const systemPrompt = `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`;
-    
     // Process any race documents and add them as image messages
     if (race.race_documents?.length) {
       console.log('Processing race documents for vision analysis');
-      const imageUrls = race.race_documents
-        .filter(doc => doc.content_type?.startsWith('image/'))
-        .map(doc => `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`);
-      
-      // Add images as separate messages with content arrays
-      for (const url of imageUrls) {
-        messages.push({
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "url",
-                url
+      const imageDocuments = race.race_documents
+        .filter(doc => doc.content_type?.startsWith('image/'));
+
+      for (const doc of imageDocuments) {
+        try {
+          const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            console.error('Failed to fetch image:', response.statusText);
+            continue;
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          
+          messages.push({
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: doc.content_type,
+                  data: base64
+                }
+              },
+              {
+                type: "text",
+                text: "Please analyze this race document."
               }
-            },
-            {
-              type: "text",
-              text: "Please analyze this race document."
-            }
-          ]
-        });
+            ]
+          });
+        } catch (error) {
+          console.error('Error processing document image:', error);
+        }
       }
     }
 
-    // Add previous conversation history if it exists
+    // Add previous conversation history
     if (conversationHistory?.length > 0) {
       messages.push(...conversationHistory.map(msg => ({
         role: msg.role,
@@ -77,29 +86,22 @@ serve(async (req) => {
       })));
     }
 
-    // Check if current message contains an image URL
-    if (message.startsWith('https://') && message.includes('/storage/v1/object/public/race_documents/')) {
-      // Handle new image upload
-      const messageLines = message.split('\n');
-      const imageUrl = messageLines[0];
-      const textContent = messageLines.slice(1).join('\n') || "Please analyze this image.";
-      
-      messages.push({
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "url",
-              url: imageUrl
+    // Process current message
+    if (message.startsWith('data:image')) {
+      // Handle base64 image upload
+      const imageData = processBase64Image(message);
+      if (imageData) {
+        messages.push({
+          role: "user",
+          content: [
+            imageData,
+            {
+              type: "text",
+              text: "Please analyze this image."
             }
-          },
-          {
-            type: "text",
-            text: textContent
-          }
-        ]
-      });
+          ]
+        });
+      }
     } else {
       // Regular text message
       messages.push({
@@ -110,7 +112,7 @@ serve(async (req) => {
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      systemPromptLength: systemPrompt.length,
+      systemPromptLength: raceContext.length,
       historyLength: conversationHistory?.length || 0
     });
 
@@ -118,7 +120,7 @@ serve(async (req) => {
     const response = await anthropic.messages.create({
       model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
       max_tokens: 1024,
-      system: systemPrompt,
+      system: `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`,
       messages: messages
     });
 

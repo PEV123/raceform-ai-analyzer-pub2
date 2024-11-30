@@ -93,52 +93,5 @@ ${runner.quotes?.length ? `\nQuotes:\n${runner.quotes.map((q: any) => `"${q.quot
 ${runner.stable_tour?.length ? `\nStable Tour:\n${runner.stable_tour.map((t: any) => `"${t.quote}"`).join('\n')}` : ''}
 `).join('\n')}`;
 
-  console.log('Generated race context with details for all runners');
   return raceDetails;
-};
-
-export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
-  console.log('Processing race documents...');
-  console.log('Number of documents:', race.race_documents?.length);
-  
-  const documentImages = await Promise.all((race.race_documents || [])
-    .filter((doc: any) => doc.content_type?.startsWith('image/'))
-    .map(async (doc: any) => {
-      const url = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
-      console.log('Processing document URL:', url);
-      
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error('Failed to fetch image:', response.statusText);
-          return null;
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const chunkSize = 32768;
-        let binary = '';
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.slice(i, i + chunkSize);
-          binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
-        }
-        const base64 = btoa(binary);
-        
-        console.log('Successfully processed image to base64');
-        
-        return {
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: doc.content_type,
-            data: base64
-          }
-        };
-      } catch (error) {
-        console.error('Error processing image:', error);
-        return null;
-      }
-    }));
-
-  return documentImages.filter(img => img !== null);
 };
