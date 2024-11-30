@@ -8,10 +8,9 @@ import { useAdmin } from "@/hooks/useAdmin";
 interface NavItemProps {
   href: string;
   children: React.ReactNode;
-  requiresAdmin?: boolean;
 }
 
-const NavItem = ({ href, children, requiresAdmin }: NavItemProps) => {
+const NavItem = ({ href, children }: NavItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === href;
 
@@ -34,17 +33,19 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Auth session:', session);
       setIsAuthenticated(!!session);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session);
       setIsAuthenticated(!!session);
     });
 
@@ -53,7 +54,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const showAdminItems = isAuthenticated && !isLoading && isAdmin;
+  console.log('Auth state:', { isAuthenticated, isAdmin });
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,9 +67,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex gap-4 items-center">
               <NavItem href="/">Today's Races</NavItem>
               <NavItem href="/analysis">Analysis</NavItem>
-              {isAuthenticated ? (
+              {isAuthenticated && (
                 <>
-                  {showAdminItems && (
+                  {isAdmin && (
                     <>
                       <NavItem href="/admin">Admin</NavItem>
                       {location.pathname.startsWith('/admin') && (
