@@ -1,4 +1,7 @@
-import { corsHeaders } from "./utils";
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB limit for Claude
 
