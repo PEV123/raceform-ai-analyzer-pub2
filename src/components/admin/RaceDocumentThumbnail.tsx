@@ -14,14 +14,16 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
   return (
     <div className="relative group">
       <HoverCard>
-        <HoverCardTrigger>
-          <img
-            src={imageUrl}
-            alt={doc.file_name}
-            className="w-8 h-8 object-cover rounded"
-          />
+        <HoverCardTrigger asChild>
+          <div className="cursor-pointer">
+            <img
+              src={imageUrl}
+              alt={doc.file_name}
+              className="w-8 h-8 object-cover rounded"
+            />
+          </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-auto p-0">
+        <HoverCardContent side="right" align="start" className="w-auto p-0">
           <img
             src={imageUrl}
             alt={doc.file_name}
@@ -29,10 +31,11 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
           />
         </HoverCardContent>
       </HoverCard>
+      
       <Button
         variant="destructive"
         size="icon"
-        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         onClick={() => onDelete(doc)}
       >
         <X className="h-3 w-3" />
