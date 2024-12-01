@@ -1,5 +1,5 @@
-import { serve } from "std/http/server.ts";
-import { Anthropic } from "@anthropic-ai/sdk";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
 import { corsHeaders, fetchRaceData, fetchSettings, processRaceDocuments, formatRaceContext } from "./utils.ts";
 
 serve(async (req) => {
