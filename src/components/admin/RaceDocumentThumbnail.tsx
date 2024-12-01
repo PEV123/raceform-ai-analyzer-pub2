@@ -30,9 +30,9 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
         </HoverCardContent>
       </HoverCard>
       <Button
-        variant="ghost"
+        variant="destructive"
         size="icon"
-        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={() => onDelete(doc)}
       >
         <X className="h-3 w-3" />
