@@ -35,6 +35,7 @@ serve(async (req) => {
 
     // Add race documents as images if they exist
     if (race.race_documents?.length) {
+      console.log('Processing race documents:', race.race_documents.length);
       const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
       messages.push(...processedImages.map(img => ({
         role: "user",
@@ -52,9 +53,23 @@ serve(async (req) => {
 
     // Add current message with any uploaded image
     const currentContent = [];
+    
+    // Add any newly uploaded image from the chat
     if (images?.length > 0) {
-      currentContent.push(...images);
+      console.log('Processing newly uploaded chat images:', images.length);
+      images.forEach(img => {
+        currentContent.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: img.source.media_type,
+            data: img.source.data
+          }
+        });
+      });
     }
+
+    // Add the text message if it exists
     if (message) {
       currentContent.push({ type: "text", text: message });
     }
