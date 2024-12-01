@@ -41,7 +41,7 @@ export const useRaceChat = (raceId: string) => {
     }
   };
 
-  const sendMessage = async (message: string) => {
+  const sendMessage = async (message: string, imageData?: { data: string; type: string }) => {
     if (!message.trim() || !session?.user?.id) return;
     
     setIsLoading(true);
@@ -64,6 +64,24 @@ export const useRaceChat = (raceId: string) => {
       const updatedMessages: Message[] = [...messages, { role: 'user', message }];
       setMessages(updatedMessages);
 
+      // Prepare request body with image if present
+      const requestBody: any = {
+        message,
+        raceId,
+        conversationHistory: updatedMessages,
+      };
+
+      if (imageData) {
+        requestBody.image = {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: imageData.type,
+            data: imageData.data
+          }
+        };
+      }
+
       // Call edge function with full conversation history
       const response = await fetch(
         'https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/chat-with-anthropic',
@@ -73,11 +91,7 @@ export const useRaceChat = (raceId: string) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            message,
-            raceId,
-            conversationHistory: updatedMessages,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
