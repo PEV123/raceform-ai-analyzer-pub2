@@ -7,15 +7,7 @@ import {
   fetchSettings,
   formatRaceContext 
 } from "./utils.ts";
-
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB limit
-
-// Efficient base64 encoding function that avoids call stack issues
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer);
-  const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join('');
-  return btoa(binString);
-}
+import { processImage } from "./imageProcessing.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -58,56 +50,22 @@ serve(async (req) => {
       console.log(`Found ${imageDocuments.length} image documents to process`);
 
       for (const doc of imageDocuments) {
-        try {
-          const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
-          console.log('Processing image:', doc.file_name);
-          
-          const response = await fetch(imageUrl);
-          if (!response.ok) {
-            console.error(`Failed to fetch image ${doc.file_name}:`, response.statusText);
-            failedImageCount++;
-            continue;
-          }
-
-          const contentLength = response.headers.get('content-length');
-          if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE) {
-            console.error(`Image ${doc.file_name} exceeds size limit of ${MAX_IMAGE_SIZE} bytes`);
-            failedImageCount++;
-            continue;
-          }
-
-          const arrayBuffer = await response.arrayBuffer();
-          console.log(`Successfully downloaded image ${doc.file_name}, size: ${arrayBuffer.byteLength} bytes`);
-          
-          try {
-            const base64 = arrayBufferToBase64(arrayBuffer);
-            console.log(`Successfully encoded image ${doc.file_name} to base64`);
-            
-            messages.push({
-              role: "user",
-              content: [
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: doc.content_type,
-                    data: base64
-                  }
-                },
-                {
-                  type: "text",
-                  text: "Please analyze this race document."
-                }
-              ]
-            });
-            processedImageCount++;
-            console.log(`Successfully added image ${doc.file_name} to messages array`);
-          } catch (encodingError) {
-            console.error(`Error encoding image ${doc.file_name}:`, encodingError);
-            failedImageCount++;
-          }
-        } catch (error) {
-          console.error(`Error processing document image ${doc.file_name}:`, error);
+        const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
+        const processedImage = await processImage(imageUrl, doc.file_name, doc.content_type);
+        
+        if (processedImage) {
+          messages.push({
+            role: "user",
+            content: [
+              processedImage,
+              {
+                type: "text",
+                text: "Please analyze this race document."
+              }
+            ]
+          });
+          processedImageCount++;
+        } else {
           failedImageCount++;
         }
       }
@@ -118,14 +76,6 @@ serve(async (req) => {
         failed: failedImageCount,
         messageCount: messages.length
       });
-    }
-
-    // Add previous conversation history
-    if (conversationHistory?.length > 0) {
-      messages.push(...conversationHistory.map(msg => ({
-        role: msg.role,
-        content: msg.message
-      })));
     }
 
     // Process current message
