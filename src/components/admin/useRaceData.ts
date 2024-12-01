@@ -23,7 +23,7 @@ export const useRaceData = (races: Race[]) => {
       
       const { data, error } = await supabase
         .from('horse_results')
-        .select('horse_id, race_id')
+        .select('horse_id, race_id, created_at')
         .in('horse_id', horseIds);
 
       if (error) {
@@ -35,6 +35,8 @@ export const useRaceData = (races: Race[]) => {
       return data;
     },
     enabled: horseIds.length > 0,
+    // Reduce stale time to ensure more frequent updates
+    staleTime: 1000,
   });
 
   // Query to check for existing distance analysis
@@ -53,6 +55,7 @@ export const useRaceData = (races: Race[]) => {
         .select(`
           id,
           horse_id,
+          created_at,
           horse_distance_details (
             id
           )
@@ -68,45 +71,63 @@ export const useRaceData = (races: Race[]) => {
       return data;
     },
     enabled: horseIds.length > 0,
+    // Reduce stale time to ensure more frequent updates
+    staleTime: 1000,
   });
 
   // Helper functions to check data existence
   const hasImportedResults = (race: Race) => {
     if (!race.runners?.length || !existingResults) {
+      console.log(`No runners or results for race at ${race.course}`);
       return false;
     }
-    return race.runners.every(runner => 
+    const hasAll = race.runners.every(runner => 
       existingResults.some(result => result.horse_id === runner.horse_id)
     );
+    console.log(`Race ${race.course} has all results: ${hasAll}`);
+    return hasAll;
   };
 
   const hasImportedAnalysis = (race: Race) => {
     if (!race.runners?.length || !existingAnalysis) {
+      console.log(`No runners or analysis for race at ${race.course}`);
       return false;
     }
-    return race.runners.every(runner => 
+    const hasAll = race.runners.every(runner => 
       existingAnalysis.some(analysis => 
         analysis.horse_id === runner.horse_id && 
         analysis.horse_distance_details?.length > 0
       )
     );
+    console.log(`Race ${race.course} has all analysis: ${hasAll}`);
+    return hasAll;
   };
 
   const getImportedResultsCount = (race: Race) => {
-    if (!race.runners?.length || !existingResults) return 0;
-    return race.runners.filter(runner => 
+    if (!race.runners?.length || !existingResults) {
+      console.log(`No runners or results to count for race at ${race.course}`);
+      return 0;
+    }
+    const count = race.runners.filter(runner => 
       existingResults.some(result => result.horse_id === runner.horse_id)
     ).length;
+    console.log(`Race ${race.course} has ${count}/${race.runners.length} results imported`);
+    return count;
   };
 
   const getImportedAnalysisCount = (race: Race) => {
-    if (!race.runners?.length || !existingAnalysis) return 0;
-    return race.runners.filter(runner => 
+    if (!race.runners?.length || !existingAnalysis) {
+      console.log(`No runners or analysis to count for race at ${race.course}`);
+      return 0;
+    }
+    const count = race.runners.filter(runner => 
       existingAnalysis.some(analysis => 
         analysis.horse_id === runner.horse_id && 
         analysis.horse_distance_details?.length > 0
       )
     ).length;
+    console.log(`Race ${race.course} has ${count}/${race.runners.length} analysis imported`);
+    return count;
   };
 
   return {
