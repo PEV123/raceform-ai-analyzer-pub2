@@ -41,11 +41,17 @@ export const useRaceChat = (raceId: string) => {
     if ((!message.trim() && !imageData) || !session?.user?.id) return;
     
     setIsLoading(true);
-    console.log('Sending message with conversation history and image:', { 
+    console.log('Sending message with image data:', { 
       messageLength: message.length, 
       hasImage: !!imageData,
-      imageType: imageData?.type 
+      imageType: imageData?.type,
+      imageDataLength: imageData?.data.length
     });
+
+    // Debug: Log the first 100 characters of the base64 data
+    if (imageData?.data) {
+      console.log('Image base64 preview (first 100 chars):', imageData.data.substring(0, 100));
+    }
 
     try {
       // Save user message with image URL if present
@@ -78,6 +84,11 @@ export const useRaceChat = (raceId: string) => {
             data: imageData.data
           }
         });
+        console.log('Formatted image data:', {
+          type: imageData.type,
+          dataLength: imageData.data.length,
+          isBase64: imageData.data.match(/^[A-Za-z0-9+/=]+$/) ? 'valid base64' : 'invalid base64'
+        });
       }
 
       // Prepare request body
@@ -90,7 +101,8 @@ export const useRaceChat = (raceId: string) => {
 
       console.log('Sending request to edge function with image data:', {
         hasImages: formattedImages.length > 0,
-        imageTypes: formattedImages.map(img => img.source.media_type)
+        imageTypes: formattedImages.map(img => img.source.media_type),
+        totalImages: formattedImages.length
       });
       
       // Call edge function with full conversation history and images
