@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Loader2, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
@@ -30,6 +31,8 @@ import { useState } from "react";
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
   const importMutation = useImportRacesMutation();
+  const [progress, setProgress] = useState(0);
+  const [currentOperation, setCurrentOperation] = useState<string>("");
   
   // Initialize with current UK date
   const [date, setDate] = useState<Date>(() => {
@@ -54,13 +57,23 @@ const ImportRaces = () => {
   // Format the date in UK timezone
   const formattedDate = formatInTimeZone(date, 'Europe/London', "MMMM do, yyyy");
 
+  const handleImport = async () => {
+    await importMutation.mutateAsync({
+      date,
+      onProgress: (progress: number, operation: string) => {
+        setProgress(progress);
+        setCurrentOperation(operation);
+      }
+    });
+  };
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Import Races</h2>
       <p className="text-muted-foreground mb-4">
         Import races from the Racing API for a specific date
       </p>
-      <div className="flex gap-4">
+      <div className="flex gap-4 mb-6">
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -130,7 +143,7 @@ const ImportRaces = () => {
           </Popover>
 
           <Button
-            onClick={() => importMutation.mutate(date)}
+            onClick={handleImport}
             disabled={clearMutation.isPending || importMutation.isPending}
           >
             {importMutation.isPending ? (
@@ -144,6 +157,13 @@ const ImportRaces = () => {
           </Button>
         </div>
       </div>
+
+      {importMutation.isPending && (
+        <div className="space-y-2">
+          <Progress value={progress} className="w-full" />
+          <p className="text-sm text-muted-foreground">{currentOperation}</p>
+        </div>
+      )}
     </Card>
   );
 };
