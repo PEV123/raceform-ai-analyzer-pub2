@@ -19,32 +19,47 @@ interface RaceDataDialogProps {
 }
 
 export const RaceDataDialog = ({ open, onOpenChange, race }: RaceDataDialogProps) => {
+  console.log('RaceDataDialog rendered with race:', race);
+
   // Query for horse results
   const { data: horseResults } = useQuery({
-    queryKey: ["horse-results", race.id],
+    queryKey: ["horse-results", race?.id],
     queryFn: async () => {
-      console.log('Fetching horse results for race:', race.id);
-      const horseIds = race.runners?.map(runner => runner.horse_id) || [];
+      console.log('Fetching horse results for race:', race?.id);
+      const horseIds = race?.runners?.map(runner => runner.horse_id) || [];
       
+      if (horseIds.length === 0) {
+        console.log('No horse IDs found for results query');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('horse_results')
         .select('*')
         .in('horse_id', horseIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching horse results:', error);
+        throw error;
+      }
       console.log('Found horse results:', data);
       return data;
     },
-    enabled: !!race.runners?.length,
+    enabled: !!race?.id && !!race?.runners?.length,
   });
 
   // Query for distance analysis
   const { data: distanceAnalysis } = useQuery({
-    queryKey: ["distance-analysis", race.id],
+    queryKey: ["distance-analysis", race?.id],
     queryFn: async () => {
-      console.log('Fetching distance analysis for race:', race.id);
-      const horseIds = race.runners?.map(runner => runner.horse_id) || [];
+      console.log('Fetching distance analysis for race:', race?.id);
+      const horseIds = race?.runners?.map(runner => runner.horse_id) || [];
       
+      if (horseIds.length === 0) {
+        console.log('No horse IDs found for distance analysis query');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('horse_distance_analysis')
         .select(`
@@ -56,12 +71,20 @@ export const RaceDataDialog = ({ open, onOpenChange, race }: RaceDataDialogProps
         `)
         .in('horse_id', horseIds);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching distance analysis:', error);
+        throw error;
+      }
       console.log('Found distance analysis:', data);
       return data;
     },
-    enabled: !!race.runners?.length,
+    enabled: !!race?.id && !!race?.runners?.length,
   });
+
+  if (!race) {
+    console.log('No race data provided to RaceDataDialog');
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
