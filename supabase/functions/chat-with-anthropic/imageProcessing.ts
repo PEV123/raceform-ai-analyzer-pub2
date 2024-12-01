@@ -5,6 +5,29 @@ const corsHeaders = {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB limit for Claude
 
+// Efficient base64 conversion that handles large buffers
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const chunk_size = 8192; // Process in 8KB chunks
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  
+  for (let i = 0; i < bytes.byteLength; i += chunk_size) {
+    const chunk = bytes.slice(i, i + chunk_size);
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  
+  return btoa(binary);
+}
+
+// Calculate new dimensions maintaining aspect ratio
+function calculateNewDimensions(width: number, height: number, targetSize: number) {
+  const ratio = Math.sqrt(targetSize / (width * height));
+  return {
+    width: Math.floor(width * ratio),
+    height: Math.floor(height * ratio)
+  };
+}
+
 export async function processImage(imageUrl: string, fileName: string, contentType: string) {
   console.log(`Processing image: ${fileName}`);
   
@@ -19,66 +42,72 @@ export async function processImage(imageUrl: string, fileName: string, contentTy
     console.log(`Downloaded image ${fileName}, size: ${size} bytes`);
 
     if (size > MAX_IMAGE_SIZE) {
-      console.log(`Image ${fileName} exceeds Claude's 5MB limit. Reducing size...`);
+      console.log(`Image ${fileName} exceeds Claude's 5MB limit. Starting progressive reduction...`);
       
-      // Convert array buffer to base64 for canvas processing
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // Convert array buffer to base64 for initial image loading
+      const base64 = arrayBufferToBase64(arrayBuffer);
       const img = new Image();
+      
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
         img.src = `data:${contentType};base64,${base64}`;
       });
 
-      // Create canvas with reduced dimensions
-      const canvas = new OffscreenCanvas(img.width / 2, img.height / 2);
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Failed to get canvas context');
-      }
+      // Start with 50% reduction and increase if needed
+      let scale = 0.5;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 3;
 
-      // Draw scaled image
-      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
-      
-      // Convert to blob and then to array buffer
-      const blob = await canvas.convertToBlob({ type: contentType });
-      const reducedBuffer = await blob.arrayBuffer();
-      
-      // Check if we need to reduce size further
-      if (reducedBuffer.byteLength > MAX_IMAGE_SIZE) {
-        console.log(`Image still too large after initial reduction. Further reducing...`);
-        const furtherCanvas = new OffscreenCanvas(canvas.width / 2, canvas.height / 2);
-        const furtherCtx = furtherCanvas.getContext('2d');
+      while (attempts < MAX_ATTEMPTS) {
+        const newDimensions = calculateNewDimensions(
+          img.width,
+          img.height,
+          (img.width * img.height) * (scale * scale)
+        );
+
+        console.log(`Attempt ${attempts + 1}: Reducing to ${newDimensions.width}x${newDimensions.height}`);
+
+        const canvas = new OffscreenCanvas(newDimensions.width, newDimensions.height);
+        const ctx = canvas.getContext('2d');
         
-        if (!furtherCtx) {
-          throw new Error('Failed to get canvas context for further reduction');
+        if (!ctx) {
+          throw new Error('Failed to get canvas context');
         }
 
-        furtherCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, furtherCanvas.width, furtherCanvas.height);
-        const furtherBlob = await furtherCanvas.convertToBlob({ type: contentType });
-        const finalBuffer = await furtherBlob.arrayBuffer();
+        // Use better quality settings
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
-        console.log(`Final reduced size: ${finalBuffer.byteLength} bytes`);
-        return {
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: contentType,
-            data: arrayBufferToBase64(finalBuffer)
-          }
-        };
-      }
-
-      console.log(`Reduced size: ${reducedBuffer.byteLength} bytes`);
-      return {
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: contentType,
-          data: arrayBufferToBase64(reducedBuffer)
+        // Draw scaled image
+        ctx.drawImage(img, 0, 0, newDimensions.width, newDimensions.height);
+        
+        // Convert to blob with quality settings
+        const blob = await canvas.convertToBlob({
+          type: contentType,
+          quality: 0.9
+        });
+        
+        const reducedBuffer = await blob.arrayBuffer();
+        console.log(`Reduced size: ${reducedBuffer.byteLength} bytes`);
+        
+        if (reducedBuffer.byteLength <= MAX_IMAGE_SIZE) {
+          return {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: contentType,
+              data: arrayBufferToBase64(reducedBuffer)
+            }
+          };
         }
-      };
+        
+        // Increase reduction for next attempt
+        scale *= 0.5;
+        attempts++;
+      }
+      
+      throw new Error(`Failed to reduce image to acceptable size after ${MAX_ATTEMPTS} attempts`);
     }
 
     // If image is under size limit, process normally
@@ -95,11 +124,4 @@ export async function processImage(imageUrl: string, fileName: string, contentTy
     console.error(`Error processing image ${fileName}:`, error);
     return null;
   }
-}
-
-// Helper function to convert ArrayBuffer to base64
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer);
-  const binString = Array.from(bytes, byte => String.fromCodePoint(byte)).join('');
-  return btoa(binString);
 }
