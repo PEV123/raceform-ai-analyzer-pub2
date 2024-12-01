@@ -50,7 +50,7 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log('Successfully fetched horse data')
+    console.log('Successfully fetched horse data:', JSON.stringify(data, null, 2))
 
     return new Response(
       JSON.stringify(data),

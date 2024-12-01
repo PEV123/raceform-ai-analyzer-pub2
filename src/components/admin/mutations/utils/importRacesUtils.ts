@@ -1,37 +1,74 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const importHorseResults = async (horseId: string) => {
-  const { data: resultsData } = await supabase.functions.invoke('fetch-horse-results', {
+  console.log('Importing results for horse:', horseId);
+  
+  const { data: resultsData, error } = await supabase.functions.invoke('fetch-horse-results', {
     body: { horseId }
   });
   
+  if (error) {
+    console.error('Error fetching horse results:', error);
+    throw error;
+  }
+
+  console.log('Raw API response:', resultsData);
+  
   if (resultsData?.results) {
-    for (const result of resultsData.results) {
-      await supabase
+    for (const race of resultsData.results) {
+      console.log('Processing race result:', race);
+      
+      // Find this horse's performance in the race
+      const horsePerformance = race.runners?.find(
+        (runner: any) => runner.horse_id === horseId
+      );
+
+      if (!horsePerformance) {
+        console.warn(`No performance data found for horse ${horseId} in race ${race.race_id}`);
+        continue;
+      }
+
+      // Find winner, second and third place horses
+      const winner = race.runners?.find((r: any) => r.position === "1");
+      const second = race.runners?.find((r: any) => r.position === "2");
+      const third = race.runners?.find((r: any) => r.position === "3");
+
+      const resultData = {
+        horse_id: horseId,
+        race_id: race.race_id,
+        date: race.off_dt || race.date, // Use off_dt if available, fallback to date
+        course: race.course,
+        distance: race.dist,
+        class: race.class,
+        going: race.going,
+        position: horsePerformance.position,
+        weight_lbs: parseInt(horsePerformance.weight_lbs) || null,
+        winner: winner?.horse || null,
+        second: second?.horse || null,
+        third: third?.horse || null,
+        winner_weight_lbs: winner?.weight_lbs ? parseInt(winner.weight_lbs) : null,
+        second_weight_lbs: second?.weight_lbs ? parseInt(second.weight_lbs) : null,
+        third_weight_lbs: third?.weight_lbs ? parseInt(third.weight_lbs) : null,
+        winner_btn: winner?.btn || null,
+        second_btn: second?.btn || null,
+        third_btn: third?.btn || null,
+        comment: horsePerformance.comment || null
+      };
+
+      console.log('Inserting result data:', resultData);
+
+      const { error: insertError } = await supabase
         .from('horse_results')
-        .upsert({
-          horse_id: horseId,
-          race_id: result.race_id,
-          date: result.date,
-          course: result.course,
-          distance: result.distance,
-          class: result.class,
-          going: result.going,
-          position: result.position,
-          weight_lbs: result.weight_lbs,
-          winner: result.winner,
-          second: result.second,
-          third: result.third,
-          winner_weight_lbs: result.winner_weight_lbs,
-          second_weight_lbs: result.second_weight_lbs,
-          third_weight_lbs: result.third_weight_lbs,
-          winner_btn: result.winner_btn,
-          second_btn: result.second_btn,
-          third_btn: result.third_btn,
-          comment: result.comment
-        }, {
+        .upsert(resultData, {
           onConflict: 'horse_id,race_id'
         });
+
+      if (insertError) {
+        console.error('Error inserting horse result:', insertError);
+        throw insertError;
+      }
+
+      console.log('Successfully inserted result for race:', race.race_id);
     }
   }
 };
