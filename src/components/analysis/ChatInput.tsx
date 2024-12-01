@@ -85,15 +85,14 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     if (!newMessage.trim() && !uploadState) return;
 
     let messageToSend = newMessage.trim();
-    if (uploadState?.publicUrl) {
-      messageToSend = messageToSend ? `${uploadState.publicUrl}\n${messageToSend}` : uploadState.publicUrl;
-    }
     
-    console.log('Sending message with image:', { messageToSend, uploadState });
+    // If we have an image, send just the message text (the image will be sent separately)
+    console.log('Sending message with image state:', uploadState);
+    
     await onSendMessage(
       messageToSend,
       uploadState ? { 
-        data: uploadState.base64,
+        data: uploadState.base64 || '',
         type: uploadState.type
       } : undefined
     );

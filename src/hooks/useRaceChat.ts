@@ -42,7 +42,7 @@ export const useRaceChat = (raceId: string) => {
   };
 
   const sendMessage = async (message: string, imageData?: { data: string; type: string }) => {
-    if (!message.trim() || !session?.user?.id) return;
+    if ((!message.trim() && !imageData) || !session?.user?.id) return;
     
     setIsLoading(true);
     console.log('Sending message with conversation history and image:', { messageLength: message.length, hasImage: !!imageData });
@@ -53,7 +53,7 @@ export const useRaceChat = (raceId: string) => {
         .from('race_chats')
         .insert({
           race_id: raceId,
-          message: message,
+          message: message || "(Image uploaded)",
           role: 'user',
           user_id: session.user.id,
         });
@@ -61,7 +61,7 @@ export const useRaceChat = (raceId: string) => {
       if (userMsgError) throw userMsgError;
 
       // Update local state immediately
-      const updatedMessages: Message[] = [...messages, { role: 'user', message }];
+      const updatedMessages: Message[] = [...messages, { role: 'user', message: message || "(Image uploaded)" }];
       setMessages(updatedMessages);
 
       // Prepare request body
@@ -71,7 +71,7 @@ export const useRaceChat = (raceId: string) => {
         conversationHistory: updatedMessages,
       };
 
-      // If there's an image, add it in the same format as race documents
+      // If there's an image, format it the same way as race documents
       if (imageData) {
         requestBody.image = {
           type: "image",
