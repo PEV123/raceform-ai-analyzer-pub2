@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 
 interface UploadButtonProps {
-  onFileSelect: (file: File) => Promise<void>;
+  onFileSelect: (file: File) => Promise<any>;
 }
 
 export const UploadButton = ({ onFileSelect }: UploadButtonProps) => {
