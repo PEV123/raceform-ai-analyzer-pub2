@@ -1,32 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { useState } from "react";
+import { DateSelector } from "./components/DateSelector";
+import { ClearRacesDialog } from "./components/ClearRacesDialog";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
@@ -38,7 +20,7 @@ const ImportRaces = () => {
   // Initialize with current UK date
   const [date, setDate] = useState<Date>(() => {
     const ukDate = fromZonedTime(new Date(), 'Europe/London');
-    console.log('Initial UK date set to:', format(ukDate, 'yyyy-MM-dd'));
+    console.log('Initial UK date set to:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
     return ukDate;
   });
 
@@ -54,12 +36,6 @@ const ImportRaces = () => {
       return data;
     },
   });
-
-  // Format the date in UK timezone
-  const formattedDate = formatInTimeZone(date, 'Europe/London', "MMMM do, yyyy");
-  const formattedClearDate = clearDate 
-    ? formatInTimeZone(clearDate, 'Europe/London', "MMMM do, yyyy")
-    : "Select date";
 
   const handleImport = async () => {
     await importMutation.mutateAsync({
@@ -78,111 +54,26 @@ const ImportRaces = () => {
         Import races from the Racing API for a specific date
       </p>
       <div className="flex gap-4 mb-6">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              disabled={clearMutation.isPending || importMutation.isPending}
-            >
-              {clearMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Clearing...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Races by Date
-                </>
-              )}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Select date to clear</AlertDialogTitle>
-              <AlertDialogDescription className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[240px] justify-start text-left font-normal",
-                          !clearDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formattedClearDate}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={clearDate}
-                        onSelect={setClearDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                {clearDate && (
-                  <p className="text-red-500">
-                    Are you absolutely sure you want to clear all races from {formattedClearDate}? 
-                    This action cannot be undone.
-                  </p>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setClearDate(undefined)}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (clearDate) {
-                    clearMutation.mutate(clearDate);
-                    setClearDate(undefined);
-                  }
-                }}
-                disabled={!clearDate}
-              >
-                Continue
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ClearRacesDialog
+          clearDate={clearDate}
+          setClearDate={setClearDate}
+          onClear={(date) => clearMutation.mutate(date)}
+          isPending={clearMutation.isPending}
+        />
 
         <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[240px] justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-                disabled={importMutation.isPending}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formattedDate}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(newDate) => {
-                  if (newDate) {
-                    // Convert the selected date to UK timezone
-                    const ukDate = fromZonedTime(newDate, 'Europe/London');
-                    console.log('New UK date selected:', format(ukDate, 'yyyy-MM-dd'));
-                    setDate(ukDate);
-                  }
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <DateSelector
+            date={date}
+            onSelect={(newDate) => {
+              if (newDate) {
+                // Convert the selected date to UK timezone
+                const ukDate = fromZonedTime(newDate, 'Europe/London');
+                console.log('New UK date selected:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
+                setDate(ukDate);
+              }
+            }}
+            disabled={importMutation.isPending}
+          />
 
           <Button
             onClick={handleImport}

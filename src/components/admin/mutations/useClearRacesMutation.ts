@@ -9,21 +9,23 @@ export const useClearRacesMutation = () => {
 
   return useMutation({
     mutationFn: async (date: Date) => {
-      console.log("Clearing races for date:", formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd'));
+      console.log("Clearing races for UK date:", formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd'));
       
       // Get the start and end of the selected date in UK timezone
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
+      const ukStartOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 00:00:00'));
+      const ukEndOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 23:59:59.999'));
       
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      console.log('UK time range:', {
+        start: ukStartOfDay.toISOString(),
+        end: ukEndOfDay.toISOString()
+      });
 
       // First, get all races for the selected date
       const { data: races, error: racesError } = await supabase
         .from("races")
         .select("id")
-        .gte('off_time', startOfDay.toISOString())
-        .lte('off_time', endOfDay.toISOString());
+        .gte('off_time', ukStartOfDay.toISOString())
+        .lte('off_time', ukEndOfDay.toISOString());
 
       if (racesError) {
         console.error("Error fetching races:", racesError);
