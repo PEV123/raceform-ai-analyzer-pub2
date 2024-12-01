@@ -4,6 +4,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { uploadImage } from "./utils/imageUpload";
 import { cn } from "@/lib/utils";
+import { ImageUploadState } from "./types/chat";
+import { ImagePreview } from "./ImagePreview";
+import { UploadButton } from "./UploadButton";
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageBase64?: { data: string; type: string }) => Promise<void>;
@@ -14,8 +17,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<{ publicUrl: string; base64: string; type: string } | null>(null);
+  const [uploadState, setUploadState] = useState<ImageUploadState | null>(null);
   const { toast } = useToast();
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -33,22 +35,27 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     try {
       setUploadProgress(10);
       
-      // Create preview
+      // Create preview and start upload
       const reader = new FileReader();
-      reader.onload = (e) => setPreviewUrl(e.target?.result as string);
+      reader.onload = (e) => {
+        setUploadState({
+          previewUrl: e.target?.result as string,
+          type: file.type
+        });
+      };
       reader.readAsDataURL(file);
       
       setUploadProgress(30);
       console.log('Uploading image to Supabase storage...');
       const { publicUrl, base64 } = await uploadImage(file);
       console.log('Image uploaded successfully');
-      setUploadProgress(90);
       
-      setUploadedImage({
+      setUploadState(prev => ({
+        ...prev!,
         publicUrl,
         base64,
         type: file.type
-      });
+      }));
       
       toast({
         title: "Success",
@@ -64,67 +71,35 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
         description: "Failed to process image",
         variant: "destructive",
       });
-      setUploadProgress(0);
-      setPreviewUrl(null);
-      setUploadedImage(null);
+      resetUploadState();
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      await handleImageUpload(file);
-    }
-  };
-
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items;
-    
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile();
-        if (file) {
-          await handleImageUpload(file);
-          break;
-        }
-      }
-    }
+  const resetUploadState = () => {
+    setUploadProgress(0);
+    setUploadState(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() && !uploadedImage) return;
+    if (!newMessage.trim() && !uploadState) return;
 
     let messageToSend = newMessage.trim();
-    if (uploadedImage) {
-      messageToSend = messageToSend ? `${uploadedImage.publicUrl}\n${messageToSend}` : uploadedImage.publicUrl;
+    if (uploadState?.publicUrl) {
+      messageToSend = messageToSend ? `${uploadState.publicUrl}\n${messageToSend}` : uploadState.publicUrl;
     }
     
-    console.log('Sending message with image:', messageToSend);
+    console.log('Sending message with image:', { messageToSend, uploadState });
     await onSendMessage(
       messageToSend,
-      uploadedImage ? { 
-        data: uploadedImage.base64,
-        type: uploadedImage.type
+      uploadState ? { 
+        data: uploadState.base64,
+        type: uploadState.type
       } : undefined
     );
+    
     setNewMessage('');
-    setPreviewUrl(null);
-    setUploadedImage(null);
-    setUploadProgress(0);
+    resetUploadState();
   };
 
   return (
@@ -135,64 +110,57 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
           "flex gap-2 relative",
           isDragging && "after:absolute after:inset-0 after:bg-primary/10 after:border-2 after:border-dashed after:border-primary after:rounded-lg"
         )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          const file = e.dataTransfer.files[0];
+          if (file) await handleImageUpload(file);
+        }}
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="shrink-0"
-          onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) handleImageUpload(file);
-            };
-            input.click();
-          }}
-        >
-          📎
-        </Button>
+        <UploadButton onFileSelect={handleImageUpload} />
         <div className="flex-1 space-y-2">
           {uploadProgress > 0 && (
             <Progress value={uploadProgress} className="w-full h-2" />
           )}
-          {previewUrl && (
-            <div className="relative w-20 h-20 mb-2">
-              <img 
-                src={previewUrl} 
-                alt="Upload preview" 
-                className="w-full h-full object-cover rounded-md"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 w-6 h-6"
-                onClick={() => {
-                  setPreviewUrl(null);
-                  setUploadedImage(null);
-                  setUploadProgress(0);
-                }}
-              >
-                ×
-              </Button>
-            </div>
+          {uploadState?.previewUrl && (
+            <ImagePreview 
+              url={uploadState.previewUrl}
+              onRemove={resetUploadState}
+            />
           )}
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onPaste={handlePaste}
+            onPaste={async (e) => {
+              const items = e.clipboardData.items;
+              for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                  const file = item.getAsFile();
+                  if (file) {
+                    await handleImageUpload(file);
+                    break;
+                  }
+                }
+              }
+            }}
             className="flex-1 resize-none border rounded-md p-2 w-full"
             rows={3}
-            placeholder={uploadedImage ? "Add a message (optional)..." : "Type your message or paste an image..."}
+            placeholder={uploadState ? "Add a message (optional)..." : "Type your message or paste an image..."}
           />
         </div>
-        <Button type="submit" className="shrink-0" disabled={isLoading || (!newMessage.trim() && !uploadedImage)}>
+        <Button 
+          type="submit" 
+          className="shrink-0" 
+          disabled={isLoading || (!newMessage.trim() && !uploadState)}
+        >
           Send
         </Button>
       </div>

@@ -45,7 +45,7 @@ export const useRaceChat = (raceId: string) => {
     if (!message.trim() || !session?.user?.id) return;
     
     setIsLoading(true);
-    console.log('Sending message with conversation history');
+    console.log('Sending message with conversation history and image:', { messageLength: message.length, hasImage: !!imageData });
 
     try {
       // Save user message
@@ -64,13 +64,14 @@ export const useRaceChat = (raceId: string) => {
       const updatedMessages: Message[] = [...messages, { role: 'user', message }];
       setMessages(updatedMessages);
 
-      // Prepare request body with image if present
+      // Prepare request body
       const requestBody: any = {
         message,
         raceId,
         conversationHistory: updatedMessages,
       };
 
+      // If there's an image, add it in the same format as race documents
       if (imageData) {
         requestBody.image = {
           type: "image",
@@ -82,26 +83,18 @@ export const useRaceChat = (raceId: string) => {
         };
       }
 
+      console.log('Sending request to edge function with image:', !!imageData);
+      
       // Call edge function with full conversation history
-      const response = await fetch(
-        'https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/chat-with-anthropic',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await supabase.functions.invoke('chat-with-anthropic', {
+        body: JSON.stringify(requestBody),
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('AI response error:', errorData);
-        throw new Error(errorData.message || 'Failed to get AI response');
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to get AI response');
       }
 
-      const data = await response.json();
+      const data = response.data;
       console.log('AI response received:', data);
       
       // Save AI response
