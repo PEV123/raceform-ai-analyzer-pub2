@@ -28,7 +28,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   
   const importHorseResults = useImportHorseResultsMutation();
   const importDistanceAnalysis = useImportHorseDistanceAnalysisMutation();
-  const { hasImportedResults, hasImportedAnalysis } = useRaceData(races);
+  const { hasImportedResults, hasImportedAnalysis, getImportedResultsCount, getImportedAnalysisCount } = useRaceData(races);
   const { handleDeleteDocument } = useRaceDocuments();
 
   const handleImportHorseResults = async (race: Race) => {
@@ -84,39 +84,51 @@ export const RaceList = ({ races }: RaceListProps) => {
             <TableHead>Venue</TableHead>
             <TableHead>Race</TableHead>
             <TableHead>Number Runners</TableHead>
-            <TableHead>Non Runners</TableHead>
+            <TableHead>Results</TableHead>
+            <TableHead>Distance Analysis</TableHead>
             <TableHead>Docs</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {dedupedRaces.map((race) => (
-            <TableRow key={race.id}>
-              <TableCell>{race.course}</TableCell>
-              <TableCell>{formatTime(race.off_time)}</TableCell>
-              <TableCell>{race.field_size}</TableCell>
-              <TableCell>0</TableCell>
-              <TableCell>
-                <RaceDocumentsCell
-                  documents={race.race_documents || []}
-                  onDeleteDocument={handleDeleteDocument}
-                />
-              </TableCell>
-              <TableCell>
-                <RaceActionButtons
-                  race={race}
-                  onUploadDocs={() => setSelectedRace(race)}
-                  onViewRawData={() => setRawDataRace(race)}
-                  onImportHorseResults={() => handleImportHorseResults(race)}
-                  onImportDistanceAnalysis={() => handleImportDistanceAnalysis(race)}
-                  hasImportedResults={hasImportedResults(race)}
-                  hasImportedAnalysis={hasImportedAnalysis(race)}
-                  isImportingResults={importHorseResults.isPending}
-                  isImportingAnalysis={importDistanceAnalysis.isPending}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
+          {dedupedRaces.map((race) => {
+            const resultsCount = getImportedResultsCount(race);
+            const analysisCount = getImportedAnalysisCount(race);
+            const totalRunners = race.runners?.length || 0;
+
+            return (
+              <TableRow key={race.id}>
+                <TableCell>{race.course}</TableCell>
+                <TableCell>{formatTime(race.off_time)}</TableCell>
+                <TableCell>{race.field_size}</TableCell>
+                <TableCell className="font-mono">
+                  {resultsCount}/{totalRunners}
+                </TableCell>
+                <TableCell className="font-mono">
+                  {analysisCount}/{totalRunners}
+                </TableCell>
+                <TableCell>
+                  <RaceDocumentsCell
+                    documents={race.race_documents || []}
+                    onDeleteDocument={handleDeleteDocument}
+                  />
+                </TableCell>
+                <TableCell>
+                  <RaceActionButtons
+                    race={race}
+                    onUploadDocs={() => setSelectedRace(race)}
+                    onViewRawData={() => setRawDataRace(race)}
+                    onImportHorseResults={() => handleImportHorseResults(race)}
+                    onImportDistanceAnalysis={() => handleImportDistanceAnalysis(race)}
+                    hasImportedResults={hasImportedResults(race)}
+                    hasImportedAnalysis={hasImportedAnalysis(race)}
+                    isImportingResults={importHorseResults.isPending}
+                    isImportingAnalysis={importDistanceAnalysis.isPending}
+                  />
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 

@@ -115,10 +115,29 @@ export const useRaceData = (races: Race[]) => {
     return hasAllAnalysis;
   };
 
+  const getImportedResultsCount = (race: Race) => {
+    if (!race.runners?.length || !existingResults) return 0;
+    return race.runners.filter(runner => 
+      existingResults.some(result => result.horse_id === runner.horse_id)
+    ).length;
+  };
+
+  const getImportedAnalysisCount = (race: Race) => {
+    if (!race.runners?.length || !existingAnalysis) return 0;
+    return race.runners.filter(runner => 
+      existingAnalysis.some(analysis => 
+        analysis.horse_id === runner.horse_id && 
+        analysis.horse_distance_details?.length > 0
+      )
+    ).length;
+  };
+
   return {
     hasImportedResults,
     hasImportedAnalysis,
     existingResults,
     existingAnalysis,
+    getImportedResultsCount,
+    getImportedAnalysisCount,
   };
 };
