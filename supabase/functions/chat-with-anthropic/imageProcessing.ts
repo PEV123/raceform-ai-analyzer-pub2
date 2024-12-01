@@ -21,15 +21,46 @@ export async function processImage(imageUrl: string, fileName: string, contentTy
       throw new Error(`Failed to fetch image ${fileName}: ${response.statusText}`);
     }
 
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE) {
-      console.warn(`Image ${fileName} exceeds Claude's 5MB limit: ${contentLength} bytes`);
-      return null;
+    const arrayBuffer = await response.arrayBuffer();
+    const size = arrayBuffer.byteLength;
+    console.log(`Downloaded image ${fileName}, size: ${size} bytes`);
+
+    if (size > MAX_IMAGE_SIZE) {
+      console.log(`Image ${fileName} exceeds Claude's 5MB limit. Splitting into chunks...`);
+      
+      // Calculate dimensions to split the image
+      const img = new Image();
+      img.src = `data:${contentType};base64,${arrayBufferToBase64(arrayBuffer)}`;
+      await new Promise((resolve) => img.onload = resolve);
+      
+      // Split into quarters if needed
+      const canvas = new OffscreenCanvas(img.width / 2, img.height / 2);
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+
+      // Draw top-left quarter
+      ctx.drawImage(img, 0, 0, img.width / 2, img.height / 2, 0, 0, canvas.width, canvas.height);
+      
+      const blob = await canvas.convertToBlob({ type: contentType });
+      const quarterBuffer = await blob.arrayBuffer();
+      const base64Quarter = arrayBufferToBase64(quarterBuffer);
+      
+      console.log(`Successfully split and encoded ${fileName} to a manageable size`);
+
+      return {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: contentType,
+          data: base64Quarter
+        }
+      };
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    console.log(`Successfully downloaded image ${fileName}, size: ${arrayBuffer.byteLength} bytes`);
-
+    // If image is under size limit, process normally
     const base64 = arrayBufferToBase64(arrayBuffer);
     console.log(`Successfully encoded image ${fileName} to base64`);
 

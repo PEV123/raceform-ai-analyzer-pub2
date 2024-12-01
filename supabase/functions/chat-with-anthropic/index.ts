@@ -1,21 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
-import { 
-  corsHeaders, 
-  processBase64Image,
-  fetchRaceData, 
-  fetchSettings,
-  formatRaceContext 
-} from "./utils.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { processImage } from "./imageProcessing.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
-  let processedImageCount = 0;
-  let failedImageCount = 0;
 
   try {
     const { message, raceId, conversationHistory } = await req.json();
@@ -25,23 +21,30 @@ serve(async (req) => {
       throw new Error('Missing required parameters: message or raceId');
     }
 
-    const race = await fetchRaceData(raceId);
-    const settings = await fetchSettings();
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch race data
+    const { data: race, error: raceError } = await supabase
+      .from('races')
+      .select(`
+        *,
+        runners (*),
+        race_documents (*)
+      `)
+      .eq('id', raceId)
+      .single();
+
+    if (raceError) throw raceError;
     console.log('Fetched race data with runners:', race.runners?.length);
 
-    // Initialize Anthropic client
-    const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
-    });
-
-    // Format the race context
-    const raceContext = formatRaceContext(race);
-    console.log('Generated race context length:', raceContext.length);
-
-    // Prepare the messages array
+    // Process any race documents for vision analysis
     const messages = [];
+    let totalImagesProcessed = 0;
+    let failedImages = 0;
 
-    // Process any race documents and add them as image messages
     if (race.race_documents?.length) {
       console.log(`Processing ${race.race_documents.length} race documents for vision analysis`);
       const imageDocuments = race.race_documents
@@ -64,66 +67,66 @@ serve(async (req) => {
               }
             ]
           });
-          processedImageCount++;
+          totalImagesProcessed++;
         } else {
-          failedImageCount++;
+          failedImages++;
         }
       }
-      
-      console.log(`Image processing summary:`, {
-        total: imageDocuments.length,
-        processed: processedImageCount,
-        failed: failedImageCount,
-        messageCount: messages.length
-      });
     }
 
-    // Process current message
-    if (message.startsWith('data:image')) {
-      console.log('Processing new uploaded image');
-      const imageData = processBase64Image(message);
-      if (imageData) {
-        messages.push({
-          role: "user",
-          content: [
-            imageData,
-            {
-              type: "text",
-              text: "Please analyze this image."
-            }
-          ]
-        });
-        processedImageCount++;
-      }
-    } else {
-      // Regular text message
-      messages.push({
-        role: "user",
-        content: message
-      });
-    }
+    // Format the race context
+    const raceContext = `
+Race Details:
+- Course: ${race.course}
+- Time: ${race.off_time}
+- Class: ${race.race_class}
+- Prize: ${race.prize}
+- Going: ${race.going}
+- Distance: ${race.distance_round || race.distance}
+${race.runners?.map(runner => `
+${runner.number}. ${runner.horse}
+- Jockey: ${runner.jockey}
+- Trainer: ${runner.trainer}
+- Weight: ${runner.lbs}lbs
+- Form: ${runner.form || 'No form'}
+`).join('\n') || 'No runners data available'}
+    `.trim();
+
+    console.log('Generated race context length:', raceContext.length);
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
+    });
+
+    // Add the current message
+    messages.push({
+      role: "user",
+      content: message
+    });
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
       systemPromptLength: raceContext.length,
       historyLength: conversationHistory?.length || 0,
-      totalImagesProcessed: processedImageCount,
-      failedImages: failedImageCount,
-      totalMessagesInPayload: messages.length
+      totalImagesProcessed,
+      failedImages
     });
 
-    // Make the API call to Claude
     const response = await anthropic.messages.create({
-      model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
+      model: "claude-3-sonnet-20240229",
       max_tokens: 1024,
-      system: `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`,
+      system: `You are a horse racing expert analyst who maintains a great knowledge of horse racing.
+
+Race Context:
+${raceContext}`,
       messages: messages
     });
 
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
       estimatedTokens: Math.ceil(response.content[0].text.length / 4),
-      imagesIncluded: processedImageCount
+      imagesIncluded: totalImagesProcessed
     });
 
     return new Response(
@@ -138,8 +141,8 @@ serve(async (req) => {
         error: true,
         message: error.message || 'An unexpected error occurred',
         details: {
-          processedImages: processedImageCount,
-          failedImages: failedImageCount
+          processedImages: totalImagesProcessed,
+          failedImages: failedImages
         }
       }),
       {
