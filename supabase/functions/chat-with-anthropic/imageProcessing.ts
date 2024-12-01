@@ -19,13 +19,35 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-// Calculate new dimensions maintaining aspect ratio
-function calculateNewDimensions(width: number, height: number, targetSize: number) {
-  const ratio = Math.sqrt(targetSize / (width * height));
-  return {
-    width: Math.floor(width * ratio),
-    height: Math.floor(height * ratio)
-  };
+// Scale down image using canvas
+async function scaleDownImage(imageData: ArrayBuffer, contentType: string, scale: number = 0.5): Promise<ArrayBuffer> {
+  const canvas = new OffscreenCanvas(1, 1);
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+
+  // Create a blob from the array buffer
+  const blob = new Blob([imageData], { type: contentType });
+  
+  // Create ImageBitmap from blob
+  const imageBitmap = await createImageBitmap(blob);
+  
+  // Set canvas size to scaled dimensions
+  canvas.width = imageBitmap.width * scale;
+  canvas.height = imageBitmap.height * scale;
+  
+  // Draw scaled image
+  ctx.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+  
+  // Convert to blob with quality settings
+  const newBlob = await canvas.convertToBlob({
+    type: contentType,
+    quality: 0.9
+  });
+  
+  return await newBlob.arrayBuffer();
 }
 
 export async function processImage(imageUrl: string, fileName: string, contentType: string) {
@@ -37,81 +59,45 @@ export async function processImage(imageUrl: string, fileName: string, contentTy
       throw new Error(`Failed to fetch image ${fileName}: ${response.statusText}`);
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const size = arrayBuffer.byteLength;
+    let arrayBuffer = await response.arrayBuffer();
+    let size = arrayBuffer.byteLength;
     console.log(`Downloaded image ${fileName}, size: ${size} bytes`);
 
+    // If image exceeds size limit, progressively reduce it
     if (size > MAX_IMAGE_SIZE) {
       console.log(`Image ${fileName} exceeds Claude's 5MB limit. Starting progressive reduction...`);
       
-      // Convert array buffer to base64 for initial image loading
-      const base64 = arrayBufferToBase64(arrayBuffer);
-      const img = new Image();
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = `data:${contentType};base64,${base64}`;
-      });
-
-      // Start with 50% reduction and increase if needed
-      let scale = 0.5;
+      let scale = 0.7; // Start with 70% of original size
       let attempts = 0;
-      const MAX_ATTEMPTS = 3;
+      const MAX_ATTEMPTS = 4;
 
-      while (attempts < MAX_ATTEMPTS) {
-        const newDimensions = calculateNewDimensions(
-          img.width,
-          img.height,
-          (img.width * img.height) * (scale * scale)
-        );
-
-        console.log(`Attempt ${attempts + 1}: Reducing to ${newDimensions.width}x${newDimensions.height}`);
-
-        const canvas = new OffscreenCanvas(newDimensions.width, newDimensions.height);
-        const ctx = canvas.getContext('2d');
+      while (size > MAX_IMAGE_SIZE && attempts < MAX_ATTEMPTS) {
+        console.log(`Attempt ${attempts + 1}: Reducing to ${Math.round(scale * 100)}% of original size`);
         
-        if (!ctx) {
-          throw new Error('Failed to get canvas context');
+        try {
+          arrayBuffer = await scaleDownImage(arrayBuffer, contentType, scale);
+          size = arrayBuffer.byteLength;
+          console.log(`New size after reduction: ${size} bytes`);
+          
+          if (size <= MAX_IMAGE_SIZE) {
+            break;
+          }
+          
+          scale *= 0.7; // Reduce by another 30% each attempt
+          attempts++;
+        } catch (error) {
+          console.error(`Error during image reduction attempt ${attempts + 1}:`, error);
+          throw error;
         }
-
-        // Use better quality settings
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        
-        // Draw scaled image
-        ctx.drawImage(img, 0, 0, newDimensions.width, newDimensions.height);
-        
-        // Convert to blob with quality settings
-        const blob = await canvas.convertToBlob({
-          type: contentType,
-          quality: 0.9
-        });
-        
-        const reducedBuffer = await blob.arrayBuffer();
-        console.log(`Reduced size: ${reducedBuffer.byteLength} bytes`);
-        
-        if (reducedBuffer.byteLength <= MAX_IMAGE_SIZE) {
-          return {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: contentType,
-              data: arrayBufferToBase64(reducedBuffer)
-            }
-          };
-        }
-        
-        // Increase reduction for next attempt
-        scale *= 0.5;
-        attempts++;
       }
-      
-      throw new Error(`Failed to reduce image to acceptable size after ${MAX_ATTEMPTS} attempts`);
+
+      if (size > MAX_IMAGE_SIZE) {
+        console.error(`Failed to reduce image ${fileName} to acceptable size after ${attempts} attempts`);
+        return null;
+      }
     }
 
-    // If image is under size limit, process normally
-    console.log(`Image ${fileName} is under size limit, processing normally`);
+    console.log(`Final image size for ${fileName}: ${arrayBuffer.byteLength} bytes`);
     return {
       type: "image",
       source: {
