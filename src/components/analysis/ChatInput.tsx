@@ -1,12 +1,10 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { uploadImage } from "./utils/imageUpload";
 import { cn } from "@/lib/utils";
-import { ImageUploadState } from "./types/chat";
 import { ImagePreview } from "./ImagePreview";
 import { UploadButton } from "./UploadButton";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageBase64?: { data: string; type: string }) => Promise<void>;
@@ -15,70 +13,9 @@ interface ChatInputProps {
 
 export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const [newMessage, setNewMessage] = useState('');
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadState, setUploadState] = useState<ImageUploadState | null>(null);
-  const { toast } = useToast();
   const dropZoneRef = useRef<HTMLDivElement>(null);
-
-  const handleImageUpload = async (file: File) => {
-    console.log('Starting image upload process with file:', file);
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Error",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setUploadProgress(10);
-      
-      // Create preview and start upload
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadState({
-          previewUrl: e.target?.result as string,
-          type: file.type
-        });
-      };
-      reader.readAsDataURL(file);
-      
-      setUploadProgress(30);
-      console.log('Uploading image to Supabase storage...');
-      const { publicUrl, base64 } = await uploadImage(file);
-      console.log('Image uploaded successfully');
-      
-      setUploadState(prev => ({
-        ...prev!,
-        publicUrl,
-        base64,
-        type: file.type
-      }));
-      
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
-      
-      setUploadProgress(100);
-      
-    } catch (error) {
-      console.error('Error processing image:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process image",
-        variant: "destructive",
-      });
-      resetUploadState();
-    }
-  };
-
-  const resetUploadState = () => {
-    setUploadProgress(0);
-    setUploadState(null);
-  };
+  const { uploadProgress, uploadState, handleImageUpload, resetUploadState } = useImageUpload();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +23,6 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
 
     let messageToSend = newMessage.trim();
     
-    // If we have an image, send just the message text (the image will be sent separately)
     console.log('Sending message with image state:', uploadState);
     
     await onSendMessage(

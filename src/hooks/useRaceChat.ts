@@ -48,12 +48,14 @@ export const useRaceChat = (raceId: string) => {
     console.log('Sending message with conversation history and image:', { messageLength: message.length, hasImage: !!imageData });
 
     try {
-      // Save user message
+      // Save user message with image URL if present
+      const userMessage = message.trim() || "(Image uploaded)";
+      
       const { error: userMsgError } = await supabase
         .from('race_chats')
         .insert({
           race_id: raceId,
-          message: message || "(Image uploaded)",
+          message: userMessage,
           role: 'user',
           user_id: session.user.id,
         });
@@ -61,7 +63,7 @@ export const useRaceChat = (raceId: string) => {
       if (userMsgError) throw userMsgError;
 
       // Update local state immediately
-      const updatedMessages: Message[] = [...messages, { role: 'user', message: message || "(Image uploaded)" }];
+      const updatedMessages: Message[] = [...messages, { role: 'user', message: userMessage }];
       setMessages(updatedMessages);
 
       // Prepare request body
