@@ -71,17 +71,17 @@ export const useRaceChat = (raceId: string) => {
         conversationHistory: updatedMessages,
       };
 
-      // If there's an image, format it exactly like race documents
+      // Format image data exactly like race documents
       if (imageData?.data) {
-        requestBody.image = {
+        requestBody.images = [{
           type: "image",
           source: {
             type: "base64",
             media_type: imageData.type,
             data: imageData.data
           }
-        };
-        console.log('Added image to request:', { hasImageData: !!requestBody.image });
+        }];
+        console.log('Added image to request:', { hasImageData: !!requestBody.images });
       }
 
       console.log('Sending request to edge function with image:', !!imageData);
