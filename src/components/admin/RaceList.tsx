@@ -3,6 +3,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
+import { RaceDataDialog } from "./RaceDataDialog";
 import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
 import { useImportHorseDistanceAnalysisMutation } from "./mutations/useImportHorseDistanceAnalysisMutation";
@@ -11,6 +12,7 @@ import { RaceActionButtons } from "./RaceActionButtons";
 import { useRaceData } from "./useRaceData";
 import { RaceDocumentsCell } from "./RaceDocumentsCell";
 import { useRaceDocuments } from "./hooks/useRaceDocuments";
+import { Database } from "lucide-react";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -24,6 +26,7 @@ interface RaceListProps {
 export const RaceList = ({ races }: RaceListProps) => {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
+  const [dbDataRace, setDbDataRace] = useState<Race | null>(null);
   const { toast } = useToast();
   
   const importHorseResults = useImportHorseResultsMutation();
@@ -98,7 +101,14 @@ export const RaceList = ({ races }: RaceListProps) => {
 
             return (
               <TableRow key={race.id}>
-                <TableCell>{race.course}</TableCell>
+                <TableCell>
+                  <div>
+                    {race.course}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      ID: {race.id}
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell>{formatTime(race.off_time)}</TableCell>
                 <TableCell>{race.field_size}</TableCell>
                 <TableCell className="font-mono">
@@ -118,6 +128,7 @@ export const RaceList = ({ races }: RaceListProps) => {
                     race={race}
                     onUploadDocs={() => setSelectedRace(race)}
                     onViewRawData={() => setRawDataRace(race)}
+                    onViewDbData={() => setDbDataRace(race)}
                     onImportHorseResults={() => handleImportHorseResults(race)}
                     onImportDistanceAnalysis={() => handleImportDistanceAnalysis(race)}
                     hasImportedResults={hasImportedResults(race)}
@@ -142,6 +153,12 @@ export const RaceList = ({ races }: RaceListProps) => {
         race={rawDataRace}
         open={!!rawDataRace}
         onOpenChange={(open) => !open && setRawDataRace(null)}
+      />
+
+      <RaceDataDialog
+        race={dbDataRace}
+        open={!!dbDataRace}
+        onOpenChange={(open) => !open && setDbDataRace(null)}
       />
     </>
   );
