@@ -1,74 +1,73 @@
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB limit for Claude
-
-// Efficient base64 conversion that handles large buffers
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const chunk_size = 8192; // Process in 8KB chunks
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  
-  for (let i = 0; i < bytes.byteLength; i += chunk_size) {
-    const chunk = bytes.slice(i, i + chunk_size);
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
-  }
-  
-  return btoa(binary);
-}
+const MAX_CHUNK_SIZE = 4 * 1024 * 1024; // 4MB to stay safely under Claude's 5MB limit
 
 export async function processImage(imageUrl: string, fileName: string, contentType: string) {
-  console.log(`Processing image: ${fileName}`);
+  console.log(`Processing image: ${fileName} (${contentType})`);
   
   try {
+    // Fetch the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch image ${fileName}: ${response.statusText}`);
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const size = arrayBuffer.byteLength;
-    console.log(`Downloaded image ${fileName}, size: ${size} bytes`);
+    // Get the image data as an ArrayBuffer
+    const imageData = await response.arrayBuffer();
+    console.log(`Image size: ${imageData.byteLength} bytes`);
 
-    // If image is under size limit, return as single image
-    if (size <= MAX_IMAGE_SIZE) {
-      console.log(`Image ${fileName} is under size limit, processing as single image`);
+    // If image is smaller than max size, return it as a single chunk
+    if (imageData.byteLength <= MAX_CHUNK_SIZE) {
+      console.log('Image is within size limit, processing as single chunk');
       return {
         type: "image",
         source: {
           type: "base64",
           media_type: contentType,
-          data: arrayBufferToBase64(arrayBuffer)
+          data: arrayBufferToBase64(imageData)
         }
       };
     }
 
-    // Split into chunks if over size limit
-    console.log(`Image ${fileName} exceeds size limit, splitting into chunks`);
-    const chunks: Uint8Array[] = [];
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    for (let i = 0; i < bytes.length; i += MAX_IMAGE_SIZE) {
-      const chunk = bytes.slice(i, Math.min(i + MAX_IMAGE_SIZE, bytes.length));
-      chunks.push(chunk);
+    // Split into chunks if larger than max size
+    console.log('Image exceeds size limit, splitting into chunks');
+    const chunks = [];
+    const totalChunks = Math.ceil(imageData.byteLength / MAX_CHUNK_SIZE);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * MAX_CHUNK_SIZE;
+      const end = Math.min(start + MAX_CHUNK_SIZE, imageData.byteLength);
+      const chunk = imageData.slice(start, end);
+
+      chunks.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: contentType,
+          data: arrayBufferToBase64(chunk)
+        },
+        metadata: {
+          fileName,
+          chunk: i + 1,
+          totalChunks,
+          size: chunk.byteLength
+        }
+      });
     }
 
     console.log(`Split image into ${chunks.length} chunks`);
-
-    // Return array of processed chunks
-    return chunks.map((chunk, index) => ({
-      type: "image",
-      source: {
-        type: "base64",
-        media_type: contentType,
-        data: arrayBufferToBase64(chunk.buffer),
-      },
-      metadata: {
-        chunk: index + 1,
-        totalChunks: chunks.length,
-        fileName: fileName
-      }
-    }));
+    return chunks;
 
   } catch (error) {
-    console.error(`Error processing image ${fileName}:`, error);
+    console.error('Error processing image:', error);
     return null;
   }
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }

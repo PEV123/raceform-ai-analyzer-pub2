@@ -9,8 +9,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
@@ -37,7 +41,11 @@ serve(async (req) => {
       .eq('id', raceId)
       .single();
 
-    if (raceError) throw raceError;
+    if (raceError) {
+      console.error('Error fetching race data:', raceError);
+      throw raceError;
+    }
+    
     console.log('Fetched race data with runners:', race.runners?.length);
 
     // Process any race documents for vision analysis
@@ -53,38 +61,46 @@ serve(async (req) => {
       console.log(`Found ${imageDocuments.length} image documents to process`);
 
       for (const doc of imageDocuments) {
-        const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
-        const processedImage = await processImage(imageUrl, doc.file_name, doc.content_type);
-        
-        if (processedImage) {
-          // Handle both single images and arrays of image chunks
-          if (Array.isArray(processedImage)) {
-            processedImage.forEach(chunk => {
+        try {
+          const imageUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/race_documents/${doc.file_path}`;
+          console.log('Processing image:', imageUrl);
+          
+          const processedImage = await processImage(imageUrl, doc.file_name, doc.content_type);
+          
+          if (processedImage) {
+            // Handle both single images and arrays of image chunks
+            if (Array.isArray(processedImage)) {
+              processedImage.forEach(chunk => {
+                messages.push({
+                  role: "user",
+                  content: [
+                    chunk,
+                    {
+                      type: "text",
+                      text: `Analyzing part ${chunk.metadata.chunk} of ${chunk.metadata.totalChunks} for document: ${chunk.metadata.fileName}`
+                    }
+                  ]
+                });
+              });
+            } else {
               messages.push({
                 role: "user",
                 content: [
-                  chunk,
+                  processedImage,
                   {
                     type: "text",
-                    text: `Analyzing part ${chunk.metadata.chunk} of ${chunk.metadata.totalChunks} for document: ${chunk.metadata.fileName}`
+                    text: "Please analyze this race document."
                   }
                 ]
               });
-            });
+            }
+            totalImagesProcessed++;
           } else {
-            messages.push({
-              role: "user",
-              content: [
-                processedImage,
-                {
-                  type: "text",
-                  text: "Please analyze this race document."
-                }
-              ]
-            });
+            console.warn(`Failed to process image: ${doc.file_name}`);
+            failedImages++;
           }
-          totalImagesProcessed++;
-        } else {
+        } catch (error) {
+          console.error(`Error processing image ${doc.file_name}:`, error);
           failedImages++;
         }
       }
@@ -147,23 +163,29 @@ ${raceContext}`,
 
     return new Response(
       JSON.stringify({ message: response.content[0].text }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
     console.error('Error in chat-with-anthropic function:', error);
+    
     return new Response(
       JSON.stringify({ 
         error: true,
         message: error.message || 'An unexpected error occurred',
-        details: {
-          processedImages: totalImagesProcessed,
-          failedImages: failedImages
-        }
+        details: error.stack
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
       }
     );
   }
