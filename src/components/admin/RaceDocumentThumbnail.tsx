@@ -9,7 +9,15 @@ interface RaceDocumentThumbnailProps {
 }
 
 export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailProps) => {
+  console.log('Rendering RaceDocumentThumbnail for document:', doc);
+  
   const imageUrl = `https://vlcrqrmqghskrdhhsgqt.supabase.co/storage/v1/object/public/race_documents/${doc.file_path}`;
+  console.log('Image URL:', imageUrl);
+
+  const handleDelete = () => {
+    console.log('Delete button clicked for document:', doc);
+    onDelete(doc);
+  };
 
   return (
     <div className="relative group">
@@ -20,6 +28,10 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
               src={imageUrl}
               alt={doc.file_name}
               className="w-8 h-8 object-cover rounded"
+              onError={(e) => {
+                console.error('Error loading thumbnail image:', e);
+                e.currentTarget.src = '/placeholder.svg';
+              }}
             />
           </div>
         </HoverCardTrigger>
@@ -28,6 +40,10 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
             src={imageUrl}
             alt={doc.file_name}
             className="max-w-[300px] max-h-[300px] object-contain rounded"
+            onError={(e) => {
+              console.error('Error loading preview image:', e);
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
         </HoverCardContent>
       </HoverCard>
@@ -35,8 +51,8 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
       <Button
         variant="destructive"
         size="icon"
-        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        onClick={() => onDelete(doc)}
+        className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+        onClick={handleDelete}
       >
         <X className="h-3 w-3" />
       </Button>
