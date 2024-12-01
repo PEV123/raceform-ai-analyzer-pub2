@@ -70,49 +70,26 @@ export const useRaceData = (races: Race[]) => {
     enabled: horseIds.length > 0,
   });
 
+  // Helper functions to check data existence
   const hasImportedResults = (race: Race) => {
     if (!race.runners?.length || !existingResults) {
-      console.log('No runners or existing results for race:', race.id);
       return false;
     }
-
-    const raceHorseIds = race.runners.map(runner => runner.horse_id);
-    console.log('Checking results for race:', {
-      raceId: race.id,
-      raceHorseIds,
-      existingResults
-    });
-
-    const hasAllResults = race.runners.every(runner => 
+    return race.runners.every(runner => 
       existingResults.some(result => result.horse_id === runner.horse_id)
     );
-
-    console.log(`Race ${race.id} has${hasAllResults ? '' : ' not'} imported all results`);
-    return hasAllResults;
   };
 
   const hasImportedAnalysis = (race: Race) => {
     if (!race.runners?.length || !existingAnalysis) {
-      console.log('No runners or existing analysis for race:', race.id);
       return false;
     }
-
-    const raceHorseIds = race.runners.map(runner => runner.horse_id);
-    console.log('Checking analysis for race:', {
-      raceId: race.id,
-      raceHorseIds,
-      existingAnalysis
-    });
-
-    const hasAllAnalysis = race.runners.every(runner => 
+    return race.runners.every(runner => 
       existingAnalysis.some(analysis => 
         analysis.horse_id === runner.horse_id && 
         analysis.horse_distance_details?.length > 0
       )
     );
-
-    console.log(`Race ${race.id} has${hasAllAnalysis ? '' : ' not'} imported all analysis`);
-    return hasAllAnalysis;
   };
 
   const getImportedResultsCount = (race: Race) => {
