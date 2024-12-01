@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@anthropic-ai/sdk": "https://esm.sh/@anthropic-ai/sdk@0.14.1",
+    "std/": "https://deno.land/std@0.168.0/"
+  }
+}
