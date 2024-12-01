@@ -25,6 +25,11 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     
     console.log('Sending message with image state:', uploadState);
     
+    if (uploadState?.publicUrl) {
+      // If we have an image, prepend its URL to the message
+      messageToSend = `${uploadState.publicUrl}\n${messageToSend}`;
+    }
+    
     await onSendMessage(
       messageToSend,
       uploadState ? { 

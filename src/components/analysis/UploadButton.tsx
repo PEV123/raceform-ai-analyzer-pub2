@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { ImageUploadResult } from "./types/chat";
 
 interface UploadButtonProps {
-  onFileSelect: (file: File) => Promise<any>;
+  onFileSelect: (file: File) => Promise<ImageUploadResult | void>;
 }
 
 export const UploadButton = ({ onFileSelect }: UploadButtonProps) => {
