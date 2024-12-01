@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -58,7 +56,7 @@ export const fetchSettings = async () => {
 export const formatRaceContext = (race: any) => {
   if (!race) return "No race data available";
   
-  const raceDetails = `
+  return `
 Race Details:
 - Name: ${race.race_name}
 - Course: ${race.course}
@@ -75,7 +73,10 @@ Race Details:
 ${race.jumps ? `- Jumps: ${race.jumps}` : ''}
 
 Runners:
-${race.runners?.map((runner: any) => `
+${race.runners?.map((runner: any) => formatRunnerDetails(runner)).join('\n')}`;
+};
+
+const formatRunnerDetails = (runner: any) => `
 ${runner.number}. ${runner.horse} (${runner.draw})
 - Jockey: ${runner.jockey}
 - Trainer: ${runner.trainer} (14 day form: ${runner.trainer_14_days?.wins}/${runner.trainer_14_days?.runs} - ${runner.trainer_14_days?.percent}%)
@@ -90,8 +91,4 @@ ${runner.headgear ? `- Wearing: ${runner.headgear}` : ''}
 ${runner.comment ? `- Comment: ${runner.comment}` : ''}
 ${runner.spotlight ? `- Spotlight: ${runner.spotlight}` : ''}
 ${runner.quotes?.length ? `\nQuotes:\n${runner.quotes.map((q: any) => `"${q.quote}"`).join('\n')}` : ''}
-${runner.stable_tour?.length ? `\nStable Tour:\n${runner.stable_tour.map((t: any) => `"${t.quote}"`).join('\n')}` : ''}
-`).join('\n')}`;
-
-  return raceDetails;
-};
+${runner.stable_tour?.length ? `\nStable Tour:\n${runner.stable_tour.map((t: any) => `"${t.quote}"`).join('\n')}` : ''}`;
