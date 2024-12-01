@@ -2,6 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { formatInTimeZone } from 'date-fns-tz';
+import { 
+  getRacesForDate,
+  clearRaceChats,
+  clearRaceDocuments,
+  clearRunners,
+  clearRaces
+} from './utils/clearRacesUtils';
 
 export const useClearRacesMutation = () => {
   const { toast } = useToast();
@@ -15,78 +22,20 @@ export const useClearRacesMutation = () => {
       const ukStartOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 00:00:00'));
       const ukEndOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 23:59:59.999'));
       
-      console.log('UK time range:', {
-        start: ukStartOfDay.toISOString(),
-        end: ukEndOfDay.toISOString()
-      });
-
-      // First, get all races for the selected date
-      const { data: races, error: racesError } = await supabase
-        .from("races")
-        .select("id")
-        .gte('off_time', ukStartOfDay.toISOString())
-        .lte('off_time', ukEndOfDay.toISOString());
-
-      if (racesError) {
-        console.error("Error fetching races:", racesError);
-        throw racesError;
+      // Get all races for the selected date
+      const raceIds = await getRacesForDate(ukStartOfDay, ukEndOfDay);
+      
+      if (raceIds.length === 0) {
+        return formatInTimeZone(date, 'Europe/London', 'MMMM do, yyyy');
       }
 
-      if (!races || races.length === 0) {
-        console.log("No races found for the selected date");
-        return;
-      }
-
-      const raceIds = races.map(race => race.id);
       console.log(`Found ${raceIds.length} races to clear`);
       
-      // First, delete all race chats for these races
-      const { error: chatsError } = await supabase
-        .from("race_chats")
-        .delete()
-        .in("race_id", raceIds);
-      
-      if (chatsError) {
-        console.error("Error clearing race chats:", chatsError);
-        throw chatsError;
-      }
-      console.log("Successfully cleared race chats");
-
-      // Then, delete all race documents for these races
-      const { error: docsError } = await supabase
-        .from("race_documents")
-        .delete()
-        .in("race_id", raceIds);
-      
-      if (docsError) {
-        console.error("Error clearing race documents:", docsError);
-        throw docsError;
-      }
-      console.log("Successfully cleared race documents");
-
-      // Then, delete all runners for these races
-      const { error: runnersError } = await supabase
-        .from("runners")
-        .delete()
-        .in("race_id", raceIds);
-      
-      if (runnersError) {
-        console.error("Error clearing runners:", runnersError);
-        throw runnersError;
-      }
-      console.log("Successfully cleared runners");
-
-      // Finally, delete the races themselves
-      const { error: deleteRacesError } = await supabase
-        .from("races")
-        .delete()
-        .in("id", raceIds);
-      
-      if (deleteRacesError) {
-        console.error("Error clearing races:", deleteRacesError);
-        throw deleteRacesError;
-      }
-      console.log("Successfully cleared races");
+      // Clear all related data
+      await clearRaceChats(raceIds);
+      await clearRaceDocuments(raceIds);
+      await clearRunners(raceIds);
+      await clearRaces(raceIds);
 
       return formatInTimeZone(date, 'Europe/London', 'MMMM do, yyyy');
     },

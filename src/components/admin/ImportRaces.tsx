@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { DateSelector } from "./components/DateSelector";
 import { ClearRacesDialog } from "./components/ClearRacesDialog";
+import { ImportProgress } from "./components/ImportProgress";
+import { ImportActions } from "./components/ImportActions";
 
 const ImportRaces = () => {
   const clearMutation = useClearRacesMutation();
@@ -62,41 +60,26 @@ const ImportRaces = () => {
           isPending={clearMutation.isPending}
         />
 
-        <div className="flex gap-2">
-          <DateSelector
-            date={date}
-            onSelect={(newDate) => {
-              if (newDate) {
-                // Convert the selected date to UK timezone
-                const ukDate = fromZonedTime(newDate, 'Europe/London');
-                console.log('New UK date selected:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
-                setDate(ukDate);
-              }
-            }}
-            disabled={importMutation.isPending}
-          />
-
-          <Button
-            onClick={handleImport}
-            disabled={clearMutation.isPending || importMutation.isPending}
-          >
-            {importMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Importing...
-              </>
-            ) : (
-              "Import Races"
-            )}
-          </Button>
-        </div>
+        <ImportActions
+          date={date}
+          onDateSelect={(newDate) => {
+            if (newDate) {
+              const ukDate = fromZonedTime(newDate, 'Europe/London');
+              console.log('New UK date selected:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
+              setDate(ukDate);
+            }
+          }}
+          onImport={handleImport}
+          isImporting={importMutation.isPending}
+          isClearingRaces={clearMutation.isPending}
+        />
       </div>
 
       {importMutation.isPending && (
-        <div className="space-y-2">
-          <Progress value={progress} className="w-full" />
-          <p className="text-sm text-muted-foreground">{currentOperation}</p>
-        </div>
+        <ImportProgress
+          progress={progress}
+          operation={currentOperation}
+        />
       )}
     </Card>
   );
