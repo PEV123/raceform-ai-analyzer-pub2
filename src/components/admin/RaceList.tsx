@@ -1,6 +1,5 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
+import { Tables } from "@/integrations/supabase/types";
 import { DocumentUploadDialog } from "./DocumentUploadDialog";
 import { RawDataDialog } from "./RawDataDialog";
 import { RaceDataDialog } from "./RaceDataDialog";
@@ -8,10 +7,9 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { useImportHorseResultsMutation } from "./mutations/useImportHorseResultsMutation";
 import { useImportHorseDistanceAnalysisMutation } from "./mutations/useImportHorseDistanceAnalysisMutation";
 import { useToast } from "@/hooks/use-toast";
-import { RaceActionButtons } from "./RaceActionButtons";
 import { useRaceData } from "./useRaceData";
-import { RaceDocumentsCell } from "./RaceDocumentsCell";
 import { useRaceDocuments } from "./hooks/useRaceDocuments";
+import { RaceTable } from "./race-list/RaceTable";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -30,7 +28,7 @@ export const RaceList = ({ races }: RaceListProps) => {
   
   const importHorseResults = useImportHorseResultsMutation();
   const importDistanceAnalysis = useImportHorseDistanceAnalysisMutation();
-  const { hasImportedResults, hasImportedAnalysis, getImportedResultsCount, getImportedAnalysisCount } = useRaceData(races);
+  const { hasImportedResults, hasImportedAnalysis } = useRaceData(races);
   const { handleDeleteDocument } = useRaceDocuments();
 
   const handleImportHorseResults = async (race: Race) => {
@@ -80,72 +78,20 @@ export const RaceList = ({ races }: RaceListProps) => {
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Venue</TableHead>
-            <TableHead>Race</TableHead>
-            <TableHead>Number Runners</TableHead>
-            <TableHead>Results</TableHead>
-            <TableHead>Distance Analysis</TableHead>
-            <TableHead>Docs</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {dedupedRaces.map((race) => {
-            const resultsCount = getImportedResultsCount(race);
-            const analysisCount = getImportedAnalysisCount(race);
-            const totalRunners = race.runners?.length || 0;
-
-            return (
-              <TableRow key={race.id}>
-                <TableCell>
-                  <div>
-                    {race.course}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      ID: {race.id}
-                    </div>
-                    {race.race_id && (
-                      <div className="text-xs text-muted-foreground">
-                        API ID: {race.race_id}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>{formatTime(race.off_time)}</TableCell>
-                <TableCell>{race.field_size}</TableCell>
-                <TableCell className="font-mono">
-                  {resultsCount}/{totalRunners}
-                </TableCell>
-                <TableCell className="font-mono">
-                  {analysisCount}/{totalRunners}
-                </TableCell>
-                <TableCell>
-                  <RaceDocumentsCell
-                    documents={race.race_documents || []}
-                    onDeleteDocument={handleDeleteDocument}
-                  />
-                </TableCell>
-                <TableCell>
-                  <RaceActionButtons
-                    race={race}
-                    onUploadDocs={() => setSelectedRace(race)}
-                    onViewRawData={() => setRawDataRace(race)}
-                    onViewDbData={() => setDbDataRace(race)}
-                    onImportHorseResults={() => handleImportHorseResults(race)}
-                    onImportDistanceAnalysis={() => handleImportDistanceAnalysis(race)}
-                    hasImportedResults={hasImportedResults(race)}
-                    hasImportedAnalysis={hasImportedAnalysis(race)}
-                    isImportingResults={importHorseResults.isPending}
-                    isImportingAnalysis={importDistanceAnalysis.isPending}
-                  />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <RaceTable
+        races={dedupedRaces}
+        formatTime={formatTime}
+        onUploadDocs={setSelectedRace}
+        onViewRawData={setRawDataRace}
+        onViewDbData={setDbDataRace}
+        onImportHorseResults={handleImportHorseResults}
+        onImportDistanceAnalysis={handleImportDistanceAnalysis}
+        hasImportedResults={hasImportedResults}
+        hasImportedAnalysis={hasImportedAnalysis}
+        isImportingResults={importHorseResults.isPending}
+        isImportingAnalysis={importDistanceAnalysis.isPending}
+        onDeleteDocument={handleDeleteDocument}
+      />
 
       <DocumentUploadDialog
         race={selectedRace}
