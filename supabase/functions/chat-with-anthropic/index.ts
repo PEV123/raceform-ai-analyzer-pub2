@@ -57,16 +57,32 @@ serve(async (req) => {
         const processedImage = await processImage(imageUrl, doc.file_name, doc.content_type);
         
         if (processedImage) {
-          messages.push({
-            role: "user",
-            content: [
-              processedImage,
-              {
-                type: "text",
-                text: "Please analyze this race document."
-              }
-            ]
-          });
+          // Handle both single images and arrays of image chunks
+          if (Array.isArray(processedImage)) {
+            processedImage.forEach(chunk => {
+              messages.push({
+                role: "user",
+                content: [
+                  chunk,
+                  {
+                    type: "text",
+                    text: `Analyzing part ${chunk.metadata.chunk} of ${chunk.metadata.totalChunks} for document: ${chunk.metadata.fileName}`
+                  }
+                ]
+              });
+            });
+          } else {
+            messages.push({
+              role: "user",
+              content: [
+                processedImage,
+                {
+                  type: "text",
+                  text: "Please analyze this race document."
+                }
+              ]
+            });
+          }
           totalImagesProcessed++;
         } else {
           failedImages++;

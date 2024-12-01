@@ -1,8 +1,3 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB limit for Claude
 
 // Efficient base64 conversion that handles large buffers
@@ -19,37 +14,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-// Scale down image using canvas
-async function scaleDownImage(imageData: ArrayBuffer, contentType: string, scale: number = 0.5): Promise<ArrayBuffer> {
-  const canvas = new OffscreenCanvas(1, 1);
-  const ctx = canvas.getContext('2d');
-  
-  if (!ctx) {
-    throw new Error('Failed to get canvas context');
-  }
-
-  // Create a blob from the array buffer
-  const blob = new Blob([imageData], { type: contentType });
-  
-  // Create ImageBitmap from blob
-  const imageBitmap = await createImageBitmap(blob);
-  
-  // Set canvas size to scaled dimensions
-  canvas.width = imageBitmap.width * scale;
-  canvas.height = imageBitmap.height * scale;
-  
-  // Draw scaled image
-  ctx.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
-  
-  // Convert to blob with quality settings
-  const newBlob = await canvas.convertToBlob({
-    type: contentType,
-    quality: 0.9
-  });
-  
-  return await newBlob.arrayBuffer();
-}
-
 export async function processImage(imageUrl: string, fileName: string, contentType: string) {
   console.log(`Processing image: ${fileName}`);
   
@@ -59,53 +23,50 @@ export async function processImage(imageUrl: string, fileName: string, contentTy
       throw new Error(`Failed to fetch image ${fileName}: ${response.statusText}`);
     }
 
-    let arrayBuffer = await response.arrayBuffer();
-    let size = arrayBuffer.byteLength;
+    const arrayBuffer = await response.arrayBuffer();
+    const size = arrayBuffer.byteLength;
     console.log(`Downloaded image ${fileName}, size: ${size} bytes`);
 
-    // If image exceeds size limit, progressively reduce it
-    if (size > MAX_IMAGE_SIZE) {
-      console.log(`Image ${fileName} exceeds Claude's 5MB limit. Starting progressive reduction...`);
-      
-      let scale = 0.7; // Start with 70% of original size
-      let attempts = 0;
-      const MAX_ATTEMPTS = 4;
-
-      while (size > MAX_IMAGE_SIZE && attempts < MAX_ATTEMPTS) {
-        console.log(`Attempt ${attempts + 1}: Reducing to ${Math.round(scale * 100)}% of original size`);
-        
-        try {
-          arrayBuffer = await scaleDownImage(arrayBuffer, contentType, scale);
-          size = arrayBuffer.byteLength;
-          console.log(`New size after reduction: ${size} bytes`);
-          
-          if (size <= MAX_IMAGE_SIZE) {
-            break;
-          }
-          
-          scale *= 0.7; // Reduce by another 30% each attempt
-          attempts++;
-        } catch (error) {
-          console.error(`Error during image reduction attempt ${attempts + 1}:`, error);
-          throw error;
+    // If image is under size limit, return as single image
+    if (size <= MAX_IMAGE_SIZE) {
+      console.log(`Image ${fileName} is under size limit, processing as single image`);
+      return {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: contentType,
+          data: arrayBufferToBase64(arrayBuffer)
         }
-      }
-
-      if (size > MAX_IMAGE_SIZE) {
-        console.error(`Failed to reduce image ${fileName} to acceptable size after ${attempts} attempts`);
-        return null;
-      }
+      };
     }
 
-    console.log(`Final image size for ${fileName}: ${arrayBuffer.byteLength} bytes`);
-    return {
+    // Split into chunks if over size limit
+    console.log(`Image ${fileName} exceeds size limit, splitting into chunks`);
+    const chunks: Uint8Array[] = [];
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    for (let i = 0; i < bytes.length; i += MAX_IMAGE_SIZE) {
+      const chunk = bytes.slice(i, Math.min(i + MAX_IMAGE_SIZE, bytes.length));
+      chunks.push(chunk);
+    }
+
+    console.log(`Split image into ${chunks.length} chunks`);
+
+    // Return array of processed chunks
+    return chunks.map((chunk, index) => ({
       type: "image",
       source: {
         type: "base64",
         media_type: contentType,
-        data: arrayBufferToBase64(arrayBuffer)
+        data: arrayBufferToBase64(chunk.buffer),
+      },
+      metadata: {
+        chunk: index + 1,
+        totalChunks: chunks.length,
+        fileName: fileName
       }
-    };
+    }));
+
   } catch (error) {
     console.error(`Error processing image ${fileName}:`, error);
     return null;
