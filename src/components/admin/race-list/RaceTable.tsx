@@ -19,7 +19,7 @@ interface RaceTableProps {
   hasImportedAnalysis: (race: Race) => boolean;
   isImportingResults: boolean;
   isImportingAnalysis: boolean;
-  onDeleteDocument: (documentId: string) => Promise<void>;
+  onDeleteDocument: (doc: Tables<"race_documents">) => void;
 }
 
 export const RaceTable = ({
