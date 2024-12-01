@@ -20,6 +20,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = async (file: File) => {
+    console.log('Starting image upload process with file:', file);
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Error",
@@ -30,7 +31,6 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     }
 
     try {
-      console.log('Starting image upload process');
       setUploadProgress(10);
       
       // Create preview
@@ -39,7 +39,9 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
       reader.readAsDataURL(file);
       
       setUploadProgress(30);
+      console.log('Uploading image to Supabase storage...');
       const publicUrl = await uploadImage(file);
+      console.log('Image uploaded successfully, public URL:', publicUrl);
       setUploadProgress(90);
       
       setUploadedImageUrl(publicUrl);
@@ -106,6 +108,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
       messageToSend = messageToSend ? `${uploadedImageUrl}\n${messageToSend}` : uploadedImageUrl;
     }
     
+    console.log('Sending message with image:', messageToSend);
     await onSendMessage(messageToSend);
     setNewMessage('');
     setPreviewUrl(null);
