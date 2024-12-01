@@ -1,17 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
-import { formatInTimeZone } from 'date-fns-tz';
 
-export const getRacesForDate = async (startDate: Date, endDate: Date) => {
-  console.log('UK time range:', {
-    start: startDate.toISOString(),
-    end: endDate.toISOString()
+export const getRacesForDate = async (startDate: string, endDate: string) => {
+  console.log('Querying races between:', {
+    start: startDate,
+    end: endDate
   });
 
   const { data: races, error: racesError } = await supabase
     .from("races")
     .select("id")
-    .gte('off_time', startDate.toISOString())
-    .lte('off_time', endDate.toISOString());
+    .gte('off_time', startDate)
+    .lt('off_time', endDate);
 
   if (racesError) {
     console.error("Error fetching races:", racesError);
@@ -19,10 +18,11 @@ export const getRacesForDate = async (startDate: Date, endDate: Date) => {
   }
 
   if (!races || races.length === 0) {
-    console.log("No races found for the selected date");
+    console.log("No races found for the selected date range");
     return [];
   }
 
+  console.log(`Found ${races.length} races to clear in date range`);
   return races.map(race => race.id);
 };
 

@@ -16,12 +16,19 @@ export const useClearRacesMutation = () => {
 
   return useMutation({
     mutationFn: async (date: Date) => {
-      console.log("Clearing races for UK date:", formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd'));
+      // Format the date in UK timezone
+      const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
+      console.log("Clearing races for UK date:", ukDate);
       
-      // Get the start and end of the selected date in UK timezone
-      const ukStartOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 00:00:00'));
-      const ukEndOfDay = new Date(formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd 23:59:59.999'));
+      // Create start and end timestamps for the full UK day
+      const ukStartOfDay = `${ukDate}T00:00:00.000+00:00`;
+      const ukEndOfDay = `${ukDate}T23:59:59.999+00:00`;
       
+      console.log('UK time range for clearing races:', {
+        start: ukStartOfDay,
+        end: ukEndOfDay
+      });
+
       // Get all races for the selected date
       const raceIds = await getRacesForDate(ukStartOfDay, ukEndOfDay);
       
