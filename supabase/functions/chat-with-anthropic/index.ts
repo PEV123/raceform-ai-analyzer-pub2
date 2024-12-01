@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
-import { corsHeaders, processBase64Image, fetchRaceData, fetchSettings, formatRaceContext } from "./utils.ts";
-import { processRaceDocuments } from "./imageProcessing.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,32 +12,35 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId, conversationHistory } = await req.json();
-    console.log('Received request:', { raceId, messageType: typeof message, historyLength: conversationHistory?.length });
-
-    if (!message || !raceId) {
-      throw new Error('Missing required parameters: message or raceId');
-    }
-
-    const race = await fetchRaceData(raceId);
-    const settings = await fetchSettings();
-    console.log('Fetched race data with runners:', race.runners?.length);
+    const { message, raceId, conversationHistory, images } = await req.json();
+    console.log('Making request to Anthropic API with:', { 
+      messageCount: conversationHistory?.length,
+      systemPromptLength: raceId.length,
+      historyLength: conversationHistory?.length || 0,
+      totalImagesProcessed: images?.length || 0
+    });
 
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
+
+    const race = await fetchRaceData(raceId);
+    const settings = await fetchSettings();
+    console.log('Fetched race data with runners:', race.runners?.length);
 
     const raceContext = formatRaceContext(race);
     console.log('Generated race context length:', raceContext.length);
 
     const messages = [];
 
-    // Process race documents
-    const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
-    messages.push(...processedImages.map(img => ({
-      role: "user",
-      content: [img, { type: "text", text: "Please analyze this race document." }]
-    })));
+    // Add race documents as images if they exist
+    if (race.race_documents?.length) {
+      const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
+      messages.push(...processedImages.map(img => ({
+        role: "user",
+        content: [img, { type: "text", text: "Please analyze this race document." }]
+      })));
+    }
 
     // Add conversation history
     if (conversationHistory?.length > 0) {
@@ -44,26 +50,26 @@ serve(async (req) => {
       })));
     }
 
-    // Process current message
-    if (message.startsWith('data:image')) {
-      const imageData = processBase64Image(message);
-      if (imageData) {
-        messages.push({
-          role: "user",
-          content: [imageData, { type: "text", text: "Please analyze this image." }]
-        });
-      }
-    } else {
+    // Add current message with any uploaded image
+    const currentContent = [];
+    if (images?.length > 0) {
+      currentContent.push(...images);
+    }
+    if (message) {
+      currentContent.push({ type: "text", text: message });
+    }
+    
+    if (currentContent.length > 0) {
       messages.push({
         role: "user",
-        content: message
+        content: currentContent
       });
     }
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      systemPromptLength: raceContext.length,
-      historyLength: conversationHistory?.length || 0
+      hasImages: images?.length > 0,
+      modelUsed: settings?.anthropic_model
     });
 
     const response = await anthropic.messages.create({
@@ -75,7 +81,8 @@ serve(async (req) => {
 
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
-      estimatedTokens: Math.ceil(response.content[0].text.length / 4)
+      estimatedTokens: Math.ceil(response.content[0].text.length / 4),
+      imagesIncluded: images?.length || 0
     });
 
     return new Response(

@@ -15,3 +15,12 @@ export interface Message {
   role: 'user' | 'assistant';
   message: string;
 }
+
+export interface ImageData {
+  type: string;
+  source: {
+    type: "base64";
+    media_type: string;
+    data: string;
+  };
+}
