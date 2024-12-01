@@ -71,8 +71,8 @@ export const useRaceChat = (raceId: string) => {
         conversationHistory: updatedMessages,
       };
 
-      // If there's an image, format it the same way as race documents
-      if (imageData) {
+      // If there's an image, format it exactly like race documents
+      if (imageData?.data) {
         requestBody.image = {
           type: "image",
           source: {
@@ -81,6 +81,7 @@ export const useRaceChat = (raceId: string) => {
             data: imageData.data
           }
         };
+        console.log('Added image to request:', { hasImageData: !!requestBody.image });
       }
 
       console.log('Sending request to edge function with image:', !!imageData);
