@@ -33,6 +33,7 @@ const ImportRaces = () => {
   const importMutation = useImportRacesMutation();
   const [progress, setProgress] = useState(0);
   const [currentOperation, setCurrentOperation] = useState<string>("");
+  const [clearDate, setClearDate] = useState<Date | undefined>();
   
   // Initialize with current UK date
   const [date, setDate] = useState<Date>(() => {
@@ -56,6 +57,9 @@ const ImportRaces = () => {
 
   // Format the date in UK timezone
   const formattedDate = formatInTimeZone(date, 'Europe/London', "MMMM do, yyyy");
+  const formattedClearDate = clearDate 
+    ? formatInTimeZone(clearDate, 'Europe/London', "MMMM do, yyyy")
+    : "Select date";
 
   const handleImport = async () => {
     await importMutation.mutateAsync({
@@ -88,22 +92,60 @@ const ImportRaces = () => {
               ) : (
                 <>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Clear All Races
+                  Clear Races by Date
                 </>
               )}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all races,
-                runners, and associated documents from the database.
+              <AlertDialogTitle>Select date to clear</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[240px] justify-start text-left font-normal",
+                          !clearDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formattedClearDate}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={clearDate}
+                        onSelect={setClearDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {clearDate && (
+                  <p className="text-red-500">
+                    Are you absolutely sure you want to clear all races from {formattedClearDate}? 
+                    This action cannot be undone.
+                  </p>
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => clearMutation.mutate()}>
+              <AlertDialogCancel onClick={() => setClearDate(undefined)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (clearDate) {
+                    clearMutation.mutate(clearDate);
+                    setClearDate(undefined);
+                  }
+                }}
+                disabled={!clearDate}
+              >
                 Continue
               </AlertDialogAction>
             </AlertDialogFooter>
