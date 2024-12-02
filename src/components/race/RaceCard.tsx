@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatInTimeZone } from 'date-fns-tz';
 import { DetailedHorseForm } from "./DetailedHorseForm";
-import { Separator } from "@/components/ui/separator";
 import { RaceDistanceComparison } from "./RaceDistanceComparison";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -136,8 +135,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
           </div>
         )}
 
-        <Separator className="my-4" />
-
         <div className="space-y-4">
           {race.runners?.map((runner: any) => (
             <div 
@@ -162,6 +159,18 @@ export const RaceCard = ({ race }: RaceCardProps) => {
               </div>
               <OddsDisplay odds={runner.odds} />
             </div>
+          ))}
+        </div>
+
+        <div className="space-y-6">
+          {race.runners?.map((runner: any) => (
+            <DetailedHorseForm
+              key={runner.horse_id}
+              runner={runner}
+              historicalResults={getHorseResults(runner.horse_id)}
+              distanceAnalysis={getHorseDistanceAnalysis(runner.horse_id)}
+              raceDistance={race.distance}
+            />
           ))}
         </div>
       </div>
