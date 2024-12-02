@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, FileText } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
@@ -19,33 +19,46 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
     onDelete(doc);
   };
 
-  const handleImageError = () => {
-    console.error('Error loading image:', {
-      fileName: doc.file_name,
-      filePath: doc.file_path
-    });
-  };
+  const isPDF = doc.content_type === 'application/pdf';
 
   return (
     <div className="relative group">
       <HoverCard>
         <HoverCardTrigger asChild>
           <div className="cursor-pointer">
-            <img
-              src={imageUrl}
-              alt={doc.file_name}
-              className="w-8 h-8 object-cover rounded"
-              onError={handleImageError}
-            />
+            {isPDF ? (
+              <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
+                <FileText className="h-4 w-4" />
+              </div>
+            ) : (
+              <img
+                src={imageUrl}
+                alt={doc.file_name}
+                className="w-8 h-8 object-cover rounded"
+              />
+            )}
           </div>
         </HoverCardTrigger>
         <HoverCardContent side="right" align="start" className="w-auto p-0">
-          <img
-            src={imageUrl}
-            alt={doc.file_name}
-            className="max-w-[300px] max-h-[300px] object-contain rounded"
-            onError={handleImageError}
-          />
+          {isPDF ? (
+            <div className="p-4">
+              <p className="text-sm font-medium">{doc.file_name}</p>
+              <a 
+                href={imageUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-blue-500 hover:underline"
+              >
+                View PDF
+              </a>
+            </div>
+          ) : (
+            <img
+              src={imageUrl}
+              alt={doc.file_name}
+              className="max-w-[300px] max-h-[300px] object-contain rounded"
+            />
+          )}
         </HoverCardContent>
       </HoverCard>
       

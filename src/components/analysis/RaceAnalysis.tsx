@@ -4,12 +4,15 @@ import { RaceChat } from "./RaceChat";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Upload } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { OddsDisplay } from "../race/OddsDisplay";
 import { RawDataDialog } from "../admin/RawDataDialog";
+import { DocumentUploadDialog } from "../admin/DocumentUploadDialog";
 import { useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
+import { RaceDocumentsCell } from "../admin/RaceDocumentsCell";
+import { useRaceDocuments } from "../admin/hooks/useRaceDocuments";
 
 interface RaceAnalysisProps {
   raceId: string;
@@ -17,11 +20,14 @@ interface RaceAnalysisProps {
 
 type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
+  race_documents: Tables<"race_documents">[];
 };
 
 export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
   const navigate = useNavigate();
   const [showRawData, setShowRawData] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const { handleDeleteDocument } = useRaceDocuments();
   
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -43,7 +49,8 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
         .from("races")
         .select(`
           *,
-          runners (*)
+          runners (*),
+          race_documents (*)
         `)
         .eq("id", raceId)
         .single();
@@ -80,14 +87,22 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-3xl font-bold">Race Analysis</h1>
-        <Button
-          variant="outline"
-          className="ml-auto"
-          onClick={() => setShowRawData(true)}
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          View Raw Data
-        </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            variant="outline"
+            onClick={() => setShowUploadDialog(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Document
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowRawData(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            View Raw Data
+          </Button>
+        </div>
       </div>
 
       <Card className="p-6">
@@ -126,6 +141,16 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           </div>
         </div>
 
+        {race.race_documents?.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Race Documents</h3>
+            <RaceDocumentsCell
+              documents={race.race_documents}
+              onDeleteDocument={handleDeleteDocument}
+            />
+          </div>
+        )}
+
         <div>
           <h3 className="text-xl font-bold mb-4">AI Analysis Chat</h3>
           <RaceChat raceId={raceId} />
@@ -136,6 +161,12 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
         open={showRawData} 
         onOpenChange={setShowRawData}
         race={race}
+      />
+
+      <DocumentUploadDialog
+        race={race}
+        open={showUploadDialog}
+        onOpenChange={setShowUploadDialog}
       />
     </div>
   );
