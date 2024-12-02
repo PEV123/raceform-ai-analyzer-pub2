@@ -8,12 +8,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { RaceHeader } from "./RaceHeader";
 import { RunnersList } from "./RunnersList";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface RaceCardProps {
   race: any;
 }
 
 export const RaceCard = ({ race }: RaceCardProps) => {
+  const navigate = useNavigate();
+  
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
@@ -102,7 +106,15 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   return (
     <Card className="p-6 mb-6">
       <div className="space-y-4">
-        <RaceHeader race={race} raceTime={raceTime} />
+        <div className="flex justify-between items-center">
+          <RaceHeader race={race} raceTime={raceTime} />
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/public-analysis/${race.id}`)}
+          >
+            View AI Analysis
+          </Button>
+        </div>
 
         {distanceAnalyses?.length > 0 && (
           <div className="mb-6">

@@ -9,6 +9,7 @@ import { PageSeo } from "./components/seo/PageSeo";
 import { BodyScripts } from "./components/seo/BodyScripts";
 import Index from "./pages/Index";
 import Analysis from "./pages/Analysis";
+import PublicAnalysis from "./pages/PublicAnalysis";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import SingleRace from "./pages/SingleRace";
@@ -33,6 +34,8 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/analysis" element={<Analysis />} />
                     <Route path="/analysis/:raceId" element={<Analysis />} />
+                    <Route path="/public-analysis" element={<PublicAnalysis />} />
+                    <Route path="/public-analysis/:raceId" element={<PublicAnalysis />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/admin/race-documents" element={<RaceDocuments />} />
                     <Route path="/login" element={<Login />} />
