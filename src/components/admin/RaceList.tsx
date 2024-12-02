@@ -46,7 +46,13 @@ export const RaceList = ({ races }: RaceListProps) => {
       return;
     }
 
-    await importHorseResults.mutate(race.runners);
+    // Dedupe runners by horse_id before importing
+    const uniqueRunners = Array.from(
+      new Map(race.runners.map(runner => [runner.horse_id, runner])).values()
+    );
+    console.log(`Deduped runners for ${race.course}: ${uniqueRunners.length} unique runners from ${race.runners.length} total`);
+
+    await importHorseResults.mutate(uniqueRunners);
   };
 
   const handleImportDistanceAnalysis = async (race: Race) => {
@@ -59,7 +65,13 @@ export const RaceList = ({ races }: RaceListProps) => {
       return;
     }
 
-    await importDistanceAnalysis.mutate(race.runners);
+    // Dedupe runners by horse_id before analyzing
+    const uniqueRunners = Array.from(
+      new Map(race.runners.map(runner => [runner.horse_id, runner])).values()
+    );
+    console.log(`Deduped runners for analysis at ${race.course}: ${uniqueRunners.length} unique runners from ${race.runners.length} total`);
+
+    await importDistanceAnalysis.mutate(uniqueRunners);
   };
 
   const formatTime = (date: string) => {
@@ -73,7 +85,14 @@ export const RaceList = ({ races }: RaceListProps) => {
     const existingRace = uniqueRaces.get(key);
     
     if (!existingRace || (race.race_documents?.length > 0 && (!existingRace.race_documents || existingRace.race_documents.length === 0))) {
-      uniqueRaces.set(key, race);
+      // Dedupe runners when adding a race
+      const uniqueRunners = Array.from(
+        new Map(race.runners?.map(runner => [runner.horse_id, runner]) || []).values()
+      );
+      uniqueRaces.set(key, {
+        ...race,
+        runners: uniqueRunners
+      });
     }
   });
 
