@@ -15,14 +15,21 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log('Loading messages for race:', raceId);
     loadMessages();
-  }, [raceId]);
+  }, [raceId, loadMessages]);
 
   useEffect(() => {
+    console.log('Scrolling to bottom, messages length:', messages.length);
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleSendMessage = async (message: string, imageBase64?: { data: string; type: string }) => {
+    console.log('Sending message:', message, 'with image:', !!imageBase64);
+    await sendMessage(message, imageBase64);
+  };
 
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
@@ -45,7 +52,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
         )}
       </ScrollArea>
 
-      <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+      <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
     </div>
   );
 };

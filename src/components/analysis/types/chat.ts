@@ -16,6 +16,8 @@ export interface Message {
   message: string;
 }
 
+export type ChatMessage = Message;
+
 export interface ImageData {
   type: string;
   source: {

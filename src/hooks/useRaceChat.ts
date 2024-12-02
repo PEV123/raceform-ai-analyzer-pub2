@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChatMessage } from "@/components/analysis/types/chat";
+import { Message } from "@/components/analysis/types/chat";
 import { useToast } from "./use-toast";
 import { formatRaceContext } from "@/lib/formatRaceContext";
 
 export const useRaceChat = (raceId: string) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -37,7 +37,7 @@ export const useRaceChat = (raceId: string) => {
     }
   }, [raceId, toast]);
 
-  const sendMessage = useCallback(async (message: string, imageUrl?: string) => {
+  const sendMessage = useCallback(async (message: string, imageBase64?: { data: string; type: string }) => {
     console.log('Sending message for race:', raceId);
     setIsLoading(true);
 
@@ -64,7 +64,7 @@ export const useRaceChat = (raceId: string) => {
         .from('race_chats')
         .insert({
           race_id: raceId,
-          message: imageUrl ? `${imageUrl}\n${message}` : message,
+          message: message,
           role: 'user'
         });
 
@@ -73,14 +73,15 @@ export const useRaceChat = (raceId: string) => {
       // Update local state
       setMessages(prev => [...prev, { role: 'user', message }]);
 
-      // Call AI function
+      // Call AI function with image if provided
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
         'chat-with-anthropic',
         {
           body: {
             message,
             raceId,
-            conversationHistory: messages
+            conversationHistory: messages,
+            imageData: imageBase64
           }
         }
       );
