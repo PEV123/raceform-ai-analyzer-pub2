@@ -6,7 +6,8 @@ import { DetailedHorseForm } from "./DetailedHorseForm";
 import { RaceDistanceComparison } from "./RaceDistanceComparison";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { OddsDisplay } from "./OddsDisplay";
+import { RaceHeader } from "./RaceHeader";
+import { RunnersList } from "./RunnersList";
 
 interface RaceCardProps {
   race: any;
@@ -101,36 +102,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   return (
     <Card className="p-6 mb-6">
       <div className="space-y-4">
-        <div>
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h3 className="text-xl font-bold">{race.race_name}</h3>
-              <p className="text-lg">{race.course}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-semibold">{raceTime}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4">
-            <div>
-              <p><span className="font-medium">Class:</span> {race.race_class}</p>
-              <p><span className="font-medium">Age:</span> {race.age_band}</p>
-            </div>
-            <div>
-              <p><span className="font-medium">Rating Band:</span> {race.rating_band}</p>
-              <p><span className="font-medium">Prizemoney:</span> {race.prize}</p>
-            </div>
-            <div>
-              <p><span className="font-medium">Going:</span> {race.going}</p>
-              <p><span className="font-medium">Surface:</span> {race.surface}</p>
-            </div>
-            <div>
-              <p><span className="font-medium">Type:</span> {race.type}</p>
-              <p><span className="font-medium">Distance:</span> {race.distance}</p>
-            </div>
-          </div>
-        </div>
+        <RaceHeader race={race} raceTime={raceTime} />
 
         {distanceAnalyses?.length > 0 && (
           <div className="mb-6">
@@ -138,32 +110,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
           </div>
         )}
 
-        <div className="space-y-4">
-          {sortedRunners.map((runner: any) => (
-            <div 
-              key={runner.horse_id}
-              className={`p-2 bg-muted rounded-lg flex items-center gap-2 ${
-                runner.is_non_runner ? 'opacity-50' : ''
-              }`}
-            >
-              <div className="w-6 text-center font-bold">
-                {runner.number}
-                {runner.is_non_runner && (
-                  <span className="text-xs text-red-500 block">NR</span>
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">
-                  {runner.horse}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {runner.jockey} | {runner.trainer}
-                </div>
-              </div>
-              <OddsDisplay odds={runner.odds} />
-            </div>
-          ))}
-        </div>
+        <RunnersList runners={sortedRunners} />
 
         <div className="space-y-6">
           {sortedRunners.map((runner: any) => (
