@@ -6,7 +6,7 @@ export const useUsers = () => {
   return useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      console.log("Fetching users...");
+      console.log("Fetching users from profiles table...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -17,7 +17,7 @@ export const useUsers = () => {
         throw error;
       }
 
-      console.log("Fetched users:", data);
+      console.log("Fetched users data:", data);
       return data as ProfileData[];
     },
   });
