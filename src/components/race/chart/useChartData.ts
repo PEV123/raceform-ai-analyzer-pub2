@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { Tables } from "@/integrations/supabase/types";
+import { convertDistanceToFurlongs, getDistanceFactor } from "./distanceCalculations";
+import { calculateAdjustedPace, calculateSpeedRating } from "./paceCalculations";
 
 type SortOption = "number" | "win" | "place" | "speed" | "overall";
 
@@ -13,21 +15,6 @@ interface ChartData {
   actualPace: string;
   totalRuns: number;
 }
-
-const convertDistanceToFurlongs = (distance: string): number => {
-  const miles = distance.match(/(\d+)m/)?.[1] ? Number(distance.match(/(\d+)m/)[1]) : 0;
-  const furlongs = distance.match(/(\d+)f/)?.[1] ? Number(distance.match(/(\d+)f/)[1]) : 0;
-  const halfFurlong = distance.includes('½') ? 0.5 : 0;
-  return (miles * 8) + furlongs + halfFurlong;
-};
-
-const getDistanceFactor = (furlongs: number): number => {
-  const BASE_DISTANCE = 12; // 1.5 miles
-  const FACTOR_PER_FURLONG = 0.01;
-  
-  if (furlongs <= BASE_DISTANCE) return 1.0;
-  return 1.0 + ((furlongs - BASE_DISTANCE) * FACTOR_PER_FURLONG);
-};
 
 export const useChartData = (
   analyses: (Tables<"horse_distance_analysis"> & {
@@ -54,12 +41,12 @@ export const useChartData = (
         const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
         return acc + (placeRate || 0);
       }, 0) / (details.length || 1);
-      
-      // Calculate adjusted speed rating based on distance and pace
-      let totalAdjustedPace = 0;
-      let validTimeCount = 0;
 
       console.log(`Processing horse: ${analysis.horse}`);
+
+      // Calculate adjusted speed rating based on distance and pace
+      let bestSpeedRating = 0;
+      let finalAdjustedPace = 0;
 
       details.forEach(detail => {
         const distanceInFurlongs = convertDistanceToFurlongs(detail.dist);
@@ -67,78 +54,42 @@ export const useChartData = (
         
         console.log(`Processing detail for distance: ${detail.dist} (${distanceInFurlongs}f, factor: ${distanceFactor})`);
         
-        detail.horse_distance_times?.forEach(time => {
-          console.log(`Processing time: ${time.time}`);
-          if (time.time && time.time !== '-') {
-            const [mins, secs] = time.time.split(':').map(Number);
-            const totalSeconds = mins * 60 + secs;
-            const secondsPerFurlong = totalSeconds / distanceInFurlongs;
-            
-            // Adjust s/f by distance factor
-            const adjustedPace = secondsPerFurlong / distanceFactor;
-            
-            console.log(`Raw s/f: ${secondsPerFurlong}, Adjusted s/f: ${adjustedPace}`);
-            
-            if (adjustedPace > 0) {
-              totalAdjustedPace += adjustedPace;
-              validTimeCount++;
-            }
+        const { avgAdjustedPace, validTimeCount } = calculateAdjustedPace(
+          detail.horse_distance_times,
+          distanceInFurlongs,
+          distanceFactor
+        );
+
+        if (validTimeCount > 0) {
+          const currentSpeedRating = calculateSpeedRating(avgAdjustedPace);
+          if (currentSpeedRating > bestSpeedRating) {
+            bestSpeedRating = currentSpeedRating;
+            finalAdjustedPace = avgAdjustedPace;
           }
-        });
+        }
       });
 
-      const avgAdjustedPace = validTimeCount > 0 ? 
-        totalAdjustedPace / validTimeCount : 0;
-
-      console.log(`Final adjusted average pace: ${avgAdjustedPace}`);
-
-      // Convert adjusted pace to speed rating (0-100 scale)
-      // Now higher s/f (slower pace) = lower rating, but still give points for slower times
-      let speedRating = 0;
-      if (avgAdjustedPace > 0) {
-        const FAST_PACE = 11;  // 11 s/f = 100 points
-        const SLOW_PACE = 20;  // 20 s/f = 10 points (instead of 0)
-        const VERY_SLOW_PACE = 25; // 25+ s/f = 0 points
-        
-        if (avgAdjustedPace >= VERY_SLOW_PACE) {
-          speedRating = 0;
-        } else if (avgAdjustedPace <= FAST_PACE) {
-          speedRating = 100;
-        } else if (avgAdjustedPace >= SLOW_PACE) {
-          // Linear interpolation between 10 and 0 points for very slow times
-          const ratio = (VERY_SLOW_PACE - avgAdjustedPace) / (VERY_SLOW_PACE - SLOW_PACE);
-          speedRating = Math.round(10 * ratio);
-        } else {
-          // Linear interpolation between 100 and 10 points for normal range
-          const ratio = (SLOW_PACE - avgAdjustedPace) / (SLOW_PACE - FAST_PACE);
-          speedRating = Math.round(10 + (ratio * 90));
-        }
-      }
-
-      console.log(`Calculated speed rating: ${speedRating}`);
+      console.log(`Final speed rating: ${bestSpeedRating}, adjusted pace: ${finalAdjustedPace}`);
 
       // Calculate overall score (0-100 scale)
       const overall = (
         (avgWinRate * 0.4) + // 40% weight to win rate
         (avgPlaceRate * 0.4) + // 40% weight to place rate
-        (speedRating * 0.2) // 20% weight to speed rating
+        (bestSpeedRating * 0.2) // 20% weight to speed rating
       );
 
-      const result = {
+      return {
         horse: analysis.horse.length > 12 
           ? analysis.horse.substring(0, 12) + '...'
           : analysis.horse,
         fullName: analysis.horse,
         avgWinRate,
         avgPlaceRate,
-        speedRating,
+        speedRating: bestSpeedRating,
         overall,
-        actualPace: avgAdjustedPace.toFixed(2),
+        actualPace: finalAdjustedPace.toFixed(2),
         totalRuns: analysis.total_runs || 0
       };
-
-      console.log('Final data point:', result);
-      return result;
     });
 
     // Sort data based on selected option
