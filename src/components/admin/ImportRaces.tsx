@@ -11,6 +11,7 @@ const ImportRaces = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [operation, setOperation] = useState("");
   
   const importRaces = useImportRacesMutation();
   const clearRaces = useClearRacesMutation();
@@ -20,6 +21,7 @@ const ImportRaces = () => {
       date,
       onProgress: (progress, operation) => {
         setProgress(progress);
+        setOperation(operation);
         console.log(`Import progress: ${progress}% - ${operation}`);
       }
     });
@@ -43,12 +45,12 @@ const ImportRaces = () => {
         </div>
 
         {importRaces.isPending && (
-          <ImportProgress progress={progress} />
+          <ImportProgress progress={progress} operation={operation} />
         )}
       </div>
 
       <ClearRacesDialog
-        open={showClearDialog}
+        isOpen={showClearDialog}
         onOpenChange={setShowClearDialog}
       />
     </Card>
