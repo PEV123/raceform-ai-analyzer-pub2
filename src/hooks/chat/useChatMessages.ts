@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Message } from "@/components/analysis/types/chat";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,7 @@ export const useChatMessages = (raceId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     console.log('Loading messages for race:', raceId);
     try {
       const { data, error } = await supabase
@@ -40,11 +40,11 @@ export const useChatMessages = (raceId: string) => {
         variant: "destructive",
       });
     }
-  };
+  }, [raceId, toast]);
 
-  const addMessage = (message: Message) => {
+  const addMessage = useCallback((message: Message) => {
     setMessages(prev => [...prev, message]);
-  };
+  }, []);
 
   return {
     messages,

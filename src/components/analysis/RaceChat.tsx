@@ -12,12 +12,12 @@ interface RaceChatProps {
 export const RaceChat = ({ raceId }: RaceChatProps) => {
   const { messages, isLoading, sendMessage, loadMessages } = useRaceChat(raceId);
 
+  // Load messages only once when component mounts or raceId changes
   useEffect(() => {
     if (raceId) {
-      console.log('Loading messages for race:', raceId);
       loadMessages();
     }
-  }, [raceId, loadMessages]);
+  }, [raceId, loadMessages]); // Only depend on raceId and loadMessages
 
   const handleSendMessage = async (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => {
     if (!raceId) return;

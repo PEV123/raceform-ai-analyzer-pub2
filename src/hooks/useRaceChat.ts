@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useChatMessages } from "./chat/useChatMessages";
 import { useChatOperations } from "./chat/useChatOperations";
 import { ImageData } from "@/components/analysis/types/chat";
@@ -9,12 +9,27 @@ export const useRaceChat = (raceId: string) => {
     messages, 
     isLoading, 
     setIsLoading, 
-    loadMessages, 
+    loadMessages: fetchMessages, 
     addMessage 
   } = useChatMessages(raceId);
   
   const { storeMessage, sendMessageToAI } = useChatOperations(raceId);
   const { toast } = useToast();
+
+  // Memoize loadMessages to prevent infinite loops
+  const loadMessages = useCallback(async () => {
+    try {
+      console.log('Initial load of messages for race:', raceId);
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat messages",
+        variant: "destructive",
+      });
+    }
+  }, [raceId, fetchMessages, toast]);
 
   const sendMessage = useCallback(async (
     message: string, 
