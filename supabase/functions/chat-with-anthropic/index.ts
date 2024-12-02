@@ -12,11 +12,12 @@ serve(async (req) => {
 
   try {
     const { message, raceId, conversationHistory, imageData } = await req.json();
-    console.log('Received request:', { 
+    console.log('Request payload:', { 
       messageLength: message?.length,
       raceId,
       historyLength: conversationHistory?.length,
-      hasImageData: !!imageData
+      hasImageData: !!imageData,
+      imageType: imageData?.type
     });
 
     if (!raceId) {
@@ -66,9 +67,19 @@ serve(async (req) => {
     let processedDocuments = [];
     if (race.race_documents?.length) {
       try {
-        console.log('Processing race documents:', race.race_documents.length);
+        console.log('Processing race documents:', {
+          count: race.race_documents.length,
+          documents: race.race_documents.map(doc => ({
+            name: doc.file_name,
+            type: doc.content_type,
+            path: doc.file_path
+          }))
+        });
         processedDocuments = await processRaceDocuments(race, supabaseUrl);
-        console.log('Successfully processed race documents:', processedDocuments.length);
+        console.log('Successfully processed documents:', {
+          count: processedDocuments.length,
+          types: processedDocuments.map(doc => doc.type)
+        });
       } catch (error) {
         console.error('Error processing race documents:', error);
       }
@@ -76,26 +87,39 @@ serve(async (req) => {
 
     // Generate and truncate race context
     const raceContext = truncateContext(await formatRaceContext(race));
-    console.log('Generated race context length:', raceContext.length);
+    console.log('Generated race context:', {
+      length: raceContext.length,
+      preview: raceContext.substring(0, 200) + '...'
+    });
 
     // Process messages with limits
     const messages = processMessages(conversationHistory, message, processedDocuments, imageData);
     
-    console.log('Making request to Anthropic API with:', {
-      messageCount: messages.length,
-      contextLength: raceContext.length,
-      modelUsed: settings?.anthropic_model
+    console.log('Prepared messages for Claude:', {
+      totalMessages: messages.length,
+      messageTypes: messages.map(msg => ({
+        role: msg.role,
+        contentTypes: msg.content.map(c => c.type)
+      }))
+    });
+
+    const systemPrompt = `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`;
+    
+    console.log('System prompt:', {
+      length: systemPrompt.length,
+      preview: systemPrompt.substring(0, 200) + '...'
     });
 
     const response = await anthropic.messages.create({
       model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
       max_tokens: 1024,
-      system: `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`,
+      system: systemPrompt,
       messages,
     });
 
-    console.log('Received response from Claude:', {
+    console.log('Claude response:', {
       responseLength: response.content[0].text.length,
+      preview: response.content[0].text.substring(0, 100) + '...',
       estimatedTokens: Math.ceil(response.content[0].text.length / 4)
     });
 
@@ -105,7 +129,11 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in chat-with-anthropic function:', error);
+    console.error('Error in chat-with-anthropic function:', {
+      error: error.message,
+      stack: error.stack,
+      details: error.toString()
+    });
     
     return new Response(
       JSON.stringify({ 
