@@ -19,6 +19,13 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
     onDelete(doc);
   };
 
+  const handleImageError = () => {
+    console.error('Error loading image:', {
+      fileName: doc.file_name,
+      filePath: doc.file_path
+    });
+  };
+
   return (
     <div className="relative group">
       <HoverCard>
@@ -28,10 +35,7 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
               src={imageUrl}
               alt={doc.file_name}
               className="w-8 h-8 object-cover rounded"
-              onError={(e) => {
-                console.error('Error loading thumbnail image:', e);
-                e.currentTarget.src = '/placeholder.svg';
-              }}
+              onError={handleImageError}
             />
           </div>
         </HoverCardTrigger>
@@ -40,10 +44,7 @@ export const RaceDocumentThumbnail = ({ doc, onDelete }: RaceDocumentThumbnailPr
             src={imageUrl}
             alt={doc.file_name}
             className="max-w-[300px] max-h-[300px] object-contain rounded"
-            onError={(e) => {
-              console.error('Error loading preview image:', e);
-              e.currentTarget.src = '/placeholder.svg';
-            }}
+            onError={handleImageError}
           />
         </HoverCardContent>
       </HoverCard>
