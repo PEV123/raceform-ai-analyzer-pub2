@@ -2,19 +2,7 @@ import { useMemo } from "react";
 import { calculateRates } from "./rateCalculations";
 import { calculateSpeedMetrics, calculateSpeedRating } from "./speedCalculations";
 import { Tables } from "@/integrations/supabase/types";
-
-type SortOption = "number" | "win" | "place" | "speed" | "overall";
-
-interface ChartData {
-  horse: string;
-  fullName: string;
-  avgWinRate: number;
-  avgPlaceRate: number;
-  speedRating: number;
-  overall: number;
-  actualPace: string;
-  totalRuns: number;
-}
+import { ChartData, SortOption } from "./types";
 
 export const useChartData = (
   analyses: (Tables<"horse_distance_analysis"> & {
@@ -29,11 +17,19 @@ export const useChartData = (
 
     console.log('Processing analyses:', analyses.length, 'total analyses');
 
-    // Process each analysis into chart data
-    const data = analyses.map(analysis => {
-      const details = analysis.horse_distance_details || [];
-      
+    // Use a Map to ensure unique entries by horse_id
+    const uniqueHorsesMap = new Map<string, ChartData>();
+
+    analyses.forEach(analysis => {
+      // Skip if we've already processed this horse
+      if (uniqueHorsesMap.has(analysis.horse_id)) {
+        console.log(`Skipping duplicate horse: ${analysis.horse} (${analysis.horse_id})`);
+        return;
+      }
+
       console.log(`Processing horse ${analysis.horse} (${analysis.horse_id})`);
+      
+      const details = analysis.horse_distance_details || [];
       
       // Calculate average rates across all distances
       const rateMetrics = details.map(detail => calculateRates(detail));
@@ -68,19 +64,22 @@ export const useChartData = (
         (bestSpeedRating * 0.2) // 20% weight to speed rating
       );
 
-      return {
+      uniqueHorsesMap.set(analysis.horse_id, {
         horse: analysis.horse.length > 12 
           ? analysis.horse.substring(0, 12) + '...'
           : analysis.horse,
         fullName: analysis.horse,
+        horse_id: analysis.horse_id,
         avgWinRate,
         avgPlaceRate,
         speedRating: bestSpeedRating,
         overall,
         actualPace: finalAdjustedPace.toFixed(2),
         totalRuns: analysis.total_runs || 0
-      };
+      });
     });
+
+    const data = Array.from(uniqueHorsesMap.values());
 
     // Sort data based on selected option
     return [...data].sort((a, b) => {

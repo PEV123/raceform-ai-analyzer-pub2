@@ -14,8 +14,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { ChartControls } from "./chart/ChartControls";
 import { ChartTooltipContent } from "./chart/ChartTooltipContent";
 import { useChartData } from "./chart/useChartData";
-
-type SortOption = "number" | "win" | "place" | "speed" | "overall";
+import { SortOption } from "./chart/types";
 
 interface RaceDistanceComparisonProps {
   analyses: (Tables<"horse_distance_analysis"> & {
@@ -106,7 +105,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
             <Bar 
               yAxisId="left" 
               dataKey="avgWinRate" 
-              name="Win Rate %" 
+              name="Win Rate" 
               fill="#8884d8" 
               radius={[4, 4, 0, 0]}
               animationDuration={500}
@@ -114,7 +113,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
             <Bar 
               yAxisId="left" 
               dataKey="avgPlaceRate" 
-              name="Place Rate %" 
+              name="Place Rate" 
               fill="#82ca9d" 
               radius={[4, 4, 0, 0]}
               animationDuration={500}
