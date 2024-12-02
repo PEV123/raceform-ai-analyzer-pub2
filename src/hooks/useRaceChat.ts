@@ -94,6 +94,52 @@ export const useRaceChat = (raceId: string) => {
         });
       }
 
+      // Get race documents
+      const { data: documents } = await supabase
+        .from('race_documents')
+        .select('*')
+        .eq('race_id', raceId);
+
+      console.log('Found race documents:', documents?.length);
+
+      // Process race documents
+      if (documents?.length) {
+        for (const doc of documents) {
+          if (doc.content_type.startsWith('image/')) {
+            console.log('Processing document:', doc.file_name);
+            try {
+              const { data } = await supabase.storage
+                .from('race_documents')
+                .download(doc.file_path);
+
+              if (data) {
+                const reader = new FileReader();
+                const base64Promise = new Promise<string>((resolve) => {
+                  reader.onload = () => {
+                    const base64 = (reader.result as string).split(',')[1];
+                    resolve(base64);
+                  };
+                });
+                reader.readAsDataURL(data);
+                const base64 = await base64Promise;
+
+                formattedImages.push({
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: doc.content_type,
+                    data: base64
+                  }
+                });
+                console.log('Successfully processed document:', doc.file_name);
+              }
+            } catch (error) {
+              console.error('Error processing document:', doc.file_name, error);
+            }
+          }
+        }
+      }
+
       // Prepare request body
       const requestBody = {
         message,
