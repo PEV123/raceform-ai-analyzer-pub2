@@ -48,19 +48,34 @@ const Analysis = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Admin AI Analysis</h1>
-        <Button onClick={() => setShowUploadDialog(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
       </div>
 
       {race?.race_documents?.length > 0 && (
         <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Race Documents</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Race Documents</h2>
+            <Button onClick={() => setShowUploadDialog(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Documents
+            </Button>
+          </div>
           <RaceDocumentsCell
             documents={race.race_documents}
             onDeleteDocument={handleDeleteDocument}
           />
+        </Card>
+      )}
+
+      {!race?.race_documents?.length && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Race Documents</h2>
+            <Button onClick={() => setShowUploadDialog(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Documents
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">No documents uploaded yet.</p>
         </Card>
       )}
 

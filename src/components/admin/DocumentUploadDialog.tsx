@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 interface DocumentUploadDialogProps {
   race: Tables<"races"> | null;
@@ -18,15 +19,16 @@ export const DocumentUploadDialog = ({
   onOpenChange,
 }: DocumentUploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !race) return;
+  const handleFileUpload = async (files: FileList) => {
+    if (!files.length || !race) return;
 
     setIsUploading(true);
-    const file = e.target.files[0];
-
+    setUploadProgress(0);
+    
     try {
       // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
@@ -35,41 +37,62 @@ export const DocumentUploadDialog = ({
         throw new Error("No authenticated session found");
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("raceId", race.id);
+      const totalFiles = files.length;
+      let successfulUploads = 0;
 
-      const response = await fetch(
-        "https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/upload-race-document",
-        {
-          method: "POST",
-          body: formData,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("raceId", race.id);
+
+        const response = await fetch(
+          "https://vlcrqrmqghskrdhhsgqt.functions.supabase.co/upload-race-document",
+          {
+            method: "POST",
+            body: formData,
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`Failed to upload ${file.name}`);
+          continue;
         }
-      );
 
-      if (!response.ok) {
-        throw new Error("Failed to upload document");
+        successfulUploads++;
+        setUploadProgress((successfulUploads / totalFiles) * 100);
       }
 
-      toast({
-        title: "Success",
-        description: "Document uploaded successfully",
-      });
+      if (successfulUploads === totalFiles) {
+        toast({
+          title: "Success",
+          description: `${successfulUploads} document${successfulUploads !== 1 ? 's' : ''} uploaded successfully`,
+        });
+      } else if (successfulUploads > 0) {
+        toast({
+          title: "Partial Success",
+          description: `${successfulUploads} out of ${totalFiles} documents uploaded successfully`,
+          variant: "default",
+        });
+      } else {
+        throw new Error("Failed to upload any documents");
+      }
 
       queryClient.invalidateQueries({ queryKey: ["races"] });
       onOpenChange(false);
     } catch (error) {
-      console.error("Error uploading document:", error);
+      console.error("Error uploading documents:", error);
       toast({
         title: "Error",
-        description: "Failed to upload document",
+        description: "Failed to upload documents",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -84,6 +107,14 @@ export const DocumentUploadDialog = ({
             Upload images or documents related to {race?.race_name}
           </p>
           <div className="grid w-full max-w-sm items-center gap-1.5">
+            {isUploading && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                <div 
+                  className="bg-primary h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
             <Button
               variant="outline"
               className="w-full"
@@ -91,12 +122,20 @@ export const DocumentUploadDialog = ({
               onClick={() => {
                 const input = document.createElement("input");
                 input.type = "file";
+                input.multiple = true;
                 input.accept = "image/*,.pdf";
-                input.onchange = (e) => handleFileUpload(e as any);
+                input.onchange = (e) => handleFileUpload((e.target as HTMLInputElement).files!);
                 input.click();
               }}
             >
-              {isUploading ? "Uploading..." : "Select File"}
+              {isUploading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Uploading...</span>
+                </div>
+              ) : (
+                "Select Files"
+              )}
             </Button>
           </div>
         </div>
