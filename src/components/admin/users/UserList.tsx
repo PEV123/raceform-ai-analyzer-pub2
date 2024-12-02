@@ -16,7 +16,8 @@ export const UserList = () => {
   const filteredUsers = users?.filter((user) => {
     const matchesSearch =
       !searchTerm ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMembership =
       membershipFilter === "all" || user.membership_level === membershipFilter;
     return matchesSearch && matchesMembership;
@@ -48,9 +49,9 @@ export const UserList = () => {
 
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
         </div>
       ) : (
         <UsersTable
