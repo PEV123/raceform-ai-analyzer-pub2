@@ -56,6 +56,7 @@ export const UserProfileForm = ({ profile, isEditing, onSubmit }: UserProfileFor
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="premium">Premium</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           ) : (
