@@ -1,6 +1,13 @@
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -8,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { ProfileData } from "./types";
+import { Textarea } from "@/components/ui/textarea";
+import type { ProfileData } from "./types";
 
 interface UserProfileFormProps {
   profile: ProfileData;
@@ -17,158 +24,209 @@ interface UserProfileFormProps {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
-export const UserProfileForm = ({ profile, isEditing, onSubmit }: UserProfileFormProps) => {
+export const UserProfileForm = ({
+  profile,
+  isEditing,
+  onSubmit,
+}: UserProfileFormProps) => {
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            defaultValue={profile?.email || ""}
-            readOnly
-            className="bg-muted"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="full_name">Full Name</Label>
-          <Input
-            id="full_name"
-            name="full_name"
-            defaultValue={profile?.full_name || ""}
-            readOnly={!isEditing}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="membership_level">Membership Level</Label>
-          {isEditing ? (
-            <Select
-              name="membership_level"
-              defaultValue={profile?.membership_level}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="premium">Premium</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              value={profile?.membership_level}
-              readOnly
-              className="capitalize"
-            />
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          name="full_name"
+          render={() => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input
+                  name="full_name"
+                  defaultValue={profile.full_name || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="subscription_status">Subscription Status</Label>
-          {isEditing ? (
-            <Select
-              name="subscription_status"
-              defaultValue={profile?.subscription_status}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              value={profile?.subscription_status}
-              readOnly
-              className="capitalize"
-            />
+        <FormField
+          name="membership_level"
+          render={() => (
+            <FormItem>
+              <FormLabel>Membership Level</FormLabel>
+              <Select
+                name="membership_level"
+                defaultValue={profile.membership_level || "free"}
+                disabled={!isEditing}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select membership level" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            name="phone"
-            defaultValue={profile?.phone || ""}
-            readOnly={!isEditing}
-          />
-        </div>
+        <FormField
+          name="subscription_status"
+          render={() => (
+            <FormItem>
+              <FormLabel>Subscription Status</FormLabel>
+              <Select
+                name="subscription_status"
+                defaultValue={profile.subscription_status || "active"}
+                disabled={!isEditing}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="company">Company</Label>
-          <Input
-            id="company"
-            name="company"
-            defaultValue={profile?.company || ""}
-            readOnly={!isEditing}
-          />
-        </div>
+        <FormField
+          name="phone"
+          render={() => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input
+                  name="phone"
+                  defaultValue={profile.phone || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="address">Address</Label>
-          <Input
-            id="address"
-            name="address"
-            defaultValue={profile?.address || ""}
-            readOnly={!isEditing}
-          />
-        </div>
+        <FormField
+          name="company"
+          render={() => (
+            <FormItem>
+              <FormLabel>Company</FormLabel>
+              <FormControl>
+                <Input
+                  name="company"
+                  defaultValue={profile.company || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
-          <Input
-            id="city"
-            name="city"
-            defaultValue={profile?.city || ""}
-            readOnly={!isEditing}
-          />
-        </div>
+        <FormField
+          name="address"
+          render={() => (
+            <FormItem>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input
+                  name="address"
+                  defaultValue={profile.address || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="country">Country</Label>
-          <Input
-            id="country"
-            name="country"
-            defaultValue={profile?.country || ""}
-            readOnly={!isEditing}
-          />
-        </div>
+        <FormField
+          name="city"
+          render={() => (
+            <FormItem>
+              <FormLabel>City</FormLabel>
+              <FormControl>
+                <Input
+                  name="city"
+                  defaultValue={profile.city || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="postal_code">Postal Code</Label>
-          <Input
-            id="postal_code"
-            name="postal_code"
-            defaultValue={profile?.postal_code || ""}
-            readOnly={!isEditing}
-          />
-        </div>
-      </div>
+        <FormField
+          name="country"
+          render={() => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <FormControl>
+                <Input
+                  name="country"
+                  defaultValue={profile.country || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Admin Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          defaultValue={profile?.notes || ""}
-          readOnly={!isEditing}
-          className="min-h-[100px]"
+        <FormField
+          name="postal_code"
+          render={() => (
+            <FormItem>
+              <FormLabel>Postal Code</FormLabel>
+              <FormControl>
+                <Input
+                  name="postal_code"
+                  defaultValue={profile.postal_code || ""}
+                  disabled={!isEditing}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
       </div>
 
+      <FormField
+        name="notes"
+        render={() => (
+          <FormItem>
+            <FormLabel>Notes</FormLabel>
+            <FormControl>
+              <Textarea
+                name="notes"
+                defaultValue={profile.notes || ""}
+                disabled={!isEditing}
+                className="min-h-[100px]"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       {isEditing && (
-        <Button type="submit" className="w-full">
-          Save Changes
-        </Button>
+        <div className="flex justify-end">
+          <Button type="submit">Save Changes</Button>
+        </div>
       )}
     </form>
   );

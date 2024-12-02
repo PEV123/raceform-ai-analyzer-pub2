@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import type { ProfileData } from "../profile/types";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 interface UserTableRowProps {
   user: ProfileData;
@@ -18,10 +18,13 @@ export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
     }
     
     try {
-      // Parse the ISO string and format it
-      const parsedDate = parseISO(date);
-      console.log("Parsed date:", parsedDate); // Debug log for parsed date
-      return format(parsedDate, "PPp");
+      // For timestamps that come in ISO 8601 format
+      const dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) {
+        console.error("Invalid date value:", date);
+        return "Invalid date";
+      }
+      return format(dateObj, "PPp");
     } catch (error) {
       console.error("Error formatting date:", error, "Date value:", date);
       return "Invalid date";
@@ -31,7 +34,9 @@ export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
   return (
     <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => onViewProfile(user.id)}>
       <TableCell>{user.email || "No email"}</TableCell>
-      <TableCell className="capitalize">{user.membership_level || "free"}</TableCell>
+      <TableCell className="capitalize">
+        {user.is_admin ? "Admin" : user.membership_level || "free"}
+      </TableCell>
       <TableCell className="capitalize">{user.subscription_status || "active"}</TableCell>
       <TableCell>{formatLastLogin(user.last_login)}</TableCell>
       <TableCell className="text-right">
