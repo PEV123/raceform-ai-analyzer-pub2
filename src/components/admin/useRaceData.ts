@@ -72,52 +72,65 @@ export const useRaceData = (races: Race[]) => {
     staleTime: 1000,
   });
 
-  // Helper functions to check data existence
-  const hasImportedResults = (race: Race) => {
+  // Helper functions to check data existence and return counts
+  const getImportedResultsCount = (race: Race) => {
     if (!race.runners?.length || !existingResults) {
       console.log(`No runners or results for race at ${race.course}`);
-      return false;
+      return 0;
     }
 
     const raceHorseIds = race.runners.map(runner => runner.horse_id);
     const importedHorseIds = existingResults.map(result => result.horse_id);
     
-    const hasAll = raceHorseIds.every(horseId => 
+    const count = raceHorseIds.filter(horseId => 
       importedHorseIds.includes(horseId)
-    );
+    ).length;
     
-    console.log(`Race ${race.course} has all results:`, hasAll, {
+    console.log(`Race ${race.course} has ${count}/${race.runners.length} results`, {
       raceHorseIds,
       importedHorseIds
     });
     
-    return hasAll;
+    return count;
   };
 
-  const hasImportedAnalysis = (race: Race) => {
+  const getImportedAnalysisCount = (race: Race) => {
     if (!race.runners?.length || !existingAnalysis) {
       console.log(`No runners or analysis for race at ${race.course}`);
-      return false;
+      return 0;
     }
 
     const raceHorseIds = race.runners.map(runner => runner.horse_id);
     const analyzedHorseIds = existingAnalysis.map(analysis => analysis.horse_id);
     
-    const hasAll = raceHorseIds.every(horseId => 
+    const count = raceHorseIds.filter(horseId => 
       analyzedHorseIds.includes(horseId)
-    );
+    ).length;
     
-    console.log(`Race ${race.course} has all analysis:`, hasAll, {
+    console.log(`Race ${race.course} has ${count}/${race.runners.length} analysis`, {
       raceHorseIds,
       analyzedHorseIds
     });
     
-    return hasAll;
+    return count;
+  };
+
+  // For backward compatibility
+  const hasImportedResults = (race: Race) => {
+    const count = getImportedResultsCount(race);
+    return count === race.runners?.length;
+  };
+
+  const hasImportedAnalysis = (race: Race) => {
+    const count = getImportedAnalysisCount(race);
+    return count === race.runners?.length;
   };
 
   return {
     hasImportedResults,
     hasImportedAnalysis,
+    getImportedResultsCount,
+    getImportedAnalysisCount,
     existingResults,
     existingAnalysis,
   };

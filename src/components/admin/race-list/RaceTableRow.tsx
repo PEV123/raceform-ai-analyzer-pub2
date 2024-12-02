@@ -1,7 +1,6 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Tables } from "@/integrations/supabase/types";
-import { Database } from "lucide-react";
-import { Clock } from "lucide-react";
+import { Database, Clock } from "lucide-react";
 import { RaceActionButtons } from "../RaceActionButtons";
 import { RaceDocumentsCell } from "../RaceDocumentsCell";
 
@@ -20,6 +19,8 @@ interface RaceTableRowProps {
   onImportDistanceAnalysis: (race: Race) => void;
   hasImportedResults: (race: Race) => boolean;
   hasImportedAnalysis: (race: Race) => boolean;
+  getImportedResultsCount: (race: Race) => number;
+  getImportedAnalysisCount: (race: Race) => number;
   isImportingResults: boolean;
   isImportingAnalysis: boolean;
   onDeleteDocument: (doc: Tables<"race_documents">) => void;
@@ -35,6 +36,8 @@ export const RaceTableRow = ({
   onImportDistanceAnalysis,
   hasImportedResults,
   hasImportedAnalysis,
+  getImportedResultsCount,
+  getImportedAnalysisCount,
   isImportingResults,
   isImportingAnalysis,
   onDeleteDocument,
@@ -59,13 +62,17 @@ export const RaceTableRow = ({
       <TableCell>
         <div className="flex items-center gap-1">
           <Database className="h-4 w-4" />
-          <span>{hasImportedResults(race) ? "8/8" : "0/8"}</span>
+          <span>
+            {getImportedResultsCount(race)}/{race.field_size}
+          </span>
         </div>
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
-          <span>{hasImportedAnalysis(race) ? "8/8" : "0/8"}</span>
+          <span>
+            {getImportedAnalysisCount(race)}/{race.field_size}
+          </span>
         </div>
       </TableCell>
       <TableCell>

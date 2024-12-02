@@ -17,6 +17,8 @@ interface RaceTableProps {
   onImportDistanceAnalysis: (race: Race) => void;
   hasImportedResults: (race: Race) => boolean;
   hasImportedAnalysis: (race: Race) => boolean;
+  getImportedResultsCount: (race: Race) => number;
+  getImportedAnalysisCount: (race: Race) => number;
   isImportingResults: boolean;
   isImportingAnalysis: boolean;
   onDeleteDocument: (doc: Tables<"race_documents">) => void;
@@ -32,6 +34,8 @@ export const RaceTable = ({
   onImportDistanceAnalysis,
   hasImportedResults,
   hasImportedAnalysis,
+  getImportedResultsCount,
+  getImportedAnalysisCount,
   isImportingResults,
   isImportingAnalysis,
   onDeleteDocument,
@@ -62,6 +66,8 @@ export const RaceTable = ({
             onImportDistanceAnalysis={onImportDistanceAnalysis}
             hasImportedResults={hasImportedResults}
             hasImportedAnalysis={hasImportedAnalysis}
+            getImportedResultsCount={getImportedResultsCount}
+            getImportedAnalysisCount={getImportedAnalysisCount}
             isImportingResults={isImportingResults}
             isImportingAnalysis={isImportingAnalysis}
             onDeleteDocument={onDeleteDocument}
