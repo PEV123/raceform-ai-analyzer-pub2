@@ -113,7 +113,7 @@ export const DetailedHorseForm = ({
         </div>
       </div>
       
-      {/* Distance Analysis Section */}
+      {/* Distance Analysis Section - Only show for active runners */}
       {!runner.is_non_runner && distanceAnalysis && (
         <div className="mb-6">
           <HorseDistanceAnalysis 
