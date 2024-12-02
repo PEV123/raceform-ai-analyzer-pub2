@@ -7,7 +7,7 @@ export const useUsers = () => {
     queryKey: ["users"],
     queryFn: async () => {
       console.log("Fetching users from profiles table...");
-      const { data, error } = await supabase
+      const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
@@ -17,8 +17,8 @@ export const useUsers = () => {
         throw error;
       }
 
-      console.log("Fetched users data:", data);
-      return data as ProfileData[];
+      console.log("Fetched profiles data:", profiles);
+      return profiles as ProfileData[];
     },
   });
 };

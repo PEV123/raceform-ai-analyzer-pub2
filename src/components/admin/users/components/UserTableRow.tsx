@@ -9,22 +9,16 @@ interface UserTableRowProps {
 }
 
 export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
-  console.log("User data:", user); // Debug log to see the user data
+  console.log("Rendering user row:", user);
   
   const formatLastLogin = (date: string | null) => {
     if (!date) {
-      console.log("No last_login date provided");
+      console.log("No last_login date for user:", user.id);
       return "Never";
     }
     
     try {
-      // For timestamps that come in ISO 8601 format
-      const dateObj = new Date(date);
-      if (isNaN(dateObj.getTime())) {
-        console.error("Invalid date value:", date);
-        return "Invalid date";
-      }
-      return format(dateObj, "PPp");
+      return format(new Date(date), "PPp");
     } catch (error) {
       console.error("Error formatting date:", error, "Date value:", date);
       return "Invalid date";
