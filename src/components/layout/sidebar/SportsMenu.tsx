@@ -1,4 +1,3 @@
-import { Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import {
@@ -8,6 +7,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { HorseRacingMenu } from "./HorseRacingMenu";
+import { Basketball } from "@/components/icons/Basketball";
 
 interface SportsMenuProps {
   isOpen: boolean;
@@ -56,7 +56,7 @@ export const SportsMenu = ({
           disabled
         >
           <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4" />
+            <Basketball className="h-4 w-4" />
             <span>NBA (Coming Soon)</span>
           </div>
         </Button>
