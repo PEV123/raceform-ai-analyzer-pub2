@@ -61,7 +61,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </div>
         </div>
       </header>
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-73px)]">
         <AppSidebar />
         <main className="flex-1 container mx-auto px-4 py-8">
           {children}

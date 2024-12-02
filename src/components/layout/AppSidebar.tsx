@@ -10,7 +10,7 @@ export function AppSidebar() {
   const [isHorseRacingOpen, setIsHorseRacingOpen] = useState(true);
 
   return (
-    <div className="h-screen border-r bg-background p-4 pt-8 hidden md:block w-[250px] overflow-y-auto">
+    <div className="border-r bg-background p-4 pt-8 hidden md:block w-[250px]">
       <div className="space-y-4">
         <Link to="/">
           <Button
