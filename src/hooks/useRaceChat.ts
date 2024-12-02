@@ -25,6 +25,8 @@ export const useRaceChat = (raceId: string) => {
       excludeRaceDocuments
     });
 
+    if (!raceId) return;
+
     setIsLoading(true);
     try {
       // Store and display user message
@@ -47,7 +49,7 @@ export const useRaceChat = (raceId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, storeMessage, sendMessageToAI, addMessage, setIsLoading]);
+  }, [messages, storeMessage, sendMessageToAI, addMessage, setIsLoading, raceId]);
 
   return {
     messages,
