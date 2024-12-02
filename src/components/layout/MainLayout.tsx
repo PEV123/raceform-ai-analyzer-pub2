@@ -35,9 +35,23 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/admin" className={navigationMenuTriggerStyle()}>
-                  Admin
-                </Link>
+                <NavigationMenuTrigger>Admin</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="grid gap-3 p-4 w-[200px]">
+                    <Link
+                      to="/admin"
+                      className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    >
+                      <div className="text-sm font-medium leading-none">Dashboard</div>
+                    </Link>
+                    <Link
+                      to="/admin/race-documents"
+                      className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    >
+                      <div className="text-sm font-medium leading-none">Race Documents</div>
+                    </Link>
+                  </div>
+                </NavigationMenuContent>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <Link to="/login" className={navigationMenuTriggerStyle()}>
