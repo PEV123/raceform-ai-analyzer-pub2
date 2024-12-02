@@ -9,7 +9,7 @@ serve(async (req) => {
 
   try {
     const { message, raceId, conversationHistory, imageData } = await req.json();
-    console.log('Received request with:', { 
+    console.log('Received request:', { 
       messageLength: message?.length,
       raceId,
       historyLength: conversationHistory?.length,
@@ -27,6 +27,17 @@ serve(async (req) => {
       }
     });
 
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch race data
     const { data: race, error: raceError } = await supabase
       .from('races')
       .select(`
@@ -37,9 +48,19 @@ serve(async (req) => {
       .eq('id', raceId)
       .single();
 
-    if (raceError) throw raceError;
+    if (raceError) {
+      console.error('Error fetching race:', raceError);
+      throw raceError;
+    }
 
-    const settings = await fetchSettings();
+    if (!race) {
+      throw new Error('Race not found');
+    }
+
+    const { data: settings } = await supabase
+      .from('admin_settings')
+      .select('*')
+      .single();
 
     const messages = [];
 
@@ -47,7 +68,7 @@ serve(async (req) => {
     if (race.race_documents?.length) {
       try {
         console.log('Processing race documents:', race.race_documents.length);
-        const processedDocuments = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
+        const processedDocuments = await processRaceDocuments(race, supabaseUrl);
         console.log('Successfully processed race documents:', {
           processedCount: processedDocuments.length,
           documentDetails: processedDocuments.map(doc => ({

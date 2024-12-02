@@ -87,3 +87,83 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
     reader.readAsDataURL(blob);
   });
 };
+
+export const formatRaceContext = async (race: any) => {
+  if (!race) return "No race data available";
+
+  try {
+    // Create a structured context object
+    const raceContext = {
+      race_overview: {
+        name: race.race_name,
+        course: race.course,
+        datetime: race.off_time,
+        distance: race.distance,
+        going: race.going,
+        class: race.race_class,
+        prize: race.prize,
+        surface: race.surface,
+        jumps: race.jumps,
+        field_size: race.field_size
+      },
+      runners: race.runners?.map((runner: any) => ({
+        // Basic info
+        horse: runner.horse,
+        horse_id: runner.horse_id,
+        number: runner.number,
+        draw: runner.draw,
+        weight_lbs: runner.lbs,
+        
+        // Breeding info
+        age: runner.age,
+        sex: runner.sex,
+        sire: runner.sire,
+        sire_region: runner.sire_region,
+        dam: runner.dam,
+        dam_region: runner.dam_region,
+        damsire: runner.damsire,
+        
+        // Connections
+        jockey: runner.jockey,
+        trainer: runner.trainer,
+        trainer_location: runner.trainer_location,
+        owner: runner.owner,
+        
+        // Form and ratings
+        official_rating: runner.ofr,
+        rpr: runner.rpr,
+        form: runner.form,
+        spotlight: runner.spotlight,
+        comment: runner.comment,
+        
+        // Equipment and medical
+        headgear: runner.headgear,
+        wind_surgery: runner.wind_surgery,
+        
+        // Statistics
+        trainer_14_day_stats: runner.trainer_14_days,
+        trainer_rtf: runner.trainer_rtf,
+        
+        // Non-runner status
+        is_non_runner: runner.is_non_runner || false
+      })) || [],
+      documents: race.race_documents?.map((doc: any) => ({
+        name: doc.file_name,
+        type: doc.content_type,
+        created_at: doc.created_at
+      })) || []
+    };
+
+    console.log('Generated race context with:', {
+      runnerCount: raceContext.runners.length,
+      documentCount: raceContext.documents.length
+    });
+    
+    return JSON.stringify(raceContext, null, 2);
+  } catch (error) {
+    console.error('Error formatting race context:', error);
+    return JSON.stringify({ error: 'Failed to format race context' });
+  }
+};
+
+export { corsHeaders };
