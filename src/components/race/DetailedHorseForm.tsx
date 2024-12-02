@@ -56,12 +56,14 @@ export const DetailedHorseForm = ({
           )}
         </div>
         <div className="flex-1">
-          <h3 className={`text-lg font-bold ${runner.is_non_runner ? 'line-through' : ''}`}>
-            {runner.horse}
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span className={runner.is_non_runner ? 'line-through' : ''}>
+              {runner.horse}
+            </span>
             {runner.is_non_runner && (
               <>
-                <Ban className="inline-block ml-2 h-4 w-4 text-red-500" />
-                <span className="text-sm font-normal text-red-500 ml-2">Non-Runner</span>
+                <Ban className="h-4 w-4 text-red-500" />
+                <span className="text-sm font-normal text-red-500">Non-Runner</span>
               </>
             )}
           </h3>
@@ -71,7 +73,7 @@ export const DetailedHorseForm = ({
             </p>
           )}
           <p className="text-sm text-muted-foreground">
-            T: {runner.trainer} J: {runner.jockey} ({runner.lbs}lbs)
+            T: {runner.trainer} J: {runner.is_non_runner ? "NON-RUNNER" : runner.jockey} ({runner.lbs}lbs)
           </p>
           {!runner.is_non_runner && <OddsTable odds={runner.odds} />}
         </div>

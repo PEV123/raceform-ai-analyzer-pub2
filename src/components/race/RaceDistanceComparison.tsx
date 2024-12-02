@@ -27,9 +27,16 @@ interface RaceDistanceComparisonProps {
 
 export const RaceDistanceComparison = ({ analyses, runners }: RaceDistanceComparisonProps) => {
   const [sortBy, setSortBy] = useState<SortOption>("number");
-  const chartData = useChartData(analyses, sortBy, runners);
+  
+  // Filter out analyses for non-runners
+  const activeAnalyses = analyses?.filter(analysis => {
+    const runner = runners?.find(r => r.horse_id === analysis.horse_id);
+    return runner && !runner.is_non_runner;
+  });
+  
+  const chartData = useChartData(activeAnalyses, sortBy, runners?.filter(r => !r.is_non_runner));
 
-  if (!analyses?.length) {
+  if (!activeAnalyses?.length) {
     return (
       <div className="text-sm text-muted-foreground">
         No distance analysis data available for comparison
