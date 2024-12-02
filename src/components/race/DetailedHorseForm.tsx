@@ -1,9 +1,9 @@
-import { formatInTimeZone } from 'date-fns-tz';
 import { Card } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
 import { OddsTable } from "./OddsTable";
 import { HorseDistanceAnalysis } from "./HorseDistanceAnalysis";
-import { Ban } from "lucide-react";
+import { RunnerHeader } from "./components/RunnerHeader";
+import { RunnerDetails } from "./components/RunnerDetails";
 
 type Runner = Tables<"runners">;
 type HorseResult = Tables<"horse_results">;
@@ -26,10 +26,6 @@ export const DetailedHorseForm = ({
   distanceAnalysis,
   raceDistance
 }: DetailedHorseFormProps) => {
-  const formatDate = (date: string) => {
-    return formatInTimeZone(new Date(date), 'Europe/London', 'dd/MM/yyyy');
-  };
-
   // Calculate days since last race
   const calculateDaysSince = (raceDate: string) => {
     const days = Math.floor(
@@ -45,53 +41,13 @@ export const DetailedHorseForm = ({
 
   return (
     <Card className={`p-4 mb-4 ${runner.is_non_runner ? 'opacity-50' : ''}`}>
-      {/* Header Section */}
-      <div className="flex items-start gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
-            {runner.number}
-          </div>
-          {runner.silk_url && (
-            <img src={runner.silk_url} alt="Racing silks" className="w-8 h-8 object-contain" />
-          )}
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <span className={runner.is_non_runner ? 'line-through' : ''}>
-              {runner.horse}
-            </span>
-            {runner.is_non_runner && (
-              <>
-                <Ban className="h-4 w-4 text-red-500" />
-                <span className="text-sm font-normal text-red-500">Non-Runner</span>
-              </>
-            )}
-          </h3>
-          {runner.form && (
-            <p className="text-sm text-muted-foreground">
-              Last 5 Starts: {runner.form}
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            T: {runner.trainer} J: {runner.is_non_runner ? "NON-RUNNER" : runner.jockey} ({runner.lbs}lbs)
-          </p>
-          {!runner.is_non_runner && <OddsTable odds={runner.odds} />}
-        </div>
-      </div>
+      <RunnerHeader 
+        runner={runner}
+        number={runner.number}
+        silkUrl={runner.silk_url}
+      />
       
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div>
-          <p><span className="font-medium">Age:</span> {runner.age} years old</p>
-          <p><span className="font-medium">Sire:</span> {runner.sire} ({runner.sire_region})</p>
-          <p><span className="font-medium">Dam:</span> {runner.dam}</p>
-          <p><span className="font-medium">Breeder:</span> {runner.breeder || 'Unknown'}</p>
-        </div>
-        <div>
-          <p><span className="font-medium">Sex:</span> {runner.sex || 'Unknown'}</p>
-          <p><span className="font-medium">Color:</span> {runner.colour || 'Unknown'}</p>
-          {runner.dob && <p><span className="font-medium">Foaled:</span> {formatDate(runner.dob)}</p>}
-        </div>
-      </div>
+      <RunnerDetails runner={runner} />
       
       {/* Performance Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
@@ -122,6 +78,9 @@ export const DetailedHorseForm = ({
           />
         </div>
       )}
+
+      {/* Only show odds table for active runners */}
+      {!runner.is_non_runner && <OddsTable odds={runner.odds} />}
 
       {/* Race History */}
       <div className="space-y-2">

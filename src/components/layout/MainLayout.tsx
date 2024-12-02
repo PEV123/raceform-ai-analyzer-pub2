@@ -20,7 +20,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   usePageTracking();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -61,9 +61,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </div>
         </div>
       </header>
-      <div className="flex min-h-[calc(100vh-73px)]">
+      <div className="flex-1 flex">
         <AppSidebar />
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
           {children}
         </main>
       </div>
