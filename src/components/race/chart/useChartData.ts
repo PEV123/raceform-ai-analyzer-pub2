@@ -93,20 +93,22 @@ export const useChartData = (
       console.log(`Final adjusted average pace: ${avgAdjustedPace}`);
 
       // Convert adjusted pace to speed rating (0-100 scale)
+      // Now higher s/f (slower pace) = lower rating
       let speedRating = 0;
       if (avgAdjustedPace > 0) {
-        const BEST_PACE = 11;  // 11 s/f = 100 points
-        const WORST_PACE = 16; // 16 s/f = 0 points
-        const PACE_RANGE = WORST_PACE - BEST_PACE;
+        const SLOW_PACE = 16;  // 16 s/f = 0 points
+        const FAST_PACE = 11;  // 11 s/f = 100 points
+        const PACE_RANGE = SLOW_PACE - FAST_PACE;
         
-        if (avgAdjustedPace <= BEST_PACE) {
-          speedRating = 100;
-        } else if (avgAdjustedPace >= WORST_PACE) {
+        if (avgAdjustedPace >= SLOW_PACE) {
           speedRating = 0;
+        } else if (avgAdjustedPace <= FAST_PACE) {
+          speedRating = 100;
         } else {
           // Linear interpolation between 0 and 100
+          // Now we subtract from 100 to invert the scale
           speedRating = Math.round(
-            ((WORST_PACE - avgAdjustedPace) / PACE_RANGE) * 100
+            100 - (((avgAdjustedPace - FAST_PACE) / PACE_RANGE) * 100)
           );
         }
       }
