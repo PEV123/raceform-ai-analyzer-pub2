@@ -1,131 +1,53 @@
-import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Message } from "@/components/analysis/types/chat";
-import { useToast } from "./use-toast";
-import { formatRaceContext } from "@/lib/formatRaceContext";
+import { useCallback } from "react";
+import { useChatMessages } from "./chat/useChatMessages";
+import { useChatOperations } from "./chat/useChatOperations";
+import { ImageData } from "@/components/analysis/types/chat";
 
 export const useRaceChat = (raceId: string) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { 
+    messages, 
+    isLoading, 
+    setIsLoading, 
+    loadMessages, 
+    addMessage 
+  } = useChatMessages(raceId);
+  
+  const { storeMessage, sendMessageToAI } = useChatOperations(raceId);
 
-  const loadMessages = useCallback(async () => {
-    console.log('Loading messages for race:', raceId);
-    try {
-      const { data, error } = await supabase
-        .from('race_chats')
-        .select('*')
-        .eq('race_id', raceId)
-        .order('created_at', { ascending: true });
+  const sendMessage = useCallback(async (
+    message: string, 
+    imageData?: ImageData,
+    excludeRaceDocuments?: boolean
+  ) => {
+    console.log('Sending message:', {
+      messageLength: message.length,
+      hasImage: !!imageData,
+      excludeRaceDocuments
+    });
 
-      if (error) {
-        console.error('Error loading messages:', error);
-        throw error;
-      }
-
-      console.log('Successfully loaded messages:', data?.length);
-      setMessages(data.map(msg => ({
-        role: msg.role as Message['role'],
-        message: msg.message
-      })));
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load chat messages",
-        variant: "destructive",
-      });
-    }
-  }, [raceId, toast]);
-
-  const sendMessage = useCallback(async (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => {
-    console.log('Sending message for race:', raceId, 'with image:', !!imageBase64, 'excluding race documents:', excludeRaceDocuments);
     setIsLoading(true);
-
     try {
-      // Fetch race data first
-      const { data: race, error: raceError } = await supabase
-        .from('races')
-        .select(`
-          *,
-          runners (*),
-          race_documents (*)
-        `)
-        .eq('id', raceId)
-        .single();
+      // Store and display user message
+      await storeMessage(message, 'user');
+      addMessage({ role: 'user', message });
 
-      if (raceError) throw raceError;
-
-      // Format the context
-      const context = await formatRaceContext(race);
-      console.log('Generated race context length:', context.length);
-
-      // Store user message
-      const { error: chatError } = await supabase
-        .from('race_chats')
-        .insert({
-          race_id: raceId,
-          message: message,
-          role: 'user'
-        });
-
-      if (chatError) throw chatError;
-
-      // Update local state
-      setMessages(prev => [...prev, { role: 'user' as const, message }]);
-
-      console.log('Calling AI function with:', {
-        messageLength: message.length,
-        hasImage: !!imageBase64,
-        imageType: imageBase64?.type,
-        historyLength: messages.length,
+      // Get AI response
+      const aiResponse = await sendMessageToAI(
+        message,
+        messages,
+        imageData,
         excludeRaceDocuments
-      });
-
-      // Call AI function with image if provided
-      const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
-        'chat-with-anthropic',
-        {
-          body: {
-            message,
-            raceId,
-            conversationHistory: messages,
-            imageData: imageBase64,
-            excludeRaceDocuments
-          }
-        }
       );
 
-      if (aiError) throw aiError;
-
-      console.log('Received AI response:', {
-        responseLength: aiResponse.message.length
-      });
-
-      // Store AI response
-      const { error: responseError } = await supabase
-        .from('race_chats')
-        .insert({
-          race_id: raceId,
-          message: aiResponse.message,
-          role: 'assistant'
-        });
-
-      if (responseError) throw responseError;
-
-      // Update local state with AI response
-      setMessages(prev => [...prev, { role: 'assistant' as const, message: aiResponse.message }]);
+      // Store and display AI response
+      await storeMessage(aiResponse, 'assistant');
+      addMessage({ role: 'assistant', message: aiResponse });
     } catch (error) {
-      console.error('Error in chat interaction:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
+      console.error('Error in chat flow:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [raceId, messages, toast]);
+  }, [messages, storeMessage, sendMessageToAI, addMessage, setIsLoading]);
 
   return {
     messages,
