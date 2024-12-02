@@ -13,7 +13,7 @@ export const PageSeo = () => {
         .from("seo_settings")
         .select("*")
         .eq("page_path", location.pathname)
-        .single();
+        .maybeSingle();
       
       if (error && error.code !== "PGRST116") throw error;
       return data;
