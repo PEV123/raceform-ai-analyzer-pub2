@@ -4,6 +4,7 @@ import {
   Bike,
   MenuIcon,
   Trophy,
+  Home,
 } from "lucide-react";
 import {
   Collapsible,
@@ -21,6 +22,16 @@ export function AppSidebar() {
   return (
     <div className="h-screen border-r bg-background p-4 pt-8 hidden md:block w-[250px] overflow-y-auto">
       <div className="space-y-4">
+        <Link to="/">
+          <Button
+            variant="ghost"
+            className="w-full justify-start font-semibold"
+          >
+            <Home className="mr-2 h-4 w-4" />
+            <span>Home</span>
+          </Button>
+        </Link>
+
         <Collapsible
           open={isSportsOpen}
           onOpenChange={setIsSportsOpen}
@@ -64,7 +75,7 @@ export function AppSidebar() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 ml-4">
-                <Link to="/racing/uk-ire">
+                <Link to="/">
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm"
@@ -72,28 +83,26 @@ export function AppSidebar() {
                     UK/IRE
                   </Button>
                 </Link>
-                <Link to="/racing/australia">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm"
-                  >
-                    Australia
-                  </Button>
-                </Link>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sm"
+                  disabled
+                >
+                  Australia (Coming Soon)
+                </Button>
               </CollapsibleContent>
             </Collapsible>
 
-            <Link to="/nba">
-              <Button
-                variant="ghost"
-                className="w-full justify-start ml-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4" />
-                  <span>NBA</span>
-                </div>
-              </Button>
-            </Link>
+            <Button
+              variant="ghost"
+              className="w-full justify-start ml-4"
+              disabled
+            >
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>NBA (Coming Soon)</span>
+              </div>
+            </Button>
           </CollapsibleContent>
         </Collapsible>
       </div>
@@ -118,6 +127,16 @@ export function MobileNav() {
       {isOpen && (
         <div className="fixed inset-0 top-[64px] z-50 bg-background border-r animate-in slide-in-from-left">
           <div className="p-4 space-y-4">
+            <Link to="/" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start font-semibold"
+              >
+                <Home className="mr-2 h-4 w-4" />
+                <span>Home</span>
+              </Button>
+            </Link>
+
             <Collapsible defaultOpen className="space-y-2">
               <CollapsibleTrigger asChild>
                 <Button
@@ -143,7 +162,7 @@ export function MobileNav() {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-2 ml-4">
-                    <Link to="/racing/uk-ire" onClick={() => setIsOpen(false)}>
+                    <Link to="/" onClick={() => setIsOpen(false)}>
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-sm"
@@ -151,28 +170,26 @@ export function MobileNav() {
                         UK/IRE
                       </Button>
                     </Link>
-                    <Link to="/racing/australia" onClick={() => setIsOpen(false)}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-sm"
-                      >
-                        Australia
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm"
+                      disabled
+                    >
+                      Australia (Coming Soon)
+                    </Button>
                   </CollapsibleContent>
                 </Collapsible>
 
-                <Link to="/nba" onClick={() => setIsOpen(false)}>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start ml-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Trophy className="h-4 w-4" />
-                      <span>NBA</span>
-                    </div>
-                  </Button>
-                </Link>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start ml-4"
+                  disabled
+                >
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4" />
+                    <span>NBA (Coming Soon)</span>
+                  </div>
+                </Button>
               </CollapsibleContent>
             </Collapsible>
           </div>
