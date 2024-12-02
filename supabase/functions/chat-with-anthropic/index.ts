@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
-import { corsHeaders, processRaceDocuments } from "./utils.ts";
+import { corsHeaders, processRaceDocuments, formatRaceContext } from "./utils.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -117,6 +117,10 @@ serve(async (req) => {
         content: currentContent
       });
     }
+
+    // Generate race context
+    const raceContext = await formatRaceContext(race);
+    console.log('Generated race context length:', raceContext.length);
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
