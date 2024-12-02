@@ -43,9 +43,9 @@ const App = () => {
                   </Routes>
                 </MainLayout>
                 <BodyScripts />
+                <Toaster />
+                <Sonner />
               </BrowserRouter>
-              <Toaster />
-              <Sonner />
             </TooltipProvider>
           </QueryClientProvider>
         </SessionContextProvider>
