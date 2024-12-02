@@ -43,6 +43,8 @@ export const RaceTable = ({
           <TableHead>Venue</TableHead>
           <TableHead>Race Time</TableHead>
           <TableHead>Number Runners</TableHead>
+          <TableHead>Results Data</TableHead>
+          <TableHead>Time Data</TableHead>
           <TableHead>Docs</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>

@@ -1,6 +1,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Tables } from "@/integrations/supabase/types";
-import { formatInTimeZone } from 'date-fns-tz';
+import { Database } from "lucide-react";
+import { Clock } from "lucide-react";
 import { RaceActionButtons } from "../RaceActionButtons";
 import { RaceDocumentsCell } from "../RaceDocumentsCell";
 
@@ -55,6 +56,18 @@ export const RaceTableRow = ({
       </TableCell>
       <TableCell>{formatTime(race.off_time)}</TableCell>
       <TableCell>{race.field_size}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Database className="h-4 w-4" />
+          <span>{hasImportedResults(race) ? "8/8" : "0/8"}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4" />
+          <span>{hasImportedAnalysis(race) ? "8/8" : "0/8"}</span>
+        </div>
+      </TableCell>
       <TableCell>
         <RaceDocumentsCell
           documents={race.race_documents || []}
