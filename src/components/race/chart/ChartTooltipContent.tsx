@@ -14,11 +14,13 @@ export const ChartTooltipContent = ({ active, payload, label }: ChartTooltipCont
       <p className="font-medium mb-1">{payload[0].payload.fullName}</p>
       {payload.map((entry: any) => (
         <p key={entry.name} className="text-sm">
-          {entry.name === 'speedRating' 
-            ? `Avg Pace: ${entry.payload.actualPace}s per furlong`
-            : entry.name === 'overall'
-            ? `Overall Score: ${Number(entry.value).toFixed(1)}`
-            : `${entry.name}: ${Number(entry.value).toFixed(1)}%`
+          {entry.name.includes('Rate') 
+            ? `${entry.name}: ${Number(entry.value).toFixed(1)}%`
+            : entry.name === 'Speed Rating'
+            ? `${entry.name}: ${Number(entry.value).toFixed(1)}`
+            : entry.name === 'Overall Score'
+            ? `${entry.name}: ${Number(entry.value).toFixed(1)}`
+            : `Avg Pace: ${entry.payload.actualPace}s per furlong`
           }
         </p>
       ))}

@@ -82,9 +82,9 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
             <YAxis 
               yAxisId="right" 
               orientation="right"
-              domain={[0, 50]}
+              domain={[0, 100]}
               label={{ 
-                value: 'Speed Rating', 
+                value: 'Rating', 
                 angle: 90, 
                 position: 'insideRight',
                 style: { 
@@ -128,7 +128,7 @@ export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps
               animationDuration={500}
             />
             <Bar 
-              yAxisId="left" 
+              yAxisId="right" 
               dataKey="overall" 
               name="Overall Score" 
               fill="#ff7300" 

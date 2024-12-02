@@ -1,7 +1,7 @@
 import { useMemo } from "react";
+import { calculateRates } from "./rateCalculations";
+import { calculateSpeedMetrics, calculateSpeedRating } from "./speedCalculations";
 import { Tables } from "@/integrations/supabase/types";
-import { convertDistanceToFurlongs, getDistanceFactor } from "./distanceCalculations";
-import { calculateAdjustedPace, calculateSpeedRating } from "./paceCalculations";
 
 type SortOption = "number" | "win" | "place" | "speed" | "overall";
 
@@ -32,39 +32,28 @@ export const useChartData = (
     const data: ChartData[] = analyses.map(analysis => {
       const details = analysis.horse_distance_details || [];
       
-      // Calculate win rate (0-100%)
-      const avgWinRate = details.reduce((acc, detail) => 
-        acc + (Number(detail.win_percentage) || 0), 0) / (details.length || 1) * 100;
-      
-      // Calculate place rate (0-100%)
-      const avgPlaceRate = details.reduce((acc, detail) => {
-        const placeRate = ((detail.wins + detail.second_places + detail.third_places) / detail.runs) * 100;
-        return acc + (placeRate || 0);
-      }, 0) / (details.length || 1);
+      // Calculate average rates across all distances
+      const rateMetrics = details.map(detail => calculateRates(detail));
+      const avgWinRate = rateMetrics.reduce((acc, curr) => acc + curr.winRate, 0) / (details.length || 1);
+      const avgPlaceRate = rateMetrics.reduce((acc, curr) => acc + curr.placeRate, 0) / (details.length || 1);
 
       console.log(`Processing horse: ${analysis.horse}`);
 
-      // Calculate adjusted speed rating based on distance and pace
+      // Calculate best speed rating across all distances
       let bestSpeedRating = 0;
       let finalAdjustedPace = 0;
 
       details.forEach(detail => {
-        const distanceInFurlongs = convertDistanceToFurlongs(detail.dist);
-        const distanceFactor = getDistanceFactor(distanceInFurlongs);
-        
-        console.log(`Processing detail for distance: ${detail.dist} (${distanceInFurlongs}f, factor: ${distanceFactor})`);
-        
-        const { avgAdjustedPace, validTimeCount } = calculateAdjustedPace(
+        const { avgSecondsPerFurlong, validTimeCount } = calculateSpeedMetrics(
           detail.horse_distance_times,
-          distanceInFurlongs,
-          distanceFactor
+          detail.dist
         );
 
         if (validTimeCount > 0) {
-          const currentSpeedRating = calculateSpeedRating(avgAdjustedPace);
+          const currentSpeedRating = calculateSpeedRating(avgSecondsPerFurlong);
           if (currentSpeedRating > bestSpeedRating) {
             bestSpeedRating = currentSpeedRating;
-            finalAdjustedPace = avgAdjustedPace;
+            finalAdjustedPace = avgSecondsPerFurlong;
           }
         }
       });
