@@ -16,6 +16,10 @@ serve(async (req) => {
       hasImageData: !!imageData
     });
 
+    if (!raceId) {
+      throw new Error('Race ID is required');
+    }
+
     if (imageData) {
       console.log('Image data received:', {
         type: imageData.type,
@@ -27,7 +31,15 @@ serve(async (req) => {
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
 
+    if (!anthropic.apiKey) {
+      throw new Error('Anthropic API key is not configured');
+    }
+
     const race = await fetchRaceData(raceId);
+    if (!race) {
+      throw new Error(`Race data not found for ID: ${raceId}`);
+    }
+
     const settings = await fetchSettings();
     console.log('Fetched race data with runners:', race.runners?.length);
 
@@ -38,13 +50,18 @@ serve(async (req) => {
 
     // Add race documents as images if they exist
     if (race.race_documents?.length) {
-      console.log('Processing race documents:', race.race_documents.length);
-      const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
-      console.log('Successfully processed race documents:', processedImages.length);
-      messages.push(...processedImages.map(img => ({
-        role: "user",
-        content: [img, { type: "text", text: "Please analyze this race document." }]
-      })));
+      try {
+        console.log('Processing race documents:', race.race_documents.length);
+        const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
+        console.log('Successfully processed race documents:', processedImages.length);
+        messages.push(...processedImages.map(img => ({
+          role: "user",
+          content: [img, { type: "text", text: "Please analyze this race document." }]
+        })));
+      } catch (error) {
+        console.error('Error processing race documents:', error);
+        // Continue execution even if document processing fails
+      }
     }
 
     // Add conversation history
@@ -61,16 +78,21 @@ serve(async (req) => {
     
     // Add any newly uploaded image from the chat
     if (imageData) {
-      console.log('Processing new image upload with type:', imageData.type);
-      currentContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: imageData.type,
-          data: imageData.data
-        }
-      });
-      console.log('Successfully added image to message content');
+      try {
+        console.log('Processing new image upload with type:', imageData.type);
+        currentContent.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: imageData.type,
+            data: imageData.data
+          }
+        });
+        console.log('Successfully added image to message content');
+      } catch (error) {
+        console.error('Error processing uploaded image:', error);
+        // Continue execution even if image processing fails
+      }
     }
 
     // Add the text message if it exists
@@ -111,8 +133,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in chat-with-anthropic function:', error);
+    
+    // Return a more detailed error response
     return new Response(
-      JSON.stringify({ error: true, message: error.message || 'An unexpected error occurred' }),
+      JSON.stringify({ 
+        error: true, 
+        message: error.message || 'An unexpected error occurred',
+        details: error.toString(),
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
