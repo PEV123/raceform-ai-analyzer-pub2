@@ -14,6 +14,21 @@ interface ChartData {
   totalRuns: number;
 }
 
+const convertDistanceToFurlongs = (distance: string): number => {
+  const miles = distance.match(/(\d+)m/)?.[1] ? Number(distance.match(/(\d+)m/)[1]) : 0;
+  const furlongs = distance.match(/(\d+)f/)?.[1] ? Number(distance.match(/(\d+)f/)[1]) : 0;
+  const halfFurlong = distance.includes('½') ? 0.5 : 0;
+  return (miles * 8) + furlongs + halfFurlong;
+};
+
+const getDistanceFactor = (furlongs: number): number => {
+  const BASE_DISTANCE = 12; // 1.5 miles
+  const FACTOR_PER_FURLONG = 0.01;
+  
+  if (furlongs <= BASE_DISTANCE) return 1.0;
+  return 1.0 + ((furlongs - BASE_DISTANCE) * FACTOR_PER_FURLONG);
+};
+
 export const useChartData = (
   analyses: (Tables<"horse_distance_analysis"> & {
     horse_distance_details: (Tables<"horse_distance_details"> & {
@@ -40,70 +55,69 @@ export const useChartData = (
         return acc + (placeRate || 0);
       }, 0) / (details.length || 1);
       
-      // Calculate speed rating based on average seconds per furlong
-      let totalSecondsPerFurlong = 0;
+      // Calculate adjusted speed rating based on distance and pace
+      let totalAdjustedPace = 0;
       let validTimeCount = 0;
 
       console.log(`Processing horse: ${analysis.horse}`);
 
       details.forEach(detail => {
-        console.log(`Processing detail for distance: ${detail.dist}`);
+        const distanceInFurlongs = convertDistanceToFurlongs(detail.dist);
+        const distanceFactor = getDistanceFactor(distanceInFurlongs);
+        
+        console.log(`Processing detail for distance: ${detail.dist} (${distanceInFurlongs}f, factor: ${distanceFactor})`);
+        
         detail.horse_distance_times?.forEach(time => {
           console.log(`Processing time: ${time.time}`);
           if (time.time && time.time !== '-') {
             const [mins, secs] = time.time.split(':').map(Number);
-            const seconds = mins * 60 + secs;
-            const furlongs = Number(detail.dist.match(/(\d+)f/)?.[1] || 0);
+            const totalSeconds = mins * 60 + secs;
+            const secondsPerFurlong = totalSeconds / distanceInFurlongs;
             
-            console.log(`Calculated seconds: ${seconds}, furlongs: ${furlongs}`);
+            // Adjust s/f by distance factor
+            const adjustedPace = secondsPerFurlong / distanceFactor;
             
-            if (seconds > 0 && furlongs > 0) {
-              const spf = seconds / furlongs;
-              console.log(`Seconds per furlong: ${spf}`);
-              totalSecondsPerFurlong += spf;
+            console.log(`Raw s/f: ${secondsPerFurlong}, Adjusted s/f: ${adjustedPace}`);
+            
+            if (adjustedPace > 0) {
+              totalAdjustedPace += adjustedPace;
               validTimeCount++;
             }
           }
         });
       });
 
-      const avgSecondsPerFurlong = validTimeCount > 0 ? 
-        totalSecondsPerFurlong / validTimeCount : 0;
+      const avgAdjustedPace = validTimeCount > 0 ? 
+        totalAdjustedPace / validTimeCount : 0;
 
-      console.log(`Final avg seconds per furlong: ${avgSecondsPerFurlong}`);
+      console.log(`Final adjusted average pace: ${avgAdjustedPace}`);
 
-      // Convert pace to a speed rating (0-50 scale)
-      // Base the calculation on the actual seconds per furlong
-      // Faster times should get higher ratings
+      // Convert adjusted pace to speed rating (0-100 scale)
       let speedRating = 0;
-      if (avgSecondsPerFurlong > 0) {
-        // Typical range is 12-16 seconds per furlong
-        // 12s = 50 points (excellent)
-        // 16s = 10 points (poor)
-        // Linear scale in between
-        const maxTime = 16; // Slowest time
-        const minTime = 12; // Fastest time
-        const timeRange = maxTime - minTime;
-        const ratingRange = 40; // From 10 to 50
-
-        if (avgSecondsPerFurlong <= minTime) {
-          speedRating = 50; // Cap at 50 for very fast times
-        } else if (avgSecondsPerFurlong >= maxTime) {
-          speedRating = 10; // Minimum 10 for slow times
+      if (avgAdjustedPace > 0) {
+        const BEST_PACE = 11;  // 11 s/f = 100 points
+        const WORST_PACE = 16; // 16 s/f = 0 points
+        const PACE_RANGE = WORST_PACE - BEST_PACE;
+        
+        if (avgAdjustedPace <= BEST_PACE) {
+          speedRating = 100;
+        } else if (avgAdjustedPace >= WORST_PACE) {
+          speedRating = 0;
         } else {
-          // Linear interpolation between 10 and 50
-          const timeFromMin = avgSecondsPerFurlong - minTime;
-          speedRating = 50 - (timeFromMin * (ratingRange / timeRange));
+          // Linear interpolation between 0 and 100
+          speedRating = Math.round(
+            ((WORST_PACE - avgAdjustedPace) / PACE_RANGE) * 100
+          );
         }
       }
 
       console.log(`Calculated speed rating: ${speedRating}`);
 
-      // Calculate overall score (0-50 scale)
+      // Calculate overall score (0-100 scale)
       const overall = (
-        ((avgWinRate / 2) * 0.4) + // 40% weight to win rate (scaled to 0-50)
-        ((avgPlaceRate / 2) * 0.4) + // 40% weight to place rate (scaled to 0-50)
-        (speedRating * 0.2) // 20% weight to speed rating (already 0-50)
+        (avgWinRate * 0.4) + // 40% weight to win rate
+        (avgPlaceRate * 0.4) + // 40% weight to place rate
+        (speedRating * 0.2) // 20% weight to speed rating
       );
 
       const result = {
@@ -115,7 +129,7 @@ export const useChartData = (
         avgPlaceRate,
         speedRating,
         overall,
-        actualPace: avgSecondsPerFurlong.toFixed(2),
+        actualPace: avgAdjustedPace.toFixed(2),
         totalRuns: analysis.total_runs || 0
       };
 
