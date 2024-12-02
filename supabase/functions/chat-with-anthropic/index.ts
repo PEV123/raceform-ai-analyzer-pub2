@@ -79,15 +79,14 @@ serve(async (req) => {
           }))
         });
 
-        // Add each race document as a separate message
+        // Add each race document as text content
         for (const doc of processedDocuments) {
           messages.push({
             role: "user",
             content: [
-              doc,
               { 
                 type: "text", 
-                text: "Please analyze this race document." 
+                text: `Document content (${doc.source.media_type}): ${doc.source.data}`
               }
             ]
           });
@@ -102,7 +101,7 @@ serve(async (req) => {
       console.log('Adding conversation history:', conversationHistory.length, 'messages');
       messages.push(...conversationHistory.map(msg => ({
         role: msg.role,
-        content: msg.message
+        content: [{ type: "text", text: msg.message }]
       })));
     }
 
@@ -115,17 +114,28 @@ serve(async (req) => {
           type: imageData.type,
           dataLength: imageData.data.length
         });
-        currentContent.push({
-          type: imageData.type === 'application/pdf' ? 'document' : 'image',
-          source: {
-            type: "base64",
-            media_type: imageData.type,
-            data: imageData.data
-          }
-        });
-        console.log('Successfully added image to message content');
+        
+        // Handle image uploads
+        if (imageData.type.startsWith('image/')) {
+          currentContent.push({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: imageData.type,
+              data: imageData.data
+            }
+          });
+        } else {
+          // Handle non-image uploads as text
+          currentContent.push({
+            type: "text",
+            text: `Document content (${imageData.type}): ${imageData.data}`
+          });
+        }
+        
+        console.log('Successfully added content to message');
       } catch (error) {
-        console.error('Error processing uploaded image:', error);
+        console.error('Error processing uploaded content:', error);
       }
     }
 
@@ -161,7 +171,6 @@ serve(async (req) => {
       max_tokens: 1024,
       system: `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`,
       messages,
-      betas: ["pdfs-2024-09-25"]  // Adding PDF support beta
     });
 
     console.log('Received response from Claude:', {
