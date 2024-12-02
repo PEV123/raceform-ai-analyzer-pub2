@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 
 interface DocumentUploadDialogProps {
   race: Tables<"races"> | null;
@@ -30,7 +30,6 @@ export const DocumentUploadDialog = ({
     setUploadProgress(0);
     
     try {
-      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -134,7 +133,10 @@ export const DocumentUploadDialog = ({
                   <span>Uploading...</span>
                 </div>
               ) : (
-                "Select Files"
+                <div className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  <span>Select Files</span>
+                </div>
               )}
             </Button>
           </div>

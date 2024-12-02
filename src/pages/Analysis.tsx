@@ -7,8 +7,6 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentUploadDialog } from "@/components/admin/DocumentUploadDialog";
 import { RaceDocumentsCell } from "@/components/admin/RaceDocumentsCell";
-import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
 import { useState } from "react";
 import { useRaceDocuments } from "@/components/admin/hooks/useRaceDocuments";
 
@@ -54,10 +52,6 @@ const Analysis = () => {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Race Documents</h2>
-            <Button onClick={() => setShowUploadDialog(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Documents
-            </Button>
           </div>
           <RaceDocumentsCell
             documents={race.race_documents}
@@ -70,10 +64,6 @@ const Analysis = () => {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Race Documents</h2>
-            <Button onClick={() => setShowUploadDialog(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Documents
-            </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-2">No documents uploaded yet.</p>
         </Card>

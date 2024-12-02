@@ -93,7 +93,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
             onClick={() => setShowUploadDialog(true)}
           >
             <Upload className="h-4 w-4 mr-2" />
-            Upload Document
+            Upload Documents
           </Button>
           <Button
             variant="outline"
