@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { PlusCircle } from "lucide-react";
 
@@ -24,25 +23,27 @@ export const AddUserDialog = () => {
     setIsLoading(true);
 
     try {
-      // Create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
+      const response = await fetch(
+        'https://vlcrqrmqghskrdhhsgqt.supabase.co/functions/v1/create-user',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            fullName,
+            membershipLevel,
+          }),
+        }
+      );
 
-      if (authError) throw authError;
-
-      // Update the user's profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          membership_level: membershipLevel,
-        })
-        .eq("id", authData.user.id);
-
-      if (profileError) throw profileError;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create user');
+      }
 
       toast({
         title: "Success",
@@ -62,7 +63,7 @@ export const AddUserDialog = () => {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: error.message || "Failed to create user",
         variant: "destructive",
       });
     } finally {
