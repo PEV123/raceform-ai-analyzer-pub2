@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileJson, History, ExternalLink, Eye, BarChart2, CheckCircle, Database } from "lucide-react";
+import { Database, History, ExternalLink, Eye, BarChart2, CheckCircle } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 
@@ -53,14 +53,6 @@ export const RaceActionButtons = ({
         onClick={onViewRawData}
         title="View Raw Data"
       >
-        <FileJson className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={onViewDbData}
-        title="View Database Data"
-      >
         <Database className="h-4 w-4" />
       </Button>
       <div className="relative">
@@ -71,7 +63,7 @@ export const RaceActionButtons = ({
           disabled={isImportingResults}
           title="Import Horse Results"
         >
-          <History className="h-4 w-4" />
+          <Database className="h-4 w-4" />
         </Button>
         {hasImportedResults && (
           <CheckCircle className="h-3 w-3 text-green-500 absolute -top-1 -right-1" />
@@ -85,7 +77,7 @@ export const RaceActionButtons = ({
           disabled={isImportingAnalysis}
           title="Import Distance Analysis"
         >
-          <BarChart2 className="h-4 w-4" />
+          <History className="h-4 w-4" />
         </Button>
         {hasImportedAnalysis && (
           <CheckCircle className="h-3 w-3 text-green-500 absolute -top-1 -right-1" />
