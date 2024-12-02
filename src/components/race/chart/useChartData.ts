@@ -73,22 +73,27 @@ export const useChartData = (
       console.log(`Final avg seconds per furlong: ${avgSecondsPerFurlong}`);
 
       // Convert pace to a speed rating (0-50 scale)
-      // New calculation that works with actual race times
-      // Typical range for seconds per furlong is 11-15 seconds
-      // We'll use this range to create a 0-50 scale
+      // Base the calculation on the actual seconds per furlong
+      // Faster times should get higher ratings
       let speedRating = 0;
       if (avgSecondsPerFurlong > 0) {
-        // If time is faster than 11 seconds, cap at 50
-        if (avgSecondsPerFurlong <= 11) {
-          speedRating = 50;
-        }
-        // If time is slower than 15 seconds, minimum 5
-        else if (avgSecondsPerFurlong >= 15) {
-          speedRating = 5;
-        }
-        // Otherwise, scale between 5 and 50
-        else {
-          speedRating = 50 - ((avgSecondsPerFurlong - 11) * (45 / 4));
+        // Typical range is 12-16 seconds per furlong
+        // 12s = 50 points (excellent)
+        // 16s = 10 points (poor)
+        // Linear scale in between
+        const maxTime = 16; // Slowest time
+        const minTime = 12; // Fastest time
+        const timeRange = maxTime - minTime;
+        const ratingRange = 40; // From 10 to 50
+
+        if (avgSecondsPerFurlong <= minTime) {
+          speedRating = 50; // Cap at 50 for very fast times
+        } else if (avgSecondsPerFurlong >= maxTime) {
+          speedRating = 10; // Minimum 10 for slow times
+        } else {
+          // Linear interpolation between 10 and 50
+          const timeFromMin = avgSecondsPerFurlong - minTime;
+          speedRating = 50 - (timeFromMin * (ratingRange / timeRange));
         }
       }
 
