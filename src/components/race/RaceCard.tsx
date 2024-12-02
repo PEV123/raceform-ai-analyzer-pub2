@@ -84,6 +84,9 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   const timezone = settings?.timezone || 'Europe/London';
   const raceTime = formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm');
 
+  // Sort runners by number
+  const sortedRunners = [...(race.runners || [])].sort((a, b) => a.number - b.number);
+
   if (historicalError || analysesError) {
     return (
       <Alert variant="destructive">
@@ -136,7 +139,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         )}
 
         <div className="space-y-4">
-          {race.runners?.map((runner: any) => (
+          {sortedRunners.map((runner: any) => (
             <div 
               key={runner.horse_id}
               className={`p-2 bg-muted rounded-lg flex items-center gap-2 ${
@@ -163,7 +166,7 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         </div>
 
         <div className="space-y-6">
-          {race.runners?.map((runner: any) => (
+          {sortedRunners.map((runner: any) => (
             <DetailedHorseForm
               key={runner.horse_id}
               runner={runner}
