@@ -13,10 +13,18 @@ export const ChatMessageList = ({ messages, isLoading }: ChatMessageListProps) =
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    const scrollToBottom = () => {
+      if (scrollAreaRef.current) {
+        const scrollElement = scrollAreaRef.current;
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
+    };
+
+    // Only scroll if there are messages
+    if (messages.length > 0) {
+      scrollToBottom();
     }
-  }, [messages]);
+  }, [messages.length]); // Only trigger when the number of messages changes
 
   return (
     <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
