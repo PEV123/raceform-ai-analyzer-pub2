@@ -28,7 +28,12 @@ export const RaceList = ({ races }: RaceListProps) => {
   
   const importHorseResults = useImportHorseResultsMutation();
   const importDistanceAnalysis = useImportHorseDistanceAnalysisMutation();
-  const { hasImportedResults, hasImportedAnalysis } = useRaceData(races);
+  const { 
+    hasImportedResults, 
+    hasImportedAnalysis,
+    getImportedResultsCount,
+    getImportedAnalysisCount 
+  } = useRaceData(races);
   const { handleDeleteDocument } = useRaceDocuments();
 
   const handleImportHorseResults = async (race: Race) => {
@@ -88,6 +93,8 @@ export const RaceList = ({ races }: RaceListProps) => {
         onImportDistanceAnalysis={handleImportDistanceAnalysis}
         hasImportedResults={hasImportedResults}
         hasImportedAnalysis={hasImportedAnalysis}
+        getImportedResultsCount={getImportedResultsCount}
+        getImportedAnalysisCount={getImportedAnalysisCount}
         isImportingResults={importHorseResults.isPending}
         isImportingAnalysis={importDistanceAnalysis.isPending}
         onDeleteDocument={handleDeleteDocument}
