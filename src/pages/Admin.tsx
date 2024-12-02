@@ -2,16 +2,19 @@ import { AdminSettings } from "@/components/admin/AdminSettings";
 import ImportRaces from "@/components/admin/ImportRaces";
 import { HorseResults } from "@/components/admin/HorseResults";
 import { ApiTesting } from "@/components/admin/api-testing/ApiTesting";
+import { UserList } from "@/components/admin/users/UserList";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSession } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Admin = () => {
   const { isAdmin, isLoading } = useAdmin();
   const session = useSession();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("users");
 
   useEffect(() => {
     if (!session) {
@@ -49,14 +52,29 @@ const Admin = () => {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
       
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="space-y-4">
-          <ImportRaces />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="races">Race Management</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="users" className="space-y-6">
+          <UserList />
+        </TabsContent>
+        
+        <TabsContent value="races" className="space-y-6">
+          <div className="grid gap-8 md:grid-cols-2">
+            <ImportRaces />
+            <HorseResults />
+            <ApiTesting />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="settings" className="space-y-6">
           <AdminSettings />
-          <HorseResults />
-          <ApiTesting />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

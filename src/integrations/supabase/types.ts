@@ -290,21 +290,54 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          city: string | null
+          company: string | null
+          country: string | null
           created_at: string
+          full_name: string | null
           id: string
           is_admin: boolean | null
+          last_login: string | null
+          membership_level: string | null
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          subscription_status: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          country?: string | null
           created_at?: string
+          full_name?: string | null
           id: string
           is_admin?: boolean | null
+          last_login?: string | null
+          membership_level?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          country?: string | null
           created_at?: string
+          full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          last_login?: string | null
+          membership_level?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Relationships: []
