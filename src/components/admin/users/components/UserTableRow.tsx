@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import type { ProfileData } from "../profile/types";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 interface UserTableRowProps {
   user: ProfileData;
@@ -9,7 +9,7 @@ interface UserTableRowProps {
 }
 
 export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
-  console.log("User data:", user); // Debug log to see the user data
+  console.log("User data:", JSON.stringify(user)); // Debug log
   
   const formatLastLogin = (date: string | null) => {
     if (!date) {
@@ -18,13 +18,12 @@ export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
     }
     
     try {
-      // For timestamps that come in ISO 8601 format
-      const dateObj = new Date(date);
-      if (isNaN(dateObj.getTime())) {
+      const parsedDate = parseISO(date);
+      if (!isValid(parsedDate)) {
         console.error("Invalid date value:", date);
         return "Invalid date";
       }
-      return format(dateObj, "PPp");
+      return format(parsedDate, "PPp");
     } catch (error) {
       console.error("Error formatting date:", error, "Date value:", date);
       return "Invalid date";
