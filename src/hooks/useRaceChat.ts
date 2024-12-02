@@ -23,6 +23,7 @@ export const useRaceChat = (raceId: string) => {
         throw error;
       }
 
+      console.log('Successfully loaded messages:', data?.length);
       setMessages(data.map(msg => ({
         role: msg.role as Message['role'],
         message: msg.message
@@ -38,7 +39,7 @@ export const useRaceChat = (raceId: string) => {
   }, [raceId, toast]);
 
   const sendMessage = useCallback(async (message: string, imageBase64?: { data: string; type: string }) => {
-    console.log('Sending message for race:', raceId);
+    console.log('Sending message for race:', raceId, 'with image:', !!imageBase64);
     setIsLoading(true);
 
     try {
@@ -73,6 +74,13 @@ export const useRaceChat = (raceId: string) => {
       // Update local state
       setMessages(prev => [...prev, { role: 'user' as const, message }]);
 
+      console.log('Calling AI function with:', {
+        messageLength: message.length,
+        hasImage: !!imageBase64,
+        imageType: imageBase64?.type,
+        historyLength: messages.length
+      });
+
       // Call AI function with image if provided
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
         'chat-with-anthropic',
@@ -87,6 +95,10 @@ export const useRaceChat = (raceId: string) => {
       );
 
       if (aiError) throw aiError;
+
+      console.log('Received AI response:', {
+        responseLength: aiResponse.message.length
+      });
 
       // Store AI response
       const { error: responseError } = await supabase

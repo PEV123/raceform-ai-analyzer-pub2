@@ -8,13 +8,20 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId, conversationHistory, images } = await req.json();
-    console.log('Making request to Anthropic API with:', { 
-      messageCount: conversationHistory?.length,
-      systemPromptLength: raceId.length,
-      historyLength: conversationHistory?.length || 0,
-      totalImagesProcessed: images?.length || 0
+    const { message, raceId, conversationHistory, imageData } = await req.json();
+    console.log('Received request with:', { 
+      messageLength: message?.length,
+      raceId,
+      historyLength: conversationHistory?.length,
+      hasImageData: !!imageData
     });
+
+    if (imageData) {
+      console.log('Image data received:', {
+        type: imageData.type,
+        dataLength: imageData.data?.length,
+      });
+    }
 
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
@@ -33,6 +40,7 @@ serve(async (req) => {
     if (race.race_documents?.length) {
       console.log('Processing race documents:', race.race_documents.length);
       const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
+      console.log('Successfully processed race documents:', processedImages.length);
       messages.push(...processedImages.map(img => ({
         role: "user",
         content: [img, { type: "text", text: "Please analyze this race document." }]
@@ -41,6 +49,7 @@ serve(async (req) => {
 
     // Add conversation history
     if (conversationHistory?.length > 0) {
+      console.log('Adding conversation history:', conversationHistory.length, 'messages');
       messages.push(...conversationHistory.map(msg => ({
         role: msg.role,
         content: msg.message
@@ -51,18 +60,17 @@ serve(async (req) => {
     const currentContent = [];
     
     // Add any newly uploaded image from the chat
-    if (images?.length > 0) {
-      console.log('Processing newly uploaded chat images:', images.length);
-      images.forEach(img => {
-        currentContent.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: img.source.media_type,
-            data: img.source.data
-          }
-        });
+    if (imageData) {
+      console.log('Processing new image upload with type:', imageData.type);
+      currentContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: imageData.type,
+          data: imageData.data
+        }
       });
+      console.log('Successfully added image to message content');
     }
 
     // Add the text message if it exists
@@ -79,7 +87,7 @@ serve(async (req) => {
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      hasImages: images?.length > 0,
+      hasImages: imageData !== undefined,
       modelUsed: settings?.anthropic_model
     });
 
@@ -93,7 +101,7 @@ serve(async (req) => {
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
       estimatedTokens: Math.ceil(response.content[0].text.length / 4),
-      imagesIncluded: images?.length || 0
+      imagesIncluded: imageData ? 1 : 0
     });
 
     return new Response(
