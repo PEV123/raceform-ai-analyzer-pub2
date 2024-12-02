@@ -73,11 +73,24 @@ export const useChartData = (
       console.log(`Final avg seconds per furlong: ${avgSecondsPerFurlong}`);
 
       // Convert pace to a speed rating (0-50 scale)
-      // Assuming average pace is around 12-13 seconds per furlong
-      // Faster times (lower seconds) should result in higher ratings
-      const speedRating = avgSecondsPerFurlong > 0 
-        ? Math.max(0, Math.min(50, ((14 - avgSecondsPerFurlong) * 10) + 25))
-        : 0;
+      // New calculation that works with actual race times
+      // Typical range for seconds per furlong is 11-15 seconds
+      // We'll use this range to create a 0-50 scale
+      let speedRating = 0;
+      if (avgSecondsPerFurlong > 0) {
+        // If time is faster than 11 seconds, cap at 50
+        if (avgSecondsPerFurlong <= 11) {
+          speedRating = 50;
+        }
+        // If time is slower than 15 seconds, minimum 5
+        else if (avgSecondsPerFurlong >= 15) {
+          speedRating = 5;
+        }
+        // Otherwise, scale between 5 and 50
+        else {
+          speedRating = 50 - ((avgSecondsPerFurlong - 11) * (45 / 4));
+        }
+      }
 
       console.log(`Calculated speed rating: ${speedRating}`);
 
