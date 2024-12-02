@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ProfileData } from "./types";
+import { trackActivity } from "@/utils/activity";
 
 export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
   const { toast } = useToast();
@@ -21,6 +22,11 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
         console.error("Error updating profile:", error);
         throw error;
       }
+
+      // Track profile update
+      await trackActivity('profile_update', undefined, {
+        updatedFields: Object.keys(updatedProfile)
+      });
 
       return data;
     },

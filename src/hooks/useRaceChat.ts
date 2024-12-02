@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from '@supabase/auth-helpers-react';
 import { Message, ImageData } from "@/components/analysis/types/chat";
+import { trackActivity } from "@/utils/activity";
 
 export const useRaceChat = (raceId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,12 +49,14 @@ export const useRaceChat = (raceId: string) => {
       imageDataLength: imageData?.data.length
     });
 
-    // Debug: Log the first 100 characters of the base64 data
-    if (imageData?.data) {
-      console.log('Image base64 preview (first 100 chars):', imageData.data.substring(0, 100));
-    }
-
     try {
+      // Track AI interaction
+      await trackActivity('ai_chat', undefined, {
+        raceId,
+        messageLength: message.length,
+        hasImage: !!imageData
+      });
+
       // Save user message with image URL if present
       const userMessage = message.trim() || "(Image uploaded)";
       

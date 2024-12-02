@@ -295,6 +295,7 @@ export type Database = {
           company: string | null
           country: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           is_admin: boolean | null
@@ -312,6 +313,7 @@ export type Database = {
           company?: string | null
           country?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           is_admin?: boolean | null
@@ -329,6 +331,7 @@ export type Database = {
           company?: string | null
           country?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
@@ -681,6 +684,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_activity: {
+        Row: {
+          activity_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          page_path: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          page_path?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          page_path?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
