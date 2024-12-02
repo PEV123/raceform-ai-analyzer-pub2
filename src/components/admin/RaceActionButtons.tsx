@@ -55,6 +55,14 @@ export const RaceActionButtons = ({
       >
         <Database className="h-4 w-4" />
       </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={onViewDbData}
+        title="View Database Data"
+      >
+        <BarChart2 className="h-4 w-4" />
+      </Button>
       <div className="relative">
         <Button
           variant="outline"
