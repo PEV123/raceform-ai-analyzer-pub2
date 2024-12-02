@@ -93,23 +93,25 @@ export const useChartData = (
       console.log(`Final adjusted average pace: ${avgAdjustedPace}`);
 
       // Convert adjusted pace to speed rating (0-100 scale)
-      // Now higher s/f (slower pace) = lower rating
+      // Now higher s/f (slower pace) = lower rating, but still give points for slower times
       let speedRating = 0;
       if (avgAdjustedPace > 0) {
-        const SLOW_PACE = 16;  // 16 s/f = 0 points
         const FAST_PACE = 11;  // 11 s/f = 100 points
-        const PACE_RANGE = SLOW_PACE - FAST_PACE;
+        const SLOW_PACE = 20;  // 20 s/f = 10 points (instead of 0)
+        const VERY_SLOW_PACE = 25; // 25+ s/f = 0 points
         
-        if (avgAdjustedPace >= SLOW_PACE) {
+        if (avgAdjustedPace >= VERY_SLOW_PACE) {
           speedRating = 0;
         } else if (avgAdjustedPace <= FAST_PACE) {
           speedRating = 100;
+        } else if (avgAdjustedPace >= SLOW_PACE) {
+          // Linear interpolation between 10 and 0 points for very slow times
+          const ratio = (VERY_SLOW_PACE - avgAdjustedPace) / (VERY_SLOW_PACE - SLOW_PACE);
+          speedRating = Math.round(10 * ratio);
         } else {
-          // Linear interpolation between 0 and 100
-          // Now we subtract from 100 to invert the scale
-          speedRating = Math.round(
-            100 - (((avgAdjustedPace - FAST_PACE) / PACE_RANGE) * 100)
-          );
+          // Linear interpolation between 100 and 10 points for normal range
+          const ratio = (SLOW_PACE - avgAdjustedPace) / (SLOW_PACE - FAST_PACE);
+          speedRating = Math.round(10 + (ratio * 90));
         }
       }
 
