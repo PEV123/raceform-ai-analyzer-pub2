@@ -9,7 +9,11 @@ export const PageSeo = () => {
   const { data: seoSettings } = useQuery({
     queryKey: ["seoSettings", location.pathname],
     queryFn: async () => {
-      console.log("Fetching SEO settings for path:", location.pathname);
+      console.log('Fetching SEO settings for path:', location.pathname);
+      
+      // Properly encode the page path for the query
+      const encodedPath = encodeURIComponent(location.pathname);
+      console.log('Encoded path for query:', encodedPath);
       
       const { data, error } = await supabase
         .from("seo_settings")
@@ -19,14 +23,14 @@ export const PageSeo = () => {
       
       if (error) {
         if (error.code === "PGRST116") {
-          console.log("No SEO settings found for path:", location.pathname);
+          console.log('No SEO settings found for path:', location.pathname);
           return null;
         }
-        console.error("Error fetching SEO settings:", error);
+        console.error('Error fetching SEO settings:', error);
         throw error;
       }
 
-      console.log("Found SEO settings:", data);
+      console.log('Found SEO settings:', data);
       return data;
     },
   });
@@ -34,7 +38,7 @@ export const PageSeo = () => {
   const { data: scripts } = useQuery({
     queryKey: ["scriptSettings"],
     queryFn: async () => {
-      console.log("Fetching script settings");
+      console.log('Fetching script settings');
       
       const { data, error } = await supabase
         .from("script_settings")
@@ -42,17 +46,17 @@ export const PageSeo = () => {
         .eq("is_enabled", true);
       
       if (error) {
-        console.error("Error fetching script settings:", error);
+        console.error('Error fetching script settings:', error);
         throw error;
       }
 
-      console.log("Found script settings:", data);
+      console.log('Found script settings:', data);
       return data;
     },
   });
 
   if (!seoSettings && !scripts?.length) {
-    console.log("No SEO or script settings to apply");
+    console.log('No SEO or script settings to apply');
     return null;
   }
 
