@@ -18,9 +18,11 @@ export const UserProfileForm = ({
   isEditing,
   onSubmit,
 }: UserProfileFormProps) => {
-  const form = useForm({
+  const form = useForm<ProfileData>({
     defaultValues: {
+      id: profile.id,
       full_name: profile.full_name || "",
+      email: profile.email || "",
       membership_level: profile.membership_level || "free",
       subscription_status: profile.subscription_status || "active",
       phone: profile.phone || "",
@@ -30,6 +32,8 @@ export const UserProfileForm = ({
       country: profile.country || "",
       postal_code: profile.postal_code || "",
       notes: profile.notes || "",
+      last_login: profile.last_login || null,
+      is_admin: profile.is_admin || false,
     },
   });
 
