@@ -1,7 +1,7 @@
 export interface ProfileData {
   id: string;
   full_name: string | null;
-  email: string | null;  // Added this line
+  email: string | null;
   membership_level: string;
   subscription_status: string;
   phone: string | null;
@@ -12,4 +12,5 @@ export interface ProfileData {
   postal_code: string | null;
   notes: string | null;
   last_login: string | null;
+  is_admin: boolean;
 }
