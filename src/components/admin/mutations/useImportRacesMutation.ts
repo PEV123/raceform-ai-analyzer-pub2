@@ -8,6 +8,7 @@ import { sleep } from "@/lib/utils";
 
 interface ImportProgress {
   onProgress: (progress: number, operation: string) => void;
+  onUpdateSummary?: (summary: any) => void;
 }
 
 interface ImportParams extends ImportProgress {
@@ -19,8 +20,13 @@ export const useImportRacesMutation = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ date, onProgress }: ImportParams) => {
+    mutationFn: async ({ date, onProgress, onUpdateSummary }: ImportParams) => {
       console.log('Starting full import process for date:', date);
+      
+      const updateSummary = {
+        nonRunnerUpdates: [] as any[],
+        oddsUpdates: [] as any[]
+      };
       
       // Step 1: Fetch and import races
       onProgress(0, "Fetching races from API...");
@@ -32,22 +38,39 @@ export const useImportRacesMutation = () => {
 
       for (const race of races) {
         try {
-          // Process race data
-          onProgress(
-            (completedOperations / totalOperations) * 100,
-            `Processing race at ${race.course} (${race.off_time})`
-          );
-          
-          const raceData = await processRace(race);
+          // Check if race exists and get its ID
+          const { data: existingRace } = await supabase
+            .from("races")
+            .select("id")
+            .eq("race_id", race.race_id)
+            .single();
+
+          let raceData;
+          if (existingRace) {
+            console.log(`Updating existing race ${race.race_id}`);
+            raceData = existingRace;
+          } else {
+            console.log(`Creating new race ${race.race_id}`);
+            raceData = await processRace(race);
+          }
+
           if (!raceData) {
-            console.log(`Race ${race.race_id} already exists, skipping`);
+            console.error(`Failed to process race ${race.race_id}`);
             continue;
           }
           
           // Process runners with delay between batches
           if (race.runners && Array.isArray(race.runners)) {
-            await processRunners(raceData.id, race.runners);
+            const nonRunnerUpdates = await processRunners(raceData.id, race.runners);
             
+            if (nonRunnerUpdates > 0) {
+              updateSummary.nonRunnerUpdates.push({
+                raceId: race.race_id,
+                course: race.course,
+                count: nonRunnerUpdates
+              });
+            }
+
             // Step 2: Import horse results for each runner with delays
             for (const runner of race.runners) {
               if (!runner.horse_id) continue;
@@ -59,11 +82,9 @@ export const useImportRacesMutation = () => {
               
               try {
                 await importHorseResults(runner.horse_id);
-                // Add a small delay between API calls to prevent rate limiting
                 await sleep(500);
               } catch (error) {
                 console.error(`Error importing results for horse ${runner.horse_id}:`, error);
-                // Continue with next horse instead of failing completely
                 continue;
               }
             }
@@ -79,24 +100,24 @@ export const useImportRacesMutation = () => {
               
               try {
                 await importDistanceAnalysis(runner.horse_id);
-                // Add a small delay between API calls to prevent rate limiting
                 await sleep(500);
               } catch (error) {
                 console.error(`Error importing distance analysis for horse ${runner.horse_id}:`, error);
-                // Continue with next horse instead of failing completely
                 continue;
               }
             }
           }
           
           completedOperations += 3;
-          // Add a delay between processing different races
           await sleep(1000);
         } catch (error) {
           console.error(`Error processing race ${race.race_id}:`, error);
-          // Continue with next race instead of failing completely
           continue;
         }
+      }
+
+      if (onUpdateSummary) {
+        onUpdateSummary(updateSummary);
       }
 
       onProgress(100, "Import completed successfully!");

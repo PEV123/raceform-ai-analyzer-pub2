@@ -74,8 +74,10 @@ export const processRace = async (race: any) => {
 export const processRunners = async (raceId: string, runners: any[]) => {
   if (!runners || !Array.isArray(runners)) {
     console.warn(`No runners found for race ${raceId}`);
-    return;
+    return 0;
   }
+
+  let nonRunnerUpdates = 0;
 
   const validRunners = runners
     .filter(runner => {
@@ -119,12 +121,17 @@ export const processRunners = async (raceId: string, runners: any[]) => {
     for (const runner of validRunners) {
       const { data: existingRunner } = await supabase
         .from("runners")
-        .select("id, odds")
+        .select("id, odds, is_non_runner")
         .eq("race_id", raceId)
         .eq("horse_id", runner.horse_id)
         .single();
 
       if (existingRunner) {
+        // Check for non-runner status change
+        if (existingRunner.is_non_runner !== runner.is_non_runner) {
+          nonRunnerUpdates++;
+        }
+
         // Update existing runner
         const { error: updateError } = await supabase
           .from("runners")
@@ -160,8 +167,15 @@ export const processRunners = async (raceId: string, runners: any[]) => {
         if (newRunner && runner.odds?.length > 0) {
           await saveOddsHistory(newRunner.id, runner.odds);
         }
+
+        // Count new non-runners
+        if (runner.is_non_runner) {
+          nonRunnerUpdates++;
+        }
       }
     }
     console.log(`Successfully processed ${validRunners.length} runners`);
   }
+
+  return nonRunnerUpdates;
 };
