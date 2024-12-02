@@ -1,12 +1,16 @@
-import { Outlet } from "react-router-dom";
+import { ReactNode } from "react";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
-export const MainLayout = () => {
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+export const MainLayout = ({ children }: MainLayoutProps) => {
   usePageTracking();
 
   return (
     <div className="min-h-screen bg-background">
-      <Outlet />
+      {children}
     </div>
   );
 };
