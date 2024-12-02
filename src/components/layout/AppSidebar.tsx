@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
 import {
   ChevronDown,
-  Bike,
   MenuIcon,
   Trophy,
   Home,
 } from "lucide-react";
+import { HorseHead } from "@/components/icons/HorseHead";
 import {
   Collapsible,
   CollapsibleContent,
@@ -63,7 +63,7 @@ export function AppSidebar() {
                   className="w-full justify-between items-center"
                 >
                   <div className="flex items-center gap-2">
-                    <Bike className="h-4 w-4" />
+                    <HorseHead className="h-4 w-4" />
                     <span>Horse Racing</span>
                   </div>
                   <ChevronDown
@@ -155,7 +155,7 @@ export function MobileNav() {
                       className="w-full justify-between items-center"
                     >
                       <div className="flex items-center gap-2">
-                        <Bike className="h-4 w-4" />
+                        <HorseHead className="h-4 w-4" />
                         <span>Horse Racing</span>
                       </div>
                       <ChevronDown className="h-4 w-4" />
