@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Message } from "@/components/analysis/types/chat";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const useChatMessages = (raceId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const loadMessages = async () => {
     console.log('Loading messages for race:', raceId);
@@ -17,6 +19,11 @@ export const useChatMessages = (raceId: string) => {
 
       if (error) {
         console.error('Error loading messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load chat messages",
+          variant: "destructive",
+        });
         throw error;
       }
 
@@ -27,6 +34,11 @@ export const useChatMessages = (raceId: string) => {
       })));
     } catch (error) {
       console.error('Error loading messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat messages",
+        variant: "destructive",
+      });
     }
   };
 

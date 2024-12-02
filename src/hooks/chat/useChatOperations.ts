@@ -6,7 +6,7 @@ export const useChatOperations = (raceId: string) => {
   const { toast } = useToast();
 
   const storeMessage = async (message: string, role: 'user' | 'assistant') => {
-    console.log('Storing message:', { role, messageLength: message.length });
+    console.log('Storing message:', { role, messageLength: message.length, raceId });
     try {
       const { error } = await supabase
         .from('race_chats')
@@ -27,6 +27,7 @@ export const useChatOperations = (raceId: string) => {
         description: "Failed to store message",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
@@ -40,7 +41,8 @@ export const useChatOperations = (raceId: string) => {
       messageLength: message.length,
       historyLength: conversationHistory.length,
       hasImage: !!imageData,
-      excludeRaceDocuments
+      excludeRaceDocuments,
+      raceId
     });
 
     try {
@@ -57,7 +59,16 @@ export const useChatOperations = (raceId: string) => {
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error in AI chat:', error);
+        throw error;
+      }
+
+      console.log('Received AI response:', {
+        responseLength: data.message.length,
+        preview: data.message.substring(0, 100)
+      });
+
       return data.message;
     } catch (error) {
       console.error('Error in AI chat:', error);
