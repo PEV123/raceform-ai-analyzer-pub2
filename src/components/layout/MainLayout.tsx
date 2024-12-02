@@ -45,7 +45,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      if (!session && location.pathname !== '/login') {
+      // Only redirect to login if trying to access admin routes without authentication
+      if (!session && location.pathname.startsWith('/admin')) {
         console.log('No session found, redirecting to login');
         navigate('/login');
         return;
@@ -66,7 +67,10 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           title: "Signed out",
           description: "You have been successfully logged out.",
         });
-        navigate('/login');
+        // If on an admin page, redirect to home
+        if (location.pathname.startsWith('/admin')) {
+          navigate('/');
+        }
       }
     });
 
@@ -79,7 +83,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     try {
       await supabase.auth.signOut();
       console.log('Sign out successful');
-      navigate('/login');
+      if (location.pathname.startsWith('/admin')) {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       toast({

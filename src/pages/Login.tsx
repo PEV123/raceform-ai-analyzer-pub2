@@ -1,6 +1,6 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, isLoading } = useAdmin();
 
@@ -24,7 +25,9 @@ const Login = () => {
       
       if (session?.user) {
         console.log('User already logged in:', session.user.email);
-        navigate('/');
+        // If coming from an admin page, go to admin, otherwise go back
+        const returnPath = location.state?.from?.startsWith('/admin') ? '/admin' : location.state?.from || '/';
+        navigate(returnPath);
       }
     };
 
@@ -39,14 +42,16 @@ const Login = () => {
           title: "Success!",
           description: "You have been successfully logged in.",
         });
-        navigate('/');
+        // If coming from an admin page, go to admin, otherwise go back
+        const returnPath = location.state?.from?.startsWith('/admin') ? '/admin' : location.state?.from || '/';
+        navigate(returnPath);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate, toast, location.state]);
 
   return (
     <div className="max-w-md mx-auto mt-8">
