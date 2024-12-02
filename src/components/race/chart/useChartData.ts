@@ -38,7 +38,7 @@ export const useChartData = (
         return acc + (placeRate || 0);
       }, 0) / (details.length || 1);
       
-      // Calculate speed rating (0-50 scale to match graph)
+      // Calculate speed rating based on average seconds per furlong
       let totalSecondsPerFurlong = 0;
       let validTimeCount = 0;
 
@@ -61,17 +61,18 @@ export const useChartData = (
       const avgSecondsPerFurlong = validTimeCount > 0 ? 
         totalSecondsPerFurlong / validTimeCount : 0;
 
-      // Convert pace to a 0-50 rating where faster times = higher rating
+      // Convert pace to a speed rating (0-50 scale)
+      // Assuming average pace is around 12-13 seconds per furlong
+      // Faster times (lower seconds) should result in higher ratings
       const speedRating = avgSecondsPerFurlong > 0 
-        ? Math.max(0, Math.min(50, (15 - avgSecondsPerFurlong) * 10))
+        ? Math.max(0, Math.min(50, ((14 - avgSecondsPerFurlong) * 10) + 25))
         : 0;
 
-      // Calculate overall score (0-50 scale to match graph)
-      // Weighted average: 40% win rate, 40% place rate, 20% speed rating
+      // Calculate overall score (0-50 scale)
       const overall = (
-        ((avgWinRate * 0.4) + // 40% weight to win rate
-        (avgPlaceRate * 0.4) + // 40% weight to place rate
-        (speedRating * 0.2)) / 2 // 20% weight to speed rating, divided by 2 to get to 0-50 scale
+        ((avgWinRate / 2) * 0.4) + // 40% weight to win rate (scaled to 0-50)
+        ((avgPlaceRate / 2) * 0.4) + // 40% weight to place rate (scaled to 0-50)
+        (speedRating * 0.2) // 20% weight to speed rating (already 0-50)
       );
 
       return {
