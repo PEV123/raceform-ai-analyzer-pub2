@@ -24,7 +24,7 @@ export const useRaceChat = (raceId: string) => {
       }
 
       setMessages(data.map(msg => ({
-        role: msg.role,
+        role: msg.role as Message['role'],
         message: msg.message
       })));
     } catch (error) {
@@ -71,7 +71,7 @@ export const useRaceChat = (raceId: string) => {
       if (chatError) throw chatError;
 
       // Update local state
-      setMessages(prev => [...prev, { role: 'user', message }]);
+      setMessages(prev => [...prev, { role: 'user' as const, message }]);
 
       // Call AI function with image if provided
       const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
@@ -100,7 +100,7 @@ export const useRaceChat = (raceId: string) => {
       if (responseError) throw responseError;
 
       // Update local state with AI response
-      setMessages(prev => [...prev, { role: 'assistant', message: aiResponse.message }]);
+      setMessages(prev => [...prev, { role: 'assistant' as const, message: aiResponse.message }]);
     } catch (error) {
       console.error('Error in chat interaction:', error);
       toast({
