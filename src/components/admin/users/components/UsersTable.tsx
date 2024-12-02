@@ -18,7 +18,7 @@ export const UsersTable = ({ users, onViewProfile }: UsersTableProps) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead>Membership</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Last Login</TableHead>

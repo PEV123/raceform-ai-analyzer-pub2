@@ -10,7 +10,7 @@ interface UserTableRowProps {
 export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
   return (
     <TableRow>
-      <TableCell>{user.full_name || "Not set"}</TableCell>
+      <TableCell>{user.email || "No email"}</TableCell>
       <TableCell className="capitalize">{user.membership_level}</TableCell>
       <TableCell className="capitalize">{user.subscription_status}</TableCell>
       <TableCell>

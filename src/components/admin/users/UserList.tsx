@@ -16,7 +16,7 @@ export const UserList = () => {
   const filteredUsers = users?.filter((user) => {
     const matchesSearch =
       !searchTerm ||
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMembership =
       membershipFilter === "all" || user.membership_level === membershipFilter;
     return matchesSearch && matchesMembership;
