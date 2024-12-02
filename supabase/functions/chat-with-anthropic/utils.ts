@@ -59,19 +59,25 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
   }
   
   console.log(`Processing ${race.race_documents.length} race documents for vision analysis`);
-  const imageDocuments = race.race_documents.filter((doc: any) => doc.content_type?.startsWith('image/'));
-  console.log(`Found ${imageDocuments.length} image documents to process`);
+  console.log('Document types:', race.race_documents.map((doc: any) => ({
+    fileName: doc.file_name,
+    contentType: doc.content_type
+  })));
   
-  const processedImages = [];
+  const processedDocuments = [];
   
-  for (const doc of imageDocuments) {
+  for (const doc of race.race_documents) {
     try {
-      const imageUrl = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
-      console.log('Processing image:', doc.file_name);
+      const documentUrl = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
+      console.log('Processing document:', {
+        fileName: doc.file_name,
+        contentType: doc.content_type,
+        url: documentUrl
+      });
       
-      const response = await fetch(imageUrl);
+      const response = await fetch(documentUrl);
       if (!response.ok) {
-        console.error(`Failed to fetch image ${doc.file_name}:`, response.statusText);
+        console.error(`Failed to fetch document ${doc.file_name}:`, response.statusText);
         continue;
       }
 
@@ -79,7 +85,7 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
       const base64Data = await blobToBase64(blob);
       const base64Content = base64Data.split(',')[1];
       
-      processedImages.push({
+      processedDocuments.push({
         type: "image",
         source: {
           type: "base64",
@@ -88,13 +94,17 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
         }
       });
       
-      console.log(`Successfully processed image ${doc.file_name}`);
+      console.log(`Successfully processed document ${doc.file_name}:`, {
+        contentType: doc.content_type,
+        dataLength: base64Content.length
+      });
     } catch (error) {
-      console.error(`Error processing document image ${doc.file_name}:`, error);
+      console.error(`Error processing document ${doc.file_name}:`, error);
     }
   }
   
-  return processedImages;
+  console.log(`Successfully processed ${processedDocuments.length} documents`);
+  return processedDocuments;
 };
 
 const blobToBase64 = (blob: Blob): Promise<string> => {

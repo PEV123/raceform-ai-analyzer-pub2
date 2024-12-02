@@ -36,6 +36,14 @@ serve(async (req) => {
       throw new Error(`Race data not found for ID: ${raceId}`);
     }
 
+    console.log('Race documents found:', {
+      totalDocuments: race.race_documents?.length || 0,
+      documentTypes: race.race_documents?.map(doc => ({
+        fileName: doc.file_name,
+        contentType: doc.content_type
+      }))
+    });
+
     const settings = await fetchSettings();
     console.log('Fetched race data with runners:', race.runners?.length);
 
@@ -49,7 +57,13 @@ serve(async (req) => {
       try {
         console.log('Processing race documents:', race.race_documents.length);
         const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
-        console.log('Successfully processed race documents:', processedImages.length);
+        console.log('Successfully processed race documents:', {
+          processedCount: processedImages.length,
+          documentDetails: processedImages.map(img => ({
+            mediaType: img.source.media_type,
+            dataLength: img.source.data.length
+          }))
+        });
 
         // Add each race document as a separate message
         for (const img of processedImages) {
@@ -92,7 +106,10 @@ serve(async (req) => {
     // Add any newly uploaded image from the chat
     if (imageData) {
       try {
-        console.log('Processing new image upload with type:', imageData.type);
+        console.log('Processing new image upload:', {
+          type: imageData.type,
+          dataLength: imageData.data.length
+        });
         currentContent.push({
           type: "image",
           source: {
@@ -123,7 +140,13 @@ serve(async (req) => {
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
       hasImages: imageData !== undefined || (race.race_documents?.length > 0),
-      modelUsed: settings?.anthropic_model
+      modelUsed: settings?.anthropic_model,
+      messagesStructure: messages.map(m => ({
+        role: m.role,
+        contentTypes: Array.isArray(m.content) 
+          ? m.content.map(c => c.type)
+          : typeof m.content
+      }))
     });
 
     const response = await anthropic.messages.create({
