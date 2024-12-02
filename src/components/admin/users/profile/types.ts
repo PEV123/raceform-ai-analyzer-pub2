@@ -1,6 +1,7 @@
 export interface ProfileData {
   id: string;
   full_name: string | null;
+  email: string | null;  // Added this line
   membership_level: string;
   subscription_status: string;
   phone: string | null;
