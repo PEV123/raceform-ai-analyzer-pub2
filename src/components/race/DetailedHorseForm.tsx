@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
 import { OddsTable } from "./OddsTable";
 import { HorseDistanceAnalysis } from "./HorseDistanceAnalysis";
+import { Ban } from "lucide-react";
 
 type Runner = Tables<"runners">;
 type HorseResult = Tables<"horse_results">;
@@ -43,7 +44,7 @@ export const DetailedHorseForm = ({
   );
 
   return (
-    <Card className="p-4 mb-4">
+    <Card className={`p-4 mb-4 ${runner.is_non_runner ? 'opacity-50' : ''}`}>
       {/* Header Section */}
       <div className="flex items-start gap-4 mb-6">
         <div className="flex items-center gap-2">
@@ -55,8 +56,14 @@ export const DetailedHorseForm = ({
           )}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold">
-            {runner.horse} ({runner.draw})
+          <h3 className={`text-lg font-bold ${runner.is_non_runner ? 'line-through' : ''}`}>
+            {runner.horse}
+            {runner.is_non_runner && (
+              <>
+                <Ban className="inline-block ml-2 h-4 w-4 text-red-500" />
+                <span className="text-sm font-normal text-red-500 ml-2">Non-Runner</span>
+              </>
+            )}
           </h3>
           {runner.form && (
             <p className="text-sm text-muted-foreground">
@@ -66,7 +73,7 @@ export const DetailedHorseForm = ({
           <p className="text-sm text-muted-foreground">
             T: {runner.trainer} J: {runner.jockey} ({runner.lbs}lbs)
           </p>
-          <OddsTable odds={runner.odds} />
+          {!runner.is_non_runner && <OddsTable odds={runner.odds} />}
         </div>
       </div>
       
@@ -104,27 +111,8 @@ export const DetailedHorseForm = ({
         </div>
       </div>
       
-      <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
-        <div>
-          <p className="font-medium">1st Up</p>
-          <p>--</p>
-        </div>
-        <div>
-          <p className="font-medium">2nd Up</p>
-          <p>--</p>
-        </div>
-        <div>
-          <p className="font-medium">Track</p>
-          <p>--</p>
-        </div>
-        <div>
-          <p className="font-medium">Distance</p>
-          <p>--</p>
-        </div>
-      </div>
-      
       {/* Distance Analysis Section */}
-      {distanceAnalysis && (
+      {!runner.is_non_runner && distanceAnalysis && (
         <div className="mb-6">
           <HorseDistanceAnalysis 
             analysis={distanceAnalysis} 

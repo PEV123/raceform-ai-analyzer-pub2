@@ -22,11 +22,12 @@ interface RaceDistanceComparisonProps {
       horse_distance_times: Tables<"horse_distance_times">[];
     })[];
   })[];
+  runners?: any[];
 }
 
-export const RaceDistanceComparison = ({ analyses }: RaceDistanceComparisonProps) => {
+export const RaceDistanceComparison = ({ analyses, runners }: RaceDistanceComparisonProps) => {
   const [sortBy, setSortBy] = useState<SortOption>("number");
-  const chartData = useChartData(analyses, sortBy);
+  const chartData = useChartData(analyses, sortBy, runners);
 
   if (!analyses?.length) {
     return (

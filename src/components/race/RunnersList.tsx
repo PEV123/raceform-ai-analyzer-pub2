@@ -1,3 +1,4 @@
+import { Ban } from "lucide-react";
 import { OddsDisplay } from "./OddsDisplay";
 
 interface RunnersListProps {
@@ -21,14 +22,17 @@ export const RunnersList = ({ runners }: RunnersListProps) => {
             )}
           </div>
           <div className="flex-1">
-            <div className="font-medium">
+            <div className={`font-medium ${runner.is_non_runner ? 'line-through' : ''}`}>
               {runner.horse}
+              {runner.is_non_runner && (
+                <Ban className="inline-block ml-2 h-4 w-4 text-red-500" />
+              )}
             </div>
             <div className="text-sm text-muted-foreground">
               {runner.jockey} | {runner.trainer}
             </div>
           </div>
-          <OddsDisplay odds={runner.odds} />
+          {!runner.is_non_runner && <OddsDisplay odds={runner.odds} />}
         </div>
       ))}
     </div>

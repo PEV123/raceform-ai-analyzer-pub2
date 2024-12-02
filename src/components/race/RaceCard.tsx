@@ -106,7 +106,10 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
         {distanceAnalyses?.length > 0 && (
           <div className="mb-6">
-            <RaceDistanceComparison analyses={distanceAnalyses} />
+            <RaceDistanceComparison 
+              analyses={distanceAnalyses} 
+              runners={race.runners}
+            />
           </div>
         )}
 

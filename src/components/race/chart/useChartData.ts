@@ -10,7 +10,8 @@ export const useChartData = (
       horse_distance_times: Tables<"horse_distance_times">[];
     })[];
   })[],
-  sortBy: SortOption
+  sortBy: SortOption,
+  runners?: any[]
 ) => {
   return useMemo(() => {
     if (!analyses?.length) return [];
@@ -24,6 +25,13 @@ export const useChartData = (
       // Skip if we've already processed this horse
       if (uniqueHorsesMap.has(analysis.horse_id)) {
         console.log(`Skipping duplicate horse: ${analysis.horse} (${analysis.horse_id})`);
+        return;
+      }
+
+      // Skip if horse is a non-runner
+      const runner = runners?.find(r => r.horse_id === analysis.horse_id);
+      if (runner?.is_non_runner) {
+        console.log(`Skipping non-runner: ${analysis.horse} (${analysis.horse_id})`);
         return;
       }
 
@@ -96,5 +104,5 @@ export const useChartData = (
           return 0; // number order is handled by the parent component
       }
     });
-  }, [analyses, sortBy]);
+  }, [analyses, sortBy, runners]);
 };
