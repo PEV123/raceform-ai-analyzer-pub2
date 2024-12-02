@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserProfile } from "./UserProfile";
 import { UserFilters } from "./components/UserFilters";
 import { UsersTable } from "./components/UsersTable";
+import { AddUserDialog } from "./components/AddUserDialog";
 import { useUsers } from "./hooks/useUsers";
 
 export const UserList = () => {
@@ -40,12 +41,15 @@ export const UserList = () => {
 
   return (
     <div className="space-y-4">
-      <UserFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        membershipFilter={membershipFilter}
-        onMembershipFilterChange={setMembershipFilter}
-      />
+      <div className="flex justify-between items-center">
+        <UserFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          membershipFilter={membershipFilter}
+          onMembershipFilterChange={setMembershipFilter}
+        />
+        <AddUserDialog />
+      </div>
 
       {isLoading ? (
         <div className="space-y-2">
