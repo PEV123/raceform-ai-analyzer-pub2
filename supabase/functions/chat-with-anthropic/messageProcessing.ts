@@ -1,42 +1,41 @@
 import { Message } from "./types.ts";
 
-const MAX_TOKENS_PER_MESSAGE = 8000;
-const MAX_HISTORY_MESSAGES = 10;
-
 export const processMessages = (
   conversationHistory: Message[] = [],
   currentMessage: string,
-  processedDocuments: any[],
-  imageData?: { data: string; type: string },
+  processedDocuments: any[] = [],
+  imageData?: { source: { type: string; media_type: string; data: string } },
   excludeRaceDocuments?: boolean
 ) => {
-  const messages = [];
   console.log('Processing messages with:', {
-    historyLength: conversationHistory?.length,
+    historyLength: conversationHistory?.length || 0,
     hasCurrentMessage: !!currentMessage,
-    documentCount: processedDocuments?.length,
+    documentCount: processedDocuments?.length || 0,
     hasImage: !!imageData,
     excludeRaceDocuments
   });
 
-  // Add limited conversation history
-  if (conversationHistory?.length > 0) {
+  const messages = [];
+
+  // Add conversation history if it exists
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
     console.log('Adding conversation history:', conversationHistory.length, 'messages');
-    const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
-    messages.push(...recentHistory.map(msg => ({
-      role: msg.role,
-      content: [{ type: "text", text: msg.message }]
-    })));
+    messages.push(
+      ...conversationHistory.map(msg => ({
+        role: msg.role,
+        content: [{ type: "text", text: msg.message }]
+      }))
+    );
   }
 
   // Process current message and any uploads
   const currentContent = [];
 
-  // Handle race documents only if not excluded
-  if (!excludeRaceDocuments && processedDocuments?.length > 0) {
+  // Handle race documents if they exist and are not excluded
+  if (!excludeRaceDocuments && Array.isArray(processedDocuments) && processedDocuments.length > 0) {
     console.log('Processing race documents:', processedDocuments.length);
-    for (const doc of processedDocuments) {
-      if (doc.source?.data && doc.source?.media_type?.startsWith('image/')) {
+    processedDocuments.forEach(doc => {
+      if (doc?.source?.data && doc?.source?.media_type?.startsWith('image/')) {
         console.log('Adding race document image:', {
           type: doc.source.media_type,
           dataLength: doc.source.data.length
@@ -50,35 +49,34 @@ export const processMessages = (
           }
         });
       }
-    }
-  } else if (excludeRaceDocuments) {
-    console.log('Race documents excluded by user request');
+    });
   }
 
   // Handle uploaded image if present
-  if (imageData) {
+  if (imageData?.source?.data && imageData?.source?.media_type) {
     console.log('Processing uploaded image:', {
-      type: imageData.type,
-      dataLength: imageData.data.length
+      type: imageData.source.media_type,
+      dataLength: imageData.source.data.length
     });
     currentContent.push({
       type: "image",
       source: {
         type: "base64",
-        media_type: imageData.type,
-        data: imageData.data
+        media_type: imageData.source.media_type,
+        data: imageData.source.data
       }
     });
   }
 
-  // Add the text message last
-  if (currentMessage) {
+  // Add the text message if it exists
+  if (currentMessage?.trim()) {
     currentContent.push({ 
       type: "text", 
-      text: currentMessage 
+      text: currentMessage.trim() 
     });
   }
-  
+
+  // Only add the message if there's content
   if (currentContent.length > 0) {
     console.log('Adding message with content types:', currentContent.map(c => c.type));
     messages.push({
