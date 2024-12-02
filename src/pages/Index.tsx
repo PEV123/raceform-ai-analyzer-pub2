@@ -12,9 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { HorseHead } from "@/components/icons/HorseHead";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { HorseHead } from "@/components/icons/HorseHead";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -117,15 +116,14 @@ const Index = () => {
                         <TableHead className="hidden md:table-cell">Class</TableHead>
                         <TableHead className="hidden md:table-cell">Distance</TableHead>
                         <TableHead className="text-right hidden sm:table-cell">Runners</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {venueRaces.map((race: any) => (
                         <TableRow 
                           key={race.id} 
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => handleRaceClick(race.id)}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors active:bg-muted"
                         >
                           <TableCell className="font-medium">
                             {formatTime(race.off_time)}
@@ -141,15 +139,6 @@ const Index = () => {
                           </TableCell>
                           <TableCell className="text-right hidden sm:table-cell">
                             {race.runners?.length || 0}
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="w-full sm:w-auto"
-                            >
-                              View
-                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
