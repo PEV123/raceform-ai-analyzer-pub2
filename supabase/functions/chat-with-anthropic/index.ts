@@ -20,13 +20,6 @@ serve(async (req) => {
       throw new Error('Race ID is required');
     }
 
-    if (imageData) {
-      console.log('Image data received:', {
-        type: imageData.type,
-        dataLength: imageData.data?.length,
-      });
-    }
-
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
     });
@@ -48,16 +41,33 @@ serve(async (req) => {
 
     const messages = [];
 
-    // Add race documents as images if they exist
+    // Process race documents first
     if (race.race_documents?.length) {
       try {
         console.log('Processing race documents:', race.race_documents.length);
         const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
         console.log('Successfully processed race documents:', processedImages.length);
-        messages.push(...processedImages.map(img => ({
-          role: "user",
-          content: [img, { type: "text", text: "Please analyze this race document." }]
-        })));
+
+        // Add each race document as a separate message
+        for (const img of processedImages) {
+          messages.push({
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: img.source.media_type,
+                  data: img.source.data
+                }
+              },
+              { 
+                type: "text", 
+                text: "Please analyze this race document." 
+              }
+            ]
+          });
+        }
       } catch (error) {
         console.error('Error processing race documents:', error);
         // Continue execution even if document processing fails
@@ -109,7 +119,7 @@ serve(async (req) => {
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      hasImages: imageData !== undefined,
+      hasImages: imageData !== undefined || (race.race_documents?.length > 0),
       modelUsed: settings?.anthropic_model
     });
 
@@ -123,7 +133,7 @@ serve(async (req) => {
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
       estimatedTokens: Math.ceil(response.content[0].text.length / 4),
-      imagesIncluded: imageData ? 1 : 0
+      imagesIncluded: (imageData ? 1 : 0) + (race.race_documents?.length || 0)
     });
 
     return new Response(
@@ -134,7 +144,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in chat-with-anthropic function:', error);
     
-    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: true, 

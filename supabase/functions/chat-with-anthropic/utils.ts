@@ -52,6 +52,60 @@ export const fetchSettings = async () => {
   return settings;
 };
 
+export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
+  if (!race.race_documents?.length) {
+    console.log('No race documents to process');
+    return [];
+  }
+  
+  console.log(`Processing ${race.race_documents.length} race documents for vision analysis`);
+  const imageDocuments = race.race_documents.filter((doc: any) => doc.content_type?.startsWith('image/'));
+  console.log(`Found ${imageDocuments.length} image documents to process`);
+  
+  const processedImages = [];
+  
+  for (const doc of imageDocuments) {
+    try {
+      const imageUrl = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
+      console.log('Processing image:', doc.file_name);
+      
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        console.error(`Failed to fetch image ${doc.file_name}:`, response.statusText);
+        continue;
+      }
+
+      const blob = await response.blob();
+      const base64Data = await blobToBase64(blob);
+      const base64Content = base64Data.split(',')[1];
+      
+      processedImages.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: doc.content_type,
+          data: base64Content
+        }
+      });
+      
+      console.log(`Successfully processed image ${doc.file_name}`);
+    } catch (error) {
+      console.error(`Error processing document image ${doc.file_name}:`, error);
+    }
+  }
+  
+  return processedImages;
+};
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 export const formatRaceContext = (race: any) => {
   if (!race) return "No race data available";
   
@@ -88,52 +142,4 @@ ${runner.comment ? `- Comment: ${runner.comment}` : ''}
 ${runner.spotlight ? `- Spotlight: ${runner.spotlight}` : ''}
 ${runner.quotes?.length ? `\nQuotes:\n${runner.quotes.map((q: any) => `"${q.quote}"`).join('\n')}` : ''}
 ${runner.stable_tour?.length ? `\nStable Tour:\n${runner.stable_tour.map((t: any) => `"${t.quote}"`).join('\n')}` : ''}`).join('\n')}`;
-};
-
-export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
-  console.log(`Processing ${race.race_documents?.length} race documents for vision analysis`);
-  const imageDocuments = race.race_documents.filter((doc: any) => doc.content_type?.startsWith('image/'));
-  console.log(`Found ${imageDocuments.length} image documents to process`);
-  
-  const processedImages = [];
-  
-  for (const doc of imageDocuments) {
-    try {
-      const imageUrl = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
-      console.log('Processing image:', doc.file_name);
-      
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        console.error(`Failed to fetch image ${doc.file_name}:`, response.statusText);
-        continue;
-      }
-
-      const blob = await response.blob();
-      const base64Data = await blobToBase64(blob);
-      
-      processedImages.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: doc.content_type,
-          data: base64Data.split(',')[1]
-        }
-      });
-      
-      console.log(`Successfully processed image ${doc.file_name}`);
-    } catch (error) {
-      console.error(`Error processing document image ${doc.file_name}:`, error);
-    }
-  }
-  
-  return processedImages;
-};
-
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 };
