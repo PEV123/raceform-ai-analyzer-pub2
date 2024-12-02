@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
 import type { ProfileData } from "./types";
 
 interface UserProfileFormProps {
@@ -29,205 +30,208 @@ export const UserProfileForm = ({
   isEditing,
   onSubmit,
 }: UserProfileFormProps) => {
+  const form = useForm({
+    defaultValues: {
+      full_name: profile.full_name || "",
+      membership_level: profile.membership_level || "free",
+      subscription_status: profile.subscription_status || "active",
+      phone: profile.phone || "",
+      company: profile.company || "",
+      address: profile.address || "",
+      city: profile.city || "",
+      country: profile.country || "",
+      postal_code: profile.postal_code || "",
+      notes: profile.notes || "",
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSubmit(e);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <FormField
-          name="full_name"
-          render={() => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input
-                  name="full_name"
-                  defaultValue={profile.full_name || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          name="membership_level"
-          render={() => (
-            <FormItem>
-              <FormLabel>Membership Level</FormLabel>
-              <Select
-                name="membership_level"
-                defaultValue={profile.membership_level || "free"}
-                disabled={!isEditing}
-              >
+    <Form {...form}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="full_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select membership level" />
-                  </SelectTrigger>
+                  <Input {...field} disabled={!isEditing} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="subscription_status"
-          render={() => (
-            <FormItem>
-              <FormLabel>Subscription Status</FormLabel>
-              <Select
-                name="subscription_status"
-                defaultValue={profile.subscription_status || "active"}
-                disabled={!isEditing}
-              >
+          <FormField
+            control={form.control}
+            name="membership_level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Membership Level</FormLabel>
+                <Select
+                  disabled={!isEditing}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select membership level" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="free">Free</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="subscription_status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subscription Status</FormLabel>
+                <Select
+                  disabled={!isEditing}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                  <Input {...field} disabled={!isEditing} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="phone"
-          render={() => (
-            <FormItem>
-              <FormLabel>Phone</FormLabel>
-              <FormControl>
-                <Input
-                  name="phone"
-                  defaultValue={profile.phone || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="company"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={!isEditing} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="company"
-          render={() => (
-            <FormItem>
-              <FormLabel>Company</FormLabel>
-              <FormControl>
-                <Input
-                  name="company"
-                  defaultValue={profile.company || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={!isEditing} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="address"
-          render={() => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Input
-                  name="address"
-                  defaultValue={profile.address || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={!isEditing} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="city"
-          render={() => (
-            <FormItem>
-              <FormLabel>City</FormLabel>
-              <FormControl>
-                <Input
-                  name="city"
-                  defaultValue={profile.city || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={!isEditing} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          name="country"
-          render={() => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <Input
-                  name="country"
-                  defaultValue={profile.country || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          name="postal_code"
-          render={() => (
-            <FormItem>
-              <FormLabel>Postal Code</FormLabel>
-              <FormControl>
-                <Input
-                  name="postal_code"
-                  defaultValue={profile.postal_code || ""}
-                  disabled={!isEditing}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <FormField
-        name="notes"
-        render={() => (
-          <FormItem>
-            <FormLabel>Notes</FormLabel>
-            <FormControl>
-              <Textarea
-                name="notes"
-                defaultValue={profile.notes || ""}
-                disabled={!isEditing}
-                className="min-h-[100px]"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {isEditing && (
-        <div className="flex justify-end">
-          <Button type="submit">Save Changes</Button>
+          <FormField
+            control={form.control}
+            name="postal_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Postal Code</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={!isEditing} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      )}
-    </form>
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  disabled={!isEditing}
+                  className="min-h-[100px]"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {isEditing && (
+          <div className="flex justify-end">
+            <Button type="submit">Save Changes</Button>
+          </div>
+        )}
+      </form>
+    </Form>
   );
 };
