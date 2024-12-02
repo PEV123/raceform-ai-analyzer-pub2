@@ -17,8 +17,8 @@ export const processMessages = (
 
   const messages = [];
 
-  // Add conversation history only if not excluding race documents
-  if (!excludeRaceDocuments && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+  // Always add conversation history if it exists
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
     console.log('Adding conversation history:', conversationHistory.length, 'messages');
     messages.push(
       ...conversationHistory.map(msg => ({
@@ -26,14 +26,12 @@ export const processMessages = (
         content: [{ type: "text", text: msg.message }]
       }))
     );
-  } else if (excludeRaceDocuments) {
-    console.log('Conversation history excluded by user request');
   }
 
   // Process current message and any uploads
   const currentContent = [];
 
-  // Handle race documents if they exist and are not excluded
+  // Handle race documents only if not excluded
   if (!excludeRaceDocuments && Array.isArray(processedDocuments) && processedDocuments.length > 0) {
     console.log('Processing race documents:', processedDocuments.length);
     processedDocuments.forEach(doc => {
