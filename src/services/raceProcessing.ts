@@ -78,6 +78,7 @@ export const processRunners = async (raceId: string, runners: any[]) => {
   }
 
   let nonRunnerUpdates = 0;
+  let oddsUpdates = 0;
 
   const validRunners = runners
     .filter(runner => {
@@ -93,31 +94,9 @@ export const processRunners = async (raceId: string, runners: any[]) => {
         console.warn(`Skipping runner ${runner.horse} due to missing required fields`);
       }
       return isValid;
-    })
-    .map(runner => ({
-      race_id: raceId,
-      horse_id: runner.horse_id,
-      number: Number(runner.number) || 0,
-      draw: Number(runner.draw) || 0,
-      horse: runner.horse,
-      silk_url: runner.silk_url,
-      sire: runner.sire,
-      sire_region: runner.sire_region,
-      dam: runner.dam,
-      dam_region: runner.dam_region,
-      form: runner.form,
-      lbs: Number(runner.lbs) || 0,
-      headgear: runner.headgear,
-      ofr: runner.ofr,
-      ts: runner.ts,
-      jockey: runner.jockey || 'Unknown',
-      trainer: runner.trainer,
-      is_non_runner: runner.is_non_runner || false,
-      odds: runner.odds || [],
-    }));
+    });
 
   if (validRunners.length > 0) {
-    // Insert or update runners
     for (const runner of validRunners) {
       const { data: existingRunner } = await supabase
         .from("runners")
@@ -132,11 +111,14 @@ export const processRunners = async (raceId: string, runners: any[]) => {
           nonRunnerUpdates++;
         }
 
+        // Check for odds changes
+        const hasOddsChanged = JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds);
+        
         // Update existing runner
         const { error: updateError } = await supabase
           .from("runners")
           .update({
-            ...runner,
+            is_non_runner: runner.is_non_runner,
             odds: runner.odds
           })
           .eq("id", existingRunner.id);
@@ -147,35 +129,18 @@ export const processRunners = async (raceId: string, runners: any[]) => {
         }
 
         // Save odds history if odds have changed
-        if (JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds)) {
+        if (hasOddsChanged) {
           await saveOddsHistory(existingRunner.id, runner.odds);
-        }
-      } else {
-        // Insert new runner
-        const { data: newRunner, error: insertError } = await supabase
-          .from("runners")
-          .insert(runner)
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error("Error inserting runner:", insertError);
-          throw insertError;
-        }
-
-        // Save initial odds history
-        if (newRunner && runner.odds?.length > 0) {
-          await saveOddsHistory(newRunner.id, runner.odds);
-        }
-
-        // Count new non-runners
-        if (runner.is_non_runner) {
-          nonRunnerUpdates++;
+          oddsUpdates++;
         }
       }
     }
-    console.log(`Successfully processed ${validRunners.length} runners`);
   }
+
+  console.log(`Processed ${validRunners.length} runners:`, {
+    nonRunnerUpdates,
+    oddsUpdates
+  });
 
   return nonRunnerUpdates;
 };
