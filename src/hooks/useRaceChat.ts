@@ -38,8 +38,8 @@ export const useRaceChat = (raceId: string) => {
     }
   }, [raceId, toast]);
 
-  const sendMessage = useCallback(async (message: string, imageBase64?: { data: string; type: string }) => {
-    console.log('Sending message for race:', raceId, 'with image:', !!imageBase64);
+  const sendMessage = useCallback(async (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => {
+    console.log('Sending message for race:', raceId, 'with image:', !!imageBase64, 'excluding race documents:', excludeRaceDocuments);
     setIsLoading(true);
 
     try {
@@ -78,7 +78,8 @@ export const useRaceChat = (raceId: string) => {
         messageLength: message.length,
         hasImage: !!imageBase64,
         imageType: imageBase64?.type,
-        historyLength: messages.length
+        historyLength: messages.length,
+        excludeRaceDocuments
       });
 
       // Call AI function with image if provided
@@ -89,7 +90,8 @@ export const useRaceChat = (raceId: string) => {
             message,
             raceId,
             conversationHistory: messages,
-            imageData: imageBase64
+            imageData: imageBase64,
+            excludeRaceDocuments
           }
         }
       );

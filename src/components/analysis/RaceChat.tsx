@@ -26,9 +26,9 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     }
   }, [messages]);
 
-  const handleSendMessage = async (message: string, imageBase64?: { data: string; type: string }) => {
-    console.log('Sending message:', message, 'with image:', !!imageBase64);
-    await sendMessage(message, imageBase64);
+  const handleSendMessage = async (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => {
+    console.log('Sending message:', message, 'with image:', !!imageBase64, 'excluding race documents:', excludeRaceDocuments);
+    await sendMessage(message, imageBase64, excludeRaceDocuments);
   };
 
   return (

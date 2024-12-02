@@ -5,15 +5,17 @@ import { cn } from "@/lib/utils";
 import { ImagePreview } from "./ImagePreview";
 import { UploadButton } from "./UploadButton";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ChatInputProps {
-  onSendMessage: (message: string, imageBase64?: { data: string; type: string }) => Promise<void>;
+  onSendMessage: (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => Promise<void>;
   isLoading: boolean;
 }
 
 export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [excludeRaceDocuments, setExcludeRaceDocuments] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const { uploadProgress, uploadState, handleImageUpload, resetUploadState } = useImageUpload();
 
@@ -23,10 +25,9 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
 
     let messageToSend = newMessage.trim();
     
-    console.log('Sending message with image state:', uploadState);
+    console.log('Sending message with image state:', uploadState, 'excluding race documents:', excludeRaceDocuments);
     
     if (uploadState?.publicUrl) {
-      // If we have an image, prepend its URL to the message
       messageToSend = `${uploadState.publicUrl}\n${messageToSend}`;
     }
     
@@ -35,7 +36,8 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
       uploadState ? { 
         data: uploadState.base64 || '',
         type: uploadState.type
-      } : undefined
+      } : undefined,
+      excludeRaceDocuments
     );
     
     setNewMessage('');
@@ -96,13 +98,28 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
             placeholder={uploadState ? "Add a message (optional)..." : "Type your message or paste an image..."}
           />
         </div>
-        <Button 
-          type="submit" 
-          className="shrink-0" 
-          disabled={isLoading || (!newMessage.trim() && !uploadState)}
-        >
-          Send
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            type="submit" 
+            className="shrink-0" 
+            disabled={isLoading || (!newMessage.trim() && !uploadState)}
+          >
+            Send
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="excludeRaceDocuments"
+              checked={excludeRaceDocuments}
+              onCheckedChange={(checked) => setExcludeRaceDocuments(checked as boolean)}
+            />
+            <label
+              htmlFor="excludeRaceDocuments"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Exclude race documents
+            </label>
+          </div>
+        </div>
       </div>
     </form>
   );
