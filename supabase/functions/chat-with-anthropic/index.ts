@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Anthropic } from "https://esm.sh/@anthropic-ai/sdk@0.14.1";
-import { corsHeaders, fetchRaceData, fetchSettings, processRaceDocuments, formatRaceContext } from "./utils.ts";
+import { corsHeaders, processRaceDocuments } from "./utils.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,28 +27,19 @@ serve(async (req) => {
       }
     });
 
-    if (!anthropic.apiKey) {
-      throw new Error('Anthropic API key is not configured');
-    }
+    const { data: race, error: raceError } = await supabase
+      .from('races')
+      .select(`
+        *,
+        runners (*),
+        race_documents (*)
+      `)
+      .eq('id', raceId)
+      .single();
 
-    const race = await fetchRaceData(raceId);
-    if (!race) {
-      throw new Error(`Race data not found for ID: ${raceId}`);
-    }
-
-    console.log('Race documents found:', {
-      totalDocuments: race.race_documents?.length || 0,
-      documentTypes: race.race_documents?.map(doc => ({
-        fileName: doc.file_name,
-        contentType: doc.content_type
-      }))
-    });
+    if (raceError) throw raceError;
 
     const settings = await fetchSettings();
-    console.log('Fetched race data with runners:', race.runners?.length);
-
-    const raceContext = formatRaceContext(race);
-    console.log('Generated race context length:', raceContext.length);
 
     const messages = [];
 
@@ -56,28 +47,22 @@ serve(async (req) => {
     if (race.race_documents?.length) {
       try {
         console.log('Processing race documents:', race.race_documents.length);
-        const processedImages = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
+        const processedDocuments = await processRaceDocuments(race, Deno.env.get('SUPABASE_URL') || '');
         console.log('Successfully processed race documents:', {
-          processedCount: processedImages.length,
-          documentDetails: processedImages.map(img => ({
-            mediaType: img.source.media_type,
-            dataLength: img.source.data.length
+          processedCount: processedDocuments.length,
+          documentDetails: processedDocuments.map(doc => ({
+            type: doc.type,
+            mediaType: doc.source.media_type,
+            dataLength: doc.source.data.length
           }))
         });
 
         // Add each race document as a separate message
-        for (const img of processedImages) {
+        for (const doc of processedDocuments) {
           messages.push({
             role: "user",
             content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: img.source.media_type,
-                  data: img.source.data
-                }
-              },
+              doc,
               { 
                 type: "text", 
                 text: "Please analyze this race document." 
@@ -87,7 +72,6 @@ serve(async (req) => {
         }
       } catch (error) {
         console.error('Error processing race documents:', error);
-        // Continue execution even if document processing fails
       }
     }
 
@@ -103,7 +87,6 @@ serve(async (req) => {
     // Add current message with any uploaded image
     const currentContent = [];
     
-    // Add any newly uploaded image from the chat
     if (imageData) {
       try {
         console.log('Processing new image upload:', {
@@ -111,7 +94,7 @@ serve(async (req) => {
           dataLength: imageData.data.length
         });
         currentContent.push({
-          type: "image",
+          type: imageData.type === 'application/pdf' ? 'document' : 'image',
           source: {
             type: "base64",
             media_type: imageData.type,
@@ -121,11 +104,9 @@ serve(async (req) => {
         console.log('Successfully added image to message content');
       } catch (error) {
         console.error('Error processing uploaded image:', error);
-        // Continue execution even if image processing fails
       }
     }
 
-    // Add the text message if it exists
     if (message) {
       currentContent.push({ type: "text", text: message });
     }
@@ -139,7 +120,7 @@ serve(async (req) => {
 
     console.log('Making request to Anthropic API with:', {
       messageCount: messages.length,
-      hasImages: imageData !== undefined || (race.race_documents?.length > 0),
+      hasDocuments: imageData !== undefined || (race.race_documents?.length > 0),
       modelUsed: settings?.anthropic_model,
       messagesStructure: messages.map(m => ({
         role: m.role,
@@ -153,13 +134,14 @@ serve(async (req) => {
       model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
       max_tokens: 1024,
       system: `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`,
-      messages
+      messages,
+      betas: ["pdfs-2024-09-25"]  // Adding PDF support beta
     });
 
     console.log('Received response from Claude:', {
       responseLength: response.content[0].text.length,
       estimatedTokens: Math.ceil(response.content[0].text.length / 4),
-      imagesIncluded: (imageData ? 1 : 0) + (race.race_documents?.length || 0)
+      documentsIncluded: (imageData ? 1 : 0) + (race.race_documents?.length || 0)
     });
 
     return new Response(

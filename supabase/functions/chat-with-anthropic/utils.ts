@@ -1,18 +1,24 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB limit for Claude
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
   if (!race.race_documents?.length) return [];
   
-  console.log(`Processing ${race.race_documents.length} race documents for vision analysis`);
+  console.log(`Processing ${race.race_documents.length} race documents for analysis`);
   
-  // Define supported media types
-  const SUPPORTED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  // Define supported media types for both images and PDFs
+  const SUPPORTED_MEDIA_TYPES = {
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    pdfs: ['application/pdf']
+  };
   
   // Filter documents by supported types
   const supportedDocuments = race.race_documents.filter((doc: any) => 
-    SUPPORTED_MEDIA_TYPES.includes(doc.content_type)
+    [...SUPPORTED_MEDIA_TYPES.images, ...SUPPORTED_MEDIA_TYPES.pdfs].includes(doc.content_type)
   );
   
   console.log('Document processing status:', {
@@ -22,7 +28,7 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
     documentTypes: race.race_documents.map((doc: any) => ({
       fileName: doc.file_name,
       contentType: doc.content_type,
-      isSupported: SUPPORTED_MEDIA_TYPES.includes(doc.content_type)
+      isSupported: [...SUPPORTED_MEDIA_TYPES.images, ...SUPPORTED_MEDIA_TYPES.pdfs].includes(doc.content_type)
     }))
   });
   
@@ -47,8 +53,11 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
       const base64Data = await blobToBase64(blob);
       const base64Content = base64Data.split(',')[1];
       
+      // Determine the correct type based on content type
+      const type = SUPPORTED_MEDIA_TYPES.images.includes(doc.content_type) ? 'image' : 'document';
+      
       processedDocuments.push({
-        type: "image",
+        type,
         source: {
           type: "base64",
           media_type: doc.content_type,
@@ -58,6 +67,7 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
       
       console.log(`Successfully processed document ${doc.file_name}:`, {
         contentType: doc.content_type,
+        type,
         dataLength: base64Content.length
       });
     } catch (error) {
