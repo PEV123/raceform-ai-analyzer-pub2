@@ -87,10 +87,7 @@ serve(async (req) => {
 
     // Generate and truncate race context
     const raceContext = truncateContext(await formatRaceContext(race));
-    console.log('Generated race context:', {
-      length: raceContext.length,
-      preview: raceContext.substring(0, 200) + '...'
-    });
+    console.log('Generated and truncated race context length:', raceContext.length);
 
     // Process messages with limits
     const messages = processMessages(conversationHistory, message, processedDocuments, imageData);
@@ -105,10 +102,7 @@ serve(async (req) => {
 
     const systemPrompt = `${settings?.system_prompt || "You are a horse racing expert analyst who maintains a great knowledge of horse racing."}\n\nRace Context:\n${raceContext}`;
     
-    console.log('System prompt:', {
-      length: systemPrompt.length,
-      preview: systemPrompt.substring(0, 200) + '...'
-    });
+    console.log('System prompt length:', systemPrompt.length);
 
     const response = await anthropic.messages.create({
       model: settings?.anthropic_model || 'claude-3-sonnet-20240229',
