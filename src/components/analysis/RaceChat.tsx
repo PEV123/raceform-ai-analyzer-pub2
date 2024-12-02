@@ -15,8 +15,10 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('Loading messages for race:', raceId);
-    loadMessages();
+    if (raceId) {
+      console.log('Loading messages for race:', raceId);
+      loadMessages();
+    }
   }, [raceId, loadMessages]);
 
   useEffect(() => {

@@ -19,10 +19,6 @@ export interface Message {
 export type ChatMessage = Message;
 
 export interface ImageData {
+  data: string;
   type: string;
-  source: {
-    type: "base64";
-    media_type: string;
-    data: string;
-  };
 }
