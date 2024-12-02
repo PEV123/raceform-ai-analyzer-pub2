@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { MessageDisplay } from "./MessageDisplay";
 import { ChatInput } from "./ChatInput";
 import { useRaceChat } from "@/hooks/useRaceChat";
+import { ImageData } from "./types/chat";
 
 interface RaceChatProps {
   raceId: string;
@@ -33,9 +34,9 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     
     console.log('Sending message:', message, 'with image:', !!imageBase64, 'excluding race documents:', excludeRaceDocuments);
     
-    const imageData = imageBase64 ? {
+    const imageData: ImageData | undefined = imageBase64 ? {
       source: {
-        type: "base64" as const,
+        type: "base64",
         media_type: imageBase64.type,
         data: imageBase64.data
       }
