@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
+import { HelmetProvider } from "react-helmet-async";
+import { PageSeo } from "./components/seo/PageSeo";
+import { BodyScripts } from "./components/seo/BodyScripts";
 import Index from "./pages/Index";
 import Analysis from "./pages/Analysis";
 import Admin from "./pages/Admin";
@@ -19,27 +22,31 @@ const queryClient = new QueryClient();
 const App = () => {
   return (
     <React.StrictMode>
-      <SessionContextProvider supabaseClient={supabase}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <BrowserRouter>
-              <MainLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/analysis" element={<Analysis />} />
-                  <Route path="/analysis/:raceId" element={<Analysis />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/race-documents" element={<RaceDocuments />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/race" element={<SingleRace />} />
-                </Routes>
-              </MainLayout>
-            </BrowserRouter>
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </QueryClientProvider>
-      </SessionContextProvider>
+      <HelmetProvider>
+        <SessionContextProvider supabaseClient={supabase}>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <BrowserRouter>
+                <PageSeo />
+                <MainLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/analysis" element={<Analysis />} />
+                    <Route path="/analysis/:raceId" element={<Analysis />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/admin/race-documents" element={<RaceDocuments />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/race" element={<SingleRace />} />
+                  </Routes>
+                </MainLayout>
+                <BodyScripts />
+              </BrowserRouter>
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </SessionContextProvider>
+      </HelmetProvider>
     </React.StrictMode>
   );
 };

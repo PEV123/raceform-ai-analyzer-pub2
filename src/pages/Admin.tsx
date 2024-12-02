@@ -4,6 +4,8 @@ import { HorseResults } from "@/components/admin/HorseResults";
 import { ApiTesting } from "@/components/admin/api-testing/ApiTesting";
 import { UserList } from "@/components/admin/users/UserList";
 import { MembershipLevels } from "@/components/admin/membership/MembershipLevels";
+import { SeoSettings } from "@/components/admin/seo/SeoSettings";
+import { ScriptSettings } from "@/components/admin/scripts/ScriptSettings";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSession } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
@@ -59,6 +61,8 @@ const Admin = () => {
           <TabsTrigger value="membership">Membership</TabsTrigger>
           <TabsTrigger value="races">Race Management</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="seo">SEO</TabsTrigger>
+          <TabsTrigger value="scripts">Scripts</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users" className="space-y-6">
@@ -79,6 +83,14 @@ const Admin = () => {
         
         <TabsContent value="settings" className="space-y-6">
           <AdminSettings />
+        </TabsContent>
+
+        <TabsContent value="seo" className="space-y-6">
+          <SeoSettings />
+        </TabsContent>
+
+        <TabsContent value="scripts" className="space-y-6">
+          <ScriptSettings />
         </TabsContent>
       </Tabs>
     </div>
