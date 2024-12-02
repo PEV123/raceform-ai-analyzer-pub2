@@ -11,13 +11,14 @@ serve(async (req) => {
   }
 
   try {
-    const { message, raceId, conversationHistory, imageData } = await req.json();
+    const { message, raceId, conversationHistory, imageData, excludeRaceDocuments } = await req.json();
     console.log('Request payload:', { 
       messageLength: message?.length,
       raceId,
       historyLength: conversationHistory?.length,
       hasImageData: !!imageData,
-      imageType: imageData?.type
+      imageType: imageData?.type,
+      excludeRaceDocuments
     });
 
     if (!raceId) {
@@ -63,9 +64,9 @@ serve(async (req) => {
       .select('*')
       .single();
 
-    // Process race documents
+    // Process race documents only if not excluded
     let processedDocuments = [];
-    if (race.race_documents?.length) {
+    if (!excludeRaceDocuments && race.race_documents?.length) {
       try {
         console.log('Processing race documents:', {
           count: race.race_documents.length,
@@ -83,6 +84,8 @@ serve(async (req) => {
       } catch (error) {
         console.error('Error processing race documents:', error);
       }
+    } else if (excludeRaceDocuments) {
+      console.log('Race documents excluded by user request');
     }
 
     // Generate and truncate race context
@@ -90,7 +93,7 @@ serve(async (req) => {
     console.log('Generated and truncated race context length:', raceContext.length);
 
     // Process messages with limits
-    const messages = processMessages(conversationHistory, message, processedDocuments, imageData);
+    const messages = processMessages(conversationHistory, message, processedDocuments, imageData, excludeRaceDocuments);
     
     console.log('Prepared messages for Claude:', {
       totalMessages: messages.length,

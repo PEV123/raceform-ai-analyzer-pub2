@@ -1,20 +1,22 @@
 import { Message } from "./types.ts";
 
-const MAX_TOKENS_PER_MESSAGE = 8000; // Conservative limit
-const MAX_HISTORY_MESSAGES = 10; // Limit conversation history
+const MAX_TOKENS_PER_MESSAGE = 8000;
+const MAX_HISTORY_MESSAGES = 10;
 
 export const processMessages = (
   conversationHistory: Message[] = [],
   currentMessage: string,
   processedDocuments: any[],
-  imageData?: { data: string; type: string }
+  imageData?: { data: string; type: string },
+  excludeRaceDocuments?: boolean
 ) => {
   const messages = [];
   console.log('Processing messages with:', {
     historyLength: conversationHistory?.length,
     hasCurrentMessage: !!currentMessage,
     documentCount: processedDocuments?.length,
-    hasImage: !!imageData
+    hasImage: !!imageData,
+    excludeRaceDocuments
   });
 
   // Add limited conversation history
@@ -30,8 +32,8 @@ export const processMessages = (
   // Process current message and any uploads
   const currentContent = [];
 
-  // Handle race documents first
-  if (processedDocuments?.length > 0) {
+  // Handle race documents only if not excluded
+  if (!excludeRaceDocuments && processedDocuments?.length > 0) {
     console.log('Processing race documents:', processedDocuments.length);
     for (const doc of processedDocuments) {
       if (doc.source?.data && doc.source?.media_type?.startsWith('image/')) {
@@ -49,6 +51,8 @@ export const processMessages = (
         });
       }
     }
+  } else if (excludeRaceDocuments) {
+    console.log('Race documents excluded by user request');
   }
 
   // Handle uploaded image if present
