@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,36 +8,21 @@ const corsHeaders = {
 export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
   if (!race.race_documents?.length) return [];
   
-  console.log(`Processing ${race.race_documents.length} race documents for analysis`);
-  
-  // Define supported media types for both images and PDFs
-  const SUPPORTED_MEDIA_TYPES = {
-    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-    pdfs: ['application/pdf']
-  };
-  
-  // Filter documents by supported types
-  const supportedDocuments = race.race_documents.filter((doc: any) => 
-    [...SUPPORTED_MEDIA_TYPES.images, ...SUPPORTED_MEDIA_TYPES.pdfs].includes(doc.content_type)
-  );
-  
-  console.log('Document processing status:', {
-    total: race.race_documents.length,
-    supported: supportedDocuments.length,
-    unsupported: race.race_documents.length - supportedDocuments.length,
-    documentTypes: race.race_documents.map((doc: any) => ({
-      fileName: doc.file_name,
-      contentType: doc.content_type,
-      isSupported: [...SUPPORTED_MEDIA_TYPES.images, ...SUPPORTED_MEDIA_TYPES.pdfs].includes(doc.content_type)
+  console.log('Processing race documents:', {
+    count: race.race_documents.length,
+    documents: race.race_documents.map(doc => ({
+      name: doc.file_name,
+      type: doc.content_type,
+      path: doc.file_path
     }))
   });
   
   const processedDocuments = [];
   
-  for (const doc of supportedDocuments) {
+  for (const doc of race.race_documents) {
     try {
       const documentUrl = `${supabaseUrl}/storage/v1/object/public/race_documents/${doc.file_path}`;
-      console.log('Processing supported document:', {
+      console.log('Processing document:', {
         fileName: doc.file_name,
         contentType: doc.content_type,
         url: documentUrl
@@ -53,11 +38,8 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
       const base64Data = await blobToBase64(blob);
       const base64Content = base64Data.split(',')[1];
       
-      // Determine the correct type based on content type
-      const type = SUPPORTED_MEDIA_TYPES.images.includes(doc.content_type) ? 'image' : 'document';
-      
       processedDocuments.push({
-        type,
+        type: doc.content_type.startsWith('image/') ? 'image' : 'document',
         source: {
           type: "base64",
           media_type: doc.content_type,
@@ -67,7 +49,7 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
       
       console.log(`Successfully processed document ${doc.file_name}:`, {
         contentType: doc.content_type,
-        type,
+        type: doc.content_type.startsWith('image/') ? 'image' : 'document',
         dataLength: base64Content.length
       });
     } catch (error) {
@@ -75,7 +57,11 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
     }
   }
   
-  console.log(`Successfully processed ${processedDocuments.length} supported documents`);
+  console.log('Successfully processed documents:', {
+    count: processedDocuments.length,
+    types: processedDocuments.map(doc => doc.type)
+  });
+  
   return processedDocuments;
 };
 

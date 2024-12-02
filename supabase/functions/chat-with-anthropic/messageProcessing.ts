@@ -11,77 +11,65 @@ export const processMessages = (
 ) => {
   const messages = [];
   console.log('Processing messages with:', {
-    historyLength: conversationHistory.length,
+    historyLength: conversationHistory?.length,
     hasCurrentMessage: !!currentMessage,
-    documentCount: processedDocuments.length,
+    documentCount: processedDocuments?.length,
     hasImage: !!imageData
   });
 
-  // Add processed documents as text content
-  for (const doc of processedDocuments) {
-    const docContent = `Document content (${doc.source.media_type}): ${doc.source.data}`;
-    if (docContent.length > MAX_TOKENS_PER_MESSAGE * 4) { // Approximate token count
-      console.log('Skipping document due to length:', doc.source.media_type);
-      continue;
-    }
-    
-    messages.push({
-      role: "user",
-      content: [{ 
-        type: "text", 
-        text: docContent
-      }]
-    });
-  }
-
   // Add limited conversation history
   if (conversationHistory?.length > 0) {
+    console.log('Adding conversation history:', conversationHistory.length, 'messages');
     const recentHistory = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
-    console.log('Adding conversation history:', recentHistory.length, 'messages');
     messages.push(...recentHistory.map(msg => ({
       role: msg.role,
       content: [{ type: "text", text: msg.message }]
     })));
   }
 
-  // Process current message and image
+  // Process current message and any uploads
   const currentContent = [];
   
-  if (imageData) {
-    try {
-      console.log('Processing new image upload:', {
-        type: imageData.type,
-        dataLength: imageData.data.length
+  // Handle PDF documents first
+  for (const doc of processedDocuments) {
+    if (doc.source.media_type === 'application/pdf') {
+      console.log('Processing PDF document:', doc.source.media_type);
+      currentContent.push({
+        type: "text",
+        text: `PDF Content: ${doc.source.data}`
       });
-      
-      if (imageData.type.startsWith('image/')) {
-        currentContent.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: imageData.type,
-            data: imageData.data
-          }
-        });
-      } else {
-        // Handle non-image uploads as text
-        currentContent.push({
-          type: "text",
-          text: `Document content (${imageData.type}): ${imageData.data}`
-        });
-      }
-      
-      console.log('Successfully added content to message');
-    } catch (error) {
-      console.error('Error processing uploaded content:', error);
     }
   }
 
+  // Handle image data if present
+  if (imageData) {
+    console.log('Processing image upload:', {
+      type: imageData.type,
+      dataLength: imageData.data.length
+    });
+    
+    if (imageData.type.startsWith('image/')) {
+      currentContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: imageData.type,
+          data: imageData.data
+        }
+      });
+    }
+  }
+
+  // Add the text message last
   if (currentMessage) {
-    currentContent.push({ type: "text", text: currentMessage });
+    currentContent.push({ 
+      type: "text", 
+      text: currentMessage 
+    });
   }
   
   if (currentContent.length > 0) {
+    console.log('Adding message with content types:', currentContent.map(c => c.type));
     messages.push({
       role: "user",
       content: currentContent
