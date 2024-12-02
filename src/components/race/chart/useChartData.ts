@@ -58,16 +58,18 @@ export const useChartData = (
       const avgSecondsPerFurlong = validTimeCount > 0 ? 
         totalSecondsPerFurlong / validTimeCount : 0;
 
-      const maxPossibleTime = 20;
-      const speedRating = avgSecondsPerFurlong > 0 ? 
-        (maxPossibleTime - avgSecondsPerFurlong) * 5 : 0;
+      // Normalize speed rating to be between 0-100
+      // Assuming typical range is between 10-15 seconds per furlong
+      const normalizedSpeedRating = avgSecondsPerFurlong > 0 
+        ? Math.max(0, Math.min(100, (15 - avgSecondsPerFurlong) * 20))
+        : 0;
 
-      // Calculate overall score (normalized average of all metrics)
+      // Calculate overall score as weighted average of all metrics
       const overall = (
-        (avgWinRate / 100) + 
-        (avgPlaceRate / 100) + 
-        (speedRating / 50)
-      ) / 3 * 100;
+        (avgWinRate * 0.4) + // 40% weight to win rate
+        (avgPlaceRate * 0.3) + // 30% weight to place rate
+        (normalizedSpeedRating * 0.3) // 30% weight to speed rating
+      );
 
       return {
         horse: analysis.horse.length > 12 
@@ -76,7 +78,7 @@ export const useChartData = (
         fullName: analysis.horse,
         avgWinRate,
         avgPlaceRate,
-        speedRating,
+        speedRating: normalizedSpeedRating,
         overall,
         actualPace: avgSecondsPerFurlong.toFixed(2),
         totalRuns: analysis.total_runs || 0
