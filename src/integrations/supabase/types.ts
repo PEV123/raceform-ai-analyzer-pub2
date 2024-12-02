@@ -259,6 +259,60 @@ export type Database = {
         }
         Relationships: []
       }
+      membership_level_permissions: {
+        Row: {
+          created_at: string
+          membership_level_id: string
+          permission_id: string
+        }
+        Insert: {
+          created_at?: string
+          membership_level_id: string
+          permission_id: string
+        }
+        Update: {
+          created_at?: string
+          membership_level_id?: string
+          permission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_level_permissions_membership_level_id_fkey"
+            columns: ["membership_level_id"]
+            isOneToOne: false
+            referencedRelation: "membership_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_level_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_levels: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       odds_history: {
         Row: {
           created_at: string
@@ -287,6 +341,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          resource_path: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          resource_path: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          resource_path?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

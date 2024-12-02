@@ -3,6 +3,7 @@ import ImportRaces from "@/components/admin/ImportRaces";
 import { HorseResults } from "@/components/admin/HorseResults";
 import { ApiTesting } from "@/components/admin/api-testing/ApiTesting";
 import { UserList } from "@/components/admin/users/UserList";
+import { MembershipLevels } from "@/components/admin/membership/MembershipLevels";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useSession } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
@@ -55,12 +56,17 @@ const Admin = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="membership">Membership</TabsTrigger>
           <TabsTrigger value="races">Race Management</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users" className="space-y-6">
           <UserList />
+        </TabsContent>
+
+        <TabsContent value="membership" className="space-y-6">
+          <MembershipLevels />
         </TabsContent>
         
         <TabsContent value="races" className="space-y-6">
