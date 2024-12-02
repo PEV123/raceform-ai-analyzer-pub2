@@ -35,7 +35,7 @@ export const RaceChat = ({ raceId }: RaceChatProps) => {
     
     const imageData = imageBase64 ? {
       source: {
-        type: "base64",
+        type: "base64" as const,
         media_type: imageBase64.type,
         data: imageBase64.data
       }
