@@ -10,4 +10,5 @@ export interface ProfileData {
   country: string | null;
   postal_code: string | null;
   notes: string | null;
+  last_login: string | null;
 }
