@@ -48,8 +48,7 @@ export const UserList = () => {
   const filteredUsers = users?.filter((user) => {
     const matchesSearch =
       !searchTerm ||
-      (user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMembership =
       membershipFilter === "all" || user.membership_level === membershipFilter;
     return matchesSearch && matchesMembership;
@@ -74,7 +73,7 @@ export const UserList = () => {
     <div className="space-y-4">
       <div className="flex gap-4 items-center">
         <Input
-          placeholder="Search users..."
+          placeholder="Search by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
