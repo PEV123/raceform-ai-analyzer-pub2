@@ -22,6 +22,17 @@ export const UserProfileForm = ({ profile, isEditing, onSubmit }: UserProfileFor
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            defaultValue={profile?.email || ""}
+            readOnly
+            className="bg-muted"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="full_name">Full Name</Label>
           <Input
             id="full_name"
