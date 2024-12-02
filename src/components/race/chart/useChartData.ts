@@ -25,6 +25,8 @@ export const useChartData = (
   return useMemo(() => {
     if (!analyses?.length) return [];
 
+    console.log('Processing analyses:', analyses);
+
     const data: ChartData[] = analyses.map(analysis => {
       const details = analysis.horse_distance_details || [];
       
@@ -42,16 +44,23 @@ export const useChartData = (
       let totalSecondsPerFurlong = 0;
       let validTimeCount = 0;
 
+      console.log(`Processing horse: ${analysis.horse}`);
+
       details.forEach(detail => {
+        console.log(`Processing detail for distance: ${detail.dist}`);
         detail.horse_distance_times?.forEach(time => {
+          console.log(`Processing time: ${time.time}`);
           if (time.time && time.time !== '-') {
             const [mins, secs] = time.time.split(':').map(Number);
             const seconds = mins * 60 + secs;
-            const furlongs = detail.dist.match(/(\d+)f/)?.[1] 
-              ? Number(detail.dist.match(/(\d+)f/)[1]) 
-              : 0;
+            const furlongs = Number(detail.dist.match(/(\d+)f/)?.[1] || 0);
+            
+            console.log(`Calculated seconds: ${seconds}, furlongs: ${furlongs}`);
+            
             if (seconds > 0 && furlongs > 0) {
-              totalSecondsPerFurlong += seconds / furlongs;
+              const spf = seconds / furlongs;
+              console.log(`Seconds per furlong: ${spf}`);
+              totalSecondsPerFurlong += spf;
               validTimeCount++;
             }
           }
@@ -61,12 +70,16 @@ export const useChartData = (
       const avgSecondsPerFurlong = validTimeCount > 0 ? 
         totalSecondsPerFurlong / validTimeCount : 0;
 
+      console.log(`Final avg seconds per furlong: ${avgSecondsPerFurlong}`);
+
       // Convert pace to a speed rating (0-50 scale)
       // Assuming average pace is around 12-13 seconds per furlong
       // Faster times (lower seconds) should result in higher ratings
       const speedRating = avgSecondsPerFurlong > 0 
         ? Math.max(0, Math.min(50, ((14 - avgSecondsPerFurlong) * 10) + 25))
         : 0;
+
+      console.log(`Calculated speed rating: ${speedRating}`);
 
       // Calculate overall score (0-50 scale)
       const overall = (
@@ -75,7 +88,7 @@ export const useChartData = (
         (speedRating * 0.2) // 20% weight to speed rating (already 0-50)
       );
 
-      return {
+      const result = {
         horse: analysis.horse.length > 12 
           ? analysis.horse.substring(0, 12) + '...'
           : analysis.horse,
@@ -87,6 +100,9 @@ export const useChartData = (
         actualPace: avgSecondsPerFurlong.toFixed(2),
         totalRuns: analysis.total_runs || 0
       };
+
+      console.log('Final data point:', result);
+      return result;
     });
 
     // Sort data based on selected option
