@@ -1,203 +1,121 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useSession } from '@supabase/auth-helpers-react';
-import { Message, ImageData } from "@/components/analysis/types/chat";
-import { trackActivity } from "@/utils/activity";
+import { ChatMessage } from "@/components/analysis/types/chat";
+import { useToast } from "./use-toast";
+import { formatRaceContext } from "@/lib/formatRaceContext";
 
 export const useRaceChat = (raceId: string) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const session = useSession();
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
+    console.log('Loading messages for race:', raceId);
     try {
-      console.log('Loading messages for race:', raceId);
       const { data, error } = await supabase
         .from('race_chats')
         .select('*')
         .eq('race_id', raceId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading messages:', error);
+        throw error;
+      }
 
-      setMessages(
-        data.map((msg) => ({
-          role: msg.role as 'user' | 'assistant',
-          message: msg.message,
-        }))
-      );
+      setMessages(data.map(msg => ({
+        role: msg.role,
+        message: msg.message
+      })));
     } catch (error) {
       console.error('Error loading messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load messages",
+        description: "Failed to load chat messages",
         variant: "destructive",
       });
     }
-  };
+  }, [raceId, toast]);
 
-  const sendMessage = async (message: string, imageData?: { data: string; type: string }) => {
-    if ((!message.trim() && !imageData) || !session?.user?.id) return;
-    
+  const sendMessage = useCallback(async (message: string, imageUrl?: string) => {
+    console.log('Sending message for race:', raceId);
     setIsLoading(true);
-    console.log('Sending message with image data:', { 
-      messageLength: message.length, 
-      hasImage: !!imageData,
-      imageType: imageData?.type,
-      imageDataLength: imageData?.data.length
-    });
 
     try {
-      // Track AI interaction
-      await trackActivity('ai_chat', undefined, {
-        raceId,
-        messageLength: message.length,
-        hasImage: !!imageData
-      });
+      // Fetch race data first
+      const { data: race, error: raceError } = await supabase
+        .from('races')
+        .select(`
+          *,
+          runners (*),
+          race_documents (*)
+        `)
+        .eq('id', raceId)
+        .single();
 
-      // Save user message with image URL if present
-      const userMessage = message.trim() || "(Image uploaded)";
-      
-      const { error: userMsgError } = await supabase
+      if (raceError) throw raceError;
+
+      // Format the context
+      const context = await formatRaceContext(race);
+      console.log('Generated race context length:', context.length);
+
+      // Store user message
+      const { error: chatError } = await supabase
         .from('race_chats')
         .insert({
           race_id: raceId,
-          message: userMessage,
-          role: 'user',
-          user_id: session.user.id,
+          message: imageUrl ? `${imageUrl}\n${message}` : message,
+          role: 'user'
         });
 
-      if (userMsgError) throw userMsgError;
+      if (chatError) throw chatError;
 
-      // Update local state immediately
-      const updatedMessages: Message[] = [...messages, { role: 'user', message: userMessage }];
-      setMessages(updatedMessages);
+      // Update local state
+      setMessages(prev => [...prev, { role: 'user', message }]);
 
-      // Format image data for Claude
-      let formattedImages: ImageData[] = [];
-      if (imageData?.data) {
-        console.log('Formatting image data for Claude API');
-        formattedImages.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: imageData.type,
-            data: imageData.data
-          }
-        });
-        console.log('Formatted image data:', {
-          type: imageData.type,
-          dataLength: imageData.data.length,
-          isBase64: imageData.data.match(/^[A-Za-z0-9+/=]+$/) ? 'valid base64' : 'invalid base64'
-        });
-      }
-
-      // Get race documents
-      const { data: documents } = await supabase
-        .from('race_documents')
-        .select('*')
-        .eq('race_id', raceId);
-
-      console.log('Found race documents:', documents?.length);
-
-      // Process race documents
-      if (documents?.length) {
-        for (const doc of documents) {
-          if (doc.content_type.startsWith('image/')) {
-            console.log('Processing document:', doc.file_name);
-            try {
-              const { data } = await supabase.storage
-                .from('race_documents')
-                .download(doc.file_path);
-
-              if (data) {
-                const reader = new FileReader();
-                const base64Promise = new Promise<string>((resolve) => {
-                  reader.onload = () => {
-                    const base64 = (reader.result as string).split(',')[1];
-                    resolve(base64);
-                  };
-                });
-                reader.readAsDataURL(data);
-                const base64 = await base64Promise;
-
-                formattedImages.push({
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: doc.content_type,
-                    data: base64
-                  }
-                });
-                console.log('Successfully processed document:', doc.file_name);
-              }
-            } catch (error) {
-              console.error('Error processing document:', doc.file_name, error);
-            }
+      // Call AI function
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
+        'chat-with-anthropic',
+        {
+          body: {
+            message,
+            raceId,
+            conversationHistory: messages
           }
         }
-      }
+      );
 
-      // Prepare request body
-      const requestBody = {
-        message,
-        raceId,
-        conversationHistory: updatedMessages,
-        images: formattedImages
-      };
+      if (aiError) throw aiError;
 
-      console.log('Sending request to edge function with image data:', {
-        hasImages: formattedImages.length > 0,
-        imageTypes: formattedImages.map(img => img.source.media_type),
-        totalImages: formattedImages.length
-      });
-      
-      // Call edge function with full conversation history and images
-      const response = await supabase.functions.invoke('chat-with-anthropic', {
-        body: JSON.stringify(requestBody),
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to get AI response');
-      }
-
-      const data = response.data;
-      console.log('AI response received:', data);
-      
-      // Save AI response
-      const { error: aiMsgError } = await supabase
+      // Store AI response
+      const { error: responseError } = await supabase
         .from('race_chats')
         .insert({
           race_id: raceId,
-          message: data.message,
-          role: 'assistant',
-          user_id: session.user.id,
+          message: aiResponse.message,
+          role: 'assistant'
         });
 
-      if (aiMsgError) throw aiMsgError;
+      if (responseError) throw responseError;
 
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', message: data.message },
-      ]);
+      // Update local state with AI response
+      setMessages(prev => [...prev, { role: 'assistant', message: aiResponse.message }]);
     } catch (error) {
-      console.error('Error in chat:', error);
+      console.error('Error in chat interaction:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to send message",
+        description: "Failed to send message",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [raceId, messages, toast]);
 
   return {
     messages,
     isLoading,
     sendMessage,
-    loadMessages,
+    loadMessages
   };
 };
