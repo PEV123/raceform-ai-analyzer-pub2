@@ -29,35 +29,42 @@ export const processMessages = (
 
   // Process current message and any uploads
   const currentContent = [];
-  
-  // Handle PDF documents first
-  for (const doc of processedDocuments) {
-    if (doc.source.media_type === 'application/pdf') {
-      console.log('Processing PDF document:', doc.source.media_type);
-      currentContent.push({
-        type: "text",
-        text: `PDF Content: ${doc.source.data}`
-      });
+
+  // Handle race documents first
+  if (processedDocuments?.length > 0) {
+    console.log('Processing race documents:', processedDocuments.length);
+    for (const doc of processedDocuments) {
+      if (doc.source?.data && doc.source?.media_type?.startsWith('image/')) {
+        console.log('Adding race document image:', {
+          type: doc.source.media_type,
+          dataLength: doc.source.data.length
+        });
+        currentContent.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: doc.source.media_type,
+            data: doc.source.data
+          }
+        });
+      }
     }
   }
 
-  // Handle image data if present
+  // Handle uploaded image if present
   if (imageData) {
-    console.log('Processing image upload:', {
+    console.log('Processing uploaded image:', {
       type: imageData.type,
       dataLength: imageData.data.length
     });
-    
-    if (imageData.type.startsWith('image/')) {
-      currentContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: imageData.type,
-          data: imageData.data
-        }
-      });
-    }
+    currentContent.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: imageData.type,
+        data: imageData.data
+      }
+    });
   }
 
   // Add the text message last

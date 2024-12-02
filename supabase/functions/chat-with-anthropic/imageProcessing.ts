@@ -22,52 +22,44 @@ export const processRaceDocuments = async (race: any, supabaseUrl: string) => {
         continue;
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const chunks = splitArrayBuffer(arrayBuffer, MAX_CHUNK_SIZE);
-      console.log(`Split image ${doc.file_name} into ${chunks.length} chunks`);
+      const blob = await response.blob();
+      const base64Data = await blobToBase64(blob);
+      const base64Content = base64Data.split(',')[1];
 
-      for (const [index, chunk] of chunks.entries()) {
-        const base64 = arrayBufferToBase64(chunk);
-        processedImages.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: doc.content_type,
-            data: base64
-          },
-          metadata: {
-            fileName: doc.file_name,
-            chunkIndex: index,
-            totalChunks: chunks.length
-          }
-        });
-      }
+      processedImages.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: doc.content_type,
+          data: base64Content
+        },
+        metadata: {
+          fileName: doc.file_name
+        }
+      });
       
-      console.log(`Successfully processed image ${doc.file_name}`);
+      console.log(`Successfully processed image ${doc.file_name}:`, {
+        contentType: doc.content_type,
+        dataLength: base64Content.length
+      });
     } catch (error) {
       console.error(`Error processing document image ${doc.file_name}:`, error);
     }
   }
   
+  console.log('Successfully processed all documents:', {
+    count: processedImages.length,
+    types: processedImages.map(img => img.source.media_type)
+  });
+  
   return processedImages;
 };
 
-function splitArrayBuffer(buffer: ArrayBuffer, maxChunkSize: number): ArrayBuffer[] {
-  const chunks: ArrayBuffer[] = [];
-  const totalSize = buffer.byteLength;
-  let offset = 0;
-  
-  while (offset < totalSize) {
-    const chunkSize = Math.min(maxChunkSize, totalSize - offset);
-    chunks.push(buffer.slice(offset, offset + chunkSize));
-    offset += chunkSize;
-  }
-  
-  return chunks;
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const binString = Array.from(bytes, byte => String.fromCodePoint(byte)).join('');
-  return btoa(binString);
-}
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
