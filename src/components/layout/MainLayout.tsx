@@ -10,8 +10,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { AppSidebar, MobileNav } from "./AppSidebar";
-import { Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TextLogo } from "../brand/TextLogo";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -27,9 +26,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           <div className="flex items-center gap-4">
             <MobileNav />
             <Link to="/">
-              <Button variant="ghost" size="icon">
-                <Home className="h-5 w-5" />
-              </Button>
+              <TextLogo />
             </Link>
           </div>
           <div className="flex-1 flex justify-end">

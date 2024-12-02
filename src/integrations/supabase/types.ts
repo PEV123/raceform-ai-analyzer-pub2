@@ -16,7 +16,9 @@ export type Database = {
           id: string
           knowledge_base: string
           openai_model: string
+          race_title_template: string
           selected_provider: string
+          site_name: string
           system_prompt: string
           timezone: string
           updated_at: string
@@ -27,7 +29,9 @@ export type Database = {
           id?: string
           knowledge_base?: string
           openai_model?: string
+          race_title_template?: string
           selected_provider?: string
+          site_name?: string
           system_prompt?: string
           timezone?: string
           updated_at?: string
@@ -38,7 +42,9 @@ export type Database = {
           id?: string
           knowledge_base?: string
           openai_model?: string
+          race_title_template?: string
           selected_provider?: string
+          site_name?: string
           system_prompt?: string
           timezone?: string
           updated_at?: string
