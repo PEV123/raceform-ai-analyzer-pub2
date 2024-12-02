@@ -22,6 +22,9 @@ serve(async (req) => {
 
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY') || '',
+      headers: {
+        'anthropic-beta': 'pdfs-2024-09-25'  // Adding PDF support header
+      }
     });
 
     if (!anthropic.apiKey) {
