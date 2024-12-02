@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { saveOddsHistory } from "@/services/oddsHistory";
 
 export const processRace = async (race: any) => {
   console.log(`Processing race at ${race.course}`);
@@ -109,49 +110,58 @@ export const processRunners = async (raceId: string, runners: any[]) => {
       ts: runner.ts,
       jockey: runner.jockey || 'Unknown',
       trainer: runner.trainer,
-      dob: runner.dob,
-      age: runner.age,
-      sex: runner.sex,
-      sex_code: runner.sex_code,
-      colour: runner.colour,
-      region: runner.region,
-      breeder: runner.breeder,
-      dam_id: runner.dam_id,
-      damsire: runner.damsire,
-      damsire_id: runner.damsire_id,
-      damsire_region: runner.damsire_region,
-      trainer_id: runner.trainer_id,
-      trainer_location: runner.trainer_location,
-      trainer_14_days: runner.trainer_14_days || [],
-      owner: runner.owner,
-      owner_id: runner.owner_id,
-      prev_trainers: runner.prev_trainers || [],
-      prev_owners: runner.prev_owners || [],
-      comment: runner.comment,
-      spotlight: runner.spotlight,
-      quotes: runner.quotes || [],
-      stable_tour: runner.stable_tour || [],
-      medical: runner.medical || [],
-      headgear_run: runner.headgear_run,
-      wind_surgery: runner.wind_surgery,
-      wind_surgery_run: runner.wind_surgery_run,
-      past_results_flags: runner.past_results_flags || [],
-      rpr: runner.rpr,
-      jockey_id: runner.jockey_id,
-      last_run: runner.last_run,
-      trainer_rtf: runner.trainer_rtf,
+      is_non_runner: runner.is_non_runner || false,
       odds: runner.odds || [],
     }));
 
   if (validRunners.length > 0) {
-    const { error: runnersError } = await supabase
-      .from("runners")
-      .insert(validRunners);
+    // Insert or update runners
+    for (const runner of validRunners) {
+      const { data: existingRunner } = await supabase
+        .from("runners")
+        .select("id, odds")
+        .eq("race_id", raceId)
+        .eq("horse_id", runner.horse_id)
+        .single();
 
-    if (runnersError) {
-      console.error("Error inserting runners:", runnersError);
-      throw runnersError;
+      if (existingRunner) {
+        // Update existing runner
+        const { error: updateError } = await supabase
+          .from("runners")
+          .update({
+            ...runner,
+            odds: runner.odds
+          })
+          .eq("id", existingRunner.id);
+
+        if (updateError) {
+          console.error("Error updating runner:", updateError);
+          throw updateError;
+        }
+
+        // Save odds history if odds have changed
+        if (JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds)) {
+          await saveOddsHistory(existingRunner.id, runner.odds);
+        }
+      } else {
+        // Insert new runner
+        const { data: newRunner, error: insertError } = await supabase
+          .from("runners")
+          .insert(runner)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error inserting runner:", insertError);
+          throw insertError;
+        }
+
+        // Save initial odds history
+        if (newRunner && runner.odds?.length > 0) {
+          await saveOddsHistory(newRunner.id, runner.odds);
+        }
+      }
     }
-    console.log(`Successfully inserted ${validRunners.length} runners`);
+    console.log(`Successfully processed ${validRunners.length} runners`);
   }
 };

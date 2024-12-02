@@ -259,6 +259,35 @@ export type Database = {
         }
         Relationships: []
       }
+      odds_history: {
+        Row: {
+          created_at: string
+          id: string
+          odds: Json
+          runner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          odds: Json
+          runner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          odds?: Json
+          runner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odds_history_runner_id_fkey"
+            columns: ["runner_id"]
+            isOneToOne: false
+            referencedRelation: "runners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -468,6 +497,7 @@ export type Database = {
           horse: string
           horse_id: string
           id: string
+          is_non_runner: boolean | null
           jockey: string
           jockey_id: string | null
           last_run: string | null
@@ -521,6 +551,7 @@ export type Database = {
           horse: string
           horse_id: string
           id?: string
+          is_non_runner?: boolean | null
           jockey: string
           jockey_id?: string | null
           last_run?: string | null
@@ -574,6 +605,7 @@ export type Database = {
           horse?: string
           horse_id?: string
           id?: string
+          is_non_runner?: boolean | null
           jockey?: string
           jockey_id?: string | null
           last_run?: string | null

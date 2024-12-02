@@ -1,86 +1,56 @@
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
-import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { ClearRacesDialog } from "./components/ClearRacesDialog";
-import { ImportProgress } from "./components/ImportProgress";
 import { ImportActions } from "./components/ImportActions";
+import { UpdateRaces } from "./components/UpdateRaces";
+import { ImportProgress } from "./components/ImportProgress";
+import { ClearRacesDialog } from "./components/ClearRacesDialog";
+import { useState } from "react";
+import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
+import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 
 const ImportRaces = () => {
-  const clearMutation = useClearRacesMutation();
-  const importMutation = useImportRacesMutation();
+  const [date, setDate] = useState<Date>(new Date());
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [currentOperation, setCurrentOperation] = useState<string>("");
-  const [clearDate, setClearDate] = useState<Date | undefined>();
   
-  // Initialize with current UK date
-  const [date, setDate] = useState<Date>(() => {
-    const ukDate = fromZonedTime(new Date(), 'Europe/London');
-    console.log('Initial UK date set to:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
-    return ukDate;
-  });
-
-  const { data: settings } = useQuery({
-    queryKey: ["adminSettings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admin_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const importRaces = useImportRacesMutation();
+  const clearRaces = useClearRacesMutation();
 
   const handleImport = async () => {
-    await importMutation.mutateAsync({
+    await importRaces.mutate({
       date,
-      onProgress: (progress: number, operation: string) => {
+      onProgress: (progress, operation) => {
         setProgress(progress);
-        setCurrentOperation(operation);
+        console.log(`Import progress: ${progress}% - ${operation}`);
       }
     });
   };
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">Import Races</h2>
-      <p className="text-muted-foreground mb-4">
-        Import races from the Racing API for a specific date
-      </p>
-      <div className="flex gap-4 mb-6">
-        <ClearRacesDialog
-          clearDate={clearDate}
-          setClearDate={setClearDate}
-          onClear={(date) => clearMutation.mutate(date)}
-          isPending={clearMutation.isPending}
-        />
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Import Races</h2>
+        
+        <div className="space-y-4">
+          <ImportActions
+            date={date}
+            onDateSelect={setDate}
+            onImport={handleImport}
+            isImporting={importRaces.isPending}
+            isClearingRaces={clearRaces.isPending}
+          />
+          
+          <UpdateRaces />
+        </div>
 
-        <ImportActions
-          date={date}
-          onDateSelect={(newDate) => {
-            if (newDate) {
-              const ukDate = fromZonedTime(newDate, 'Europe/London');
-              console.log('New UK date selected:', formatInTimeZone(ukDate, 'Europe/London', 'yyyy-MM-dd'));
-              setDate(ukDate);
-            }
-          }}
-          onImport={handleImport}
-          isImporting={importMutation.isPending}
-          isClearingRaces={clearMutation.isPending}
-        />
+        {importRaces.isPending && (
+          <ImportProgress progress={progress} />
+        )}
       </div>
 
-      {importMutation.isPending && (
-        <ImportProgress
-          progress={progress}
-          operation={currentOperation}
-        />
-      )}
+      <ClearRacesDialog
+        open={showClearDialog}
+        onOpenChange={setShowClearDialog}
+      />
     </Card>
   );
 };

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { RaceDistanceComparison } from "./RaceDistanceComparison";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { OddsDisplay } from "./OddsDisplay";
 
 interface RaceCardProps {
   race: any;
@@ -29,7 +30,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   const { data: historicalResults, error: historicalError } = useQuery({
     queryKey: ['historical-results', race.id],
     queryFn: async () => {
-      console.log('Fetching historical results for race:', race.id);
       const horseIds = race.runners.map((runner: any) => runner.horse_id);
       
       const { data, error } = await supabase
@@ -43,7 +43,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         throw error;
       }
       
-      console.log('Fetched historical results:', data);
       return data;
     },
     retry: 2
@@ -52,7 +51,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   const { data: distanceAnalyses, error: analysesError } = useQuery({
     queryKey: ['distance-analyses', race.id],
     queryFn: async () => {
-      console.log('Fetching distance analyses for race:', race.id);
       const horseIds = race.runners.map((runner: any) => runner.horse_id);
       
       const { data, error } = await supabase
@@ -71,7 +69,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
         throw error;
       }
 
-      console.log('Fetched distance analyses:', data);
       return data;
     },
     retry: 2
@@ -143,13 +140,28 @@ export const RaceCard = ({ race }: RaceCardProps) => {
 
         <div className="space-y-4">
           {race.runners?.map((runner: any) => (
-            <DetailedHorseForm
+            <div 
               key={runner.horse_id}
-              runner={runner}
-              historicalResults={getHorseResults(runner.horse_id)}
-              distanceAnalysis={getHorseDistanceAnalysis(runner.horse_id)}
-              raceDistance={race.distance}
-            />
+              className={`p-2 bg-muted rounded-lg flex items-center gap-2 ${
+                runner.is_non_runner ? 'opacity-50' : ''
+              }`}
+            >
+              <div className="w-6 text-center font-bold">
+                {runner.number}
+                {runner.is_non_runner && (
+                  <span className="text-xs text-red-500 block">NR</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium">
+                  {runner.horse}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {runner.jockey} | {runner.trainer}
+                </div>
+              </div>
+              <OddsDisplay odds={runner.odds} />
+            </div>
           ))}
         </div>
       </div>
