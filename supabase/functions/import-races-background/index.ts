@@ -58,11 +58,12 @@ serve(async (req) => {
     if (jobError) throw jobError;
 
     try {
-      // Fetch all runners for the date
+      // Fetch all runners for the date using off_time instead of date
       const { data: races, error: racesError } = await supabase
         .from('races')
         .select('id, runners(horse_id, horse)')
-        .eq('date', date);
+        .gte('off_time', `${date}T00:00:00Z`)
+        .lt('off_time', `${date}T23:59:59Z`);
 
       if (racesError) throw racesError;
 
