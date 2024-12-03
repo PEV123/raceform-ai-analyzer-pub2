@@ -8,6 +8,7 @@ import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface UpdateSummary {
   nonRunnerUpdates: {
@@ -47,19 +48,37 @@ const ImportRaces = () => {
     });
   };
 
+  const handleClearRaces = async () => {
+    await clearRaces.mutate(date, {
+      onSuccess: () => {
+        setShowClearDialog(false);
+      }
+    });
+  };
+
   return (
     <Card className="p-6">
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Import Races</h2>
         
         <div className="space-y-4">
-          <ImportActions
-            date={date}
-            onDateSelect={setDate}
-            onImport={handleImport}
-            isImporting={importRaces.isPending}
-            isClearingRaces={clearRaces.isPending}
-          />
+          <div className="flex items-center gap-4">
+            <ImportActions
+              date={date}
+              onDateSelect={setDate}
+              onImport={handleImport}
+              isImporting={importRaces.isPending}
+              isClearingRaces={clearRaces.isPending}
+            />
+            
+            <Button 
+              variant="destructive"
+              onClick={() => setShowClearDialog(true)}
+              disabled={importRaces.isPending || clearRaces.isPending}
+            >
+              Clear Races
+            </Button>
+          </div>
           
           <UpdateRaces />
         </div>
@@ -109,6 +128,9 @@ const ImportRaces = () => {
       <ClearRacesDialog
         isOpen={showClearDialog}
         onOpenChange={setShowClearDialog}
+        onConfirm={handleClearRaces}
+        date={date}
+        isLoading={clearRaces.isPending}
       />
     </Card>
   );
