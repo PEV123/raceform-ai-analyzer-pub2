@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processHorseBatch, splitIntoBatches } from "./horseProcessing.ts";
+import { fetchRacesFromApi } from "./apiClient.ts";
 import { ImportStats, HorseData } from "./types.ts";
 
 const corsHeaders = {
@@ -58,47 +59,124 @@ serve(async (req) => {
     if (jobError) throw jobError;
 
     try {
-      // Fetch all runners for the date using off_time instead of date
-      const { data: races, error: racesError } = await supabase
-        .from('races')
-        .select('id, runners(horse_id, horse)')
-        .gte('off_time', `${date}T00:00:00Z`)
-        .lt('off_time', `${date}T23:59:59Z`);
+      // First, fetch races from the API
+      console.log('Fetching races from API for date:', date);
+      const races = await fetchRacesFromApi(date, new AbortController().signal);
+      console.log(`Found ${races.length} races to process`);
+      
+      stats.totalRaces = races.length;
 
-      if (racesError) throw racesError;
+      // Process each race
+      for (const race of races) {
+        try {
+          console.log(`Processing race at ${race.course} - ${race.off_time} - Race ID: ${race.race_id}`);
+          
+          // Check if race already exists
+          const { data: existingRace } = await supabase
+            .from("races")
+            .select("id, race_id")
+            .eq("race_id", race.race_id)
+            .single();
 
-      // Collect all unique horses
-      const horses = new Set<HorseData>();
-      races?.forEach(race => {
-        race.runners?.forEach((runner: any) => {
-          if (runner.horse_id && runner.horse) {
-            horses.add({ horseId: runner.horse_id, horseName: runner.horse });
+          if (existingRace) {
+            console.log(`Race ${race.race_id} already exists, skipping`);
+            continue;
           }
-        });
-      });
 
-      const uniqueHorses = Array.from(horses);
+          // Insert race
+          const { data: insertedRace, error: insertError } = await supabase
+            .from("races")
+            .insert({
+              ...race,
+              off_time: race.off_dt || race.off_time
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error inserting race:', insertError);
+            stats.failedRaces++;
+            continue;
+          }
+
+          stats.successfulRaces++;
+          console.log(`Successfully inserted race: ${insertedRace.id}`);
+
+          // Process runners if available
+          if (race.runners?.length > 0) {
+            console.log(`Processing ${race.runners.length} runners for race ${insertedRace.id}`);
+            
+            for (const runner of race.runners) {
+              if (!runner.horse_id || !runner.horse) {
+                console.warn(`Invalid runner data for race ${race.race_id}:`, runner);
+                continue;
+              }
+
+              const { error: runnerError } = await supabase
+                .from("runners")
+                .insert({
+                  race_id: insertedRace.id,
+                  horse_id: runner.horse_id,
+                  number: parseInt(runner.number) || 0,
+                  draw: parseInt(runner.draw) || 0,
+                  horse: runner.horse,
+                  silk_url: runner.silk_url,
+                  sire: runner.sire,
+                  sire_region: runner.sire_region,
+                  dam: runner.dam,
+                  dam_region: runner.dam_region,
+                  form: runner.form,
+                  lbs: parseInt(runner.lbs) || 0,
+                  headgear: runner.headgear,
+                  ofr: runner.ofr,
+                  ts: runner.ts,
+                  jockey: runner.jockey,
+                  trainer: runner.trainer,
+                  odds: runner.odds || [],
+                  is_non_runner: runner.is_non_runner || false
+                });
+
+              if (runnerError) {
+                console.error(`Error inserting runner ${runner.horse_id}:`, runnerError);
+                continue;
+              }
+
+              console.log(`Successfully inserted runner ${runner.horse_id}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing race:`, error);
+          stats.failedRaces++;
+        }
+      }
+
+      // After processing races, collect all unique horses
+      console.log('Fetching all runners to process horse data...');
+      const { data: runners, error: runnersError } = await supabase
+        .from('runners')
+        .select('horse_id, horse')
+        .gte('created_at', `${date}T00:00:00Z`)
+        .lt('created_at', `${date}T23:59:59Z`);
+
+      if (runnersError) throw runnersError;
+
+      // Get unique horses
+      const uniqueHorses = Array.from(new Set(runners?.map(r => JSON.stringify({ horseId: r.horse_id, horseName: r.horse }))))
+        .map(str => JSON.parse(str) as HorseData);
+
       stats.totalHorses = uniqueHorses.length;
       console.log(`Found ${stats.totalHorses} unique horses to process`);
-
-      // Update job with initial stats
-      await supabase
-        .from('import_jobs')
-        .update({
-          summary: stats
-        })
-        .eq('id', job.id);
 
       // Process horses in batches
       const batches = splitIntoBatches(uniqueHorses, BATCH_SIZE);
       
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
-        console.log(`Processing batch ${i + 1} of ${batches.length}`);
+        console.log(`Processing horse batch ${i + 1} of ${batches.length}`);
         
         await processHorseBatch(supabase, batch, stats);
         
-        // Update progress after each batch
+        // Update progress
         const progress = Math.round(((i + 1) / batches.length) * 100);
         await supabase
           .from('import_jobs')
@@ -108,7 +186,6 @@ serve(async (req) => {
           })
           .eq('id', job.id);
 
-        // Add delay between batches
         if (i < batches.length - 1) {
           await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
         }
@@ -136,7 +213,6 @@ serve(async (req) => {
     } catch (error) {
       console.error('Error:', error);
       
-      // Update job with error status
       await supabase
         .from('import_jobs')
         .update({
