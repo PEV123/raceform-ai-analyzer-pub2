@@ -18,8 +18,8 @@ export const processRace = async (race: any) => {
     }
 
     if (existingRaces && existingRaces.length > 0) {
-      console.log(`Race ${race.race_id} already exists, skipping`);
-      return null;
+      console.log(`Race ${race.race_id} already exists, returning existing race`);
+      return existingRaces[0];
     }
 
     // Use off_dt for the full datetime if available, otherwise construct from off_time
@@ -55,21 +55,20 @@ export const processRace = async (race: any) => {
         big_race: race.big_race,
         is_abandoned: race.is_abandoned,
       })
-      .select()
-      .maybeSingle();
+      .select();
 
     if (raceError) {
       console.error("Error inserting race:", raceError);
       throw raceError;
     }
 
-    if (!raceData) {
+    if (!raceData || raceData.length === 0) {
       console.error("No race data returned after insert");
       throw new Error("Failed to create race");
     }
 
-    console.log('Successfully inserted race:', raceData);
-    return raceData;
+    console.log('Successfully inserted race:', raceData[0]);
+    return raceData[0];
   } catch (error) {
     console.error(`Error in processRace:`, error);
     throw error;
@@ -103,49 +102,85 @@ export const processRunners = async (raceId: string, runners: any[]) => {
 
   if (validRunners.length > 0) {
     for (const runner of validRunners) {
-      // Use maybeSingle() instead of single() to handle cases where no runner is found
-      const { data: existingRunner, error: queryError } = await supabase
-        .from("runners")
-        .select("id, odds, is_non_runner")
-        .eq("race_id", raceId)
-        .eq("horse_id", runner.horse_id)
-        .maybeSingle();
-
-      if (queryError) {
-        console.error(`Error querying runner ${runner.horse_id}:`, queryError);
-        continue;
-      }
-
-      if (existingRunner) {
-        // Check for non-runner status change
-        if (existingRunner.is_non_runner !== runner.is_non_runner) {
-          nonRunnerUpdates++;
-        }
-
-        // Check for odds changes
-        const hasOddsChanged = JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds);
-        
-        // Update existing runner
-        const { error: updateError } = await supabase
+      try {
+        // First check if runner exists
+        const { data: existingRunners, error: queryError } = await supabase
           .from("runners")
-          .update({
-            is_non_runner: runner.is_non_runner,
-            odds: runner.odds
-          })
-          .eq("id", existingRunner.id);
+          .select("id, odds, is_non_runner")
+          .eq("race_id", raceId)
+          .eq("horse_id", runner.horse_id);
 
-        if (updateError) {
-          console.error("Error updating runner:", updateError);
+        if (queryError) {
+          console.error(`Error querying runner ${runner.horse_id}:`, queryError);
           continue;
         }
 
-        // Save odds history if odds have changed
-        if (hasOddsChanged) {
-          await saveOddsHistory(existingRunner.id, runner.odds);
-          oddsUpdates++;
+        const existingRunner = existingRunners && existingRunners[0];
+
+        if (existingRunner) {
+          // Check for non-runner status change
+          if (existingRunner.is_non_runner !== runner.is_non_runner) {
+            nonRunnerUpdates++;
+          }
+
+          // Check for odds changes
+          const hasOddsChanged = JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds);
+          
+          // Update existing runner
+          const { error: updateError } = await supabase
+            .from("runners")
+            .update({
+              is_non_runner: runner.is_non_runner,
+              odds: runner.odds
+            })
+            .eq("id", existingRunner.id);
+
+          if (updateError) {
+            console.error("Error updating runner:", updateError);
+            continue;
+          }
+
+          // Save odds history if odds have changed
+          if (hasOddsChanged) {
+            await saveOddsHistory(existingRunner.id, runner.odds);
+            oddsUpdates++;
+          }
+        } else {
+          // Insert new runner
+          const { error: insertError } = await supabase
+            .from("runners")
+            .insert({
+              race_id: raceId,
+              horse_id: runner.horse_id,
+              number: runner.number,
+              draw: runner.draw,
+              horse: runner.horse,
+              silk_url: runner.silk_url,
+              sire: runner.sire,
+              sire_region: runner.sire_region,
+              dam: runner.dam,
+              dam_region: runner.dam_region,
+              form: runner.form,
+              lbs: runner.lbs,
+              headgear: runner.headgear,
+              ofr: runner.ofr,
+              ts: runner.ts,
+              jockey: runner.jockey,
+              trainer: runner.trainer,
+              odds: runner.odds,
+              is_non_runner: runner.is_non_runner || false
+            });
+
+          if (insertError) {
+            console.error(`Error inserting new runner ${runner.horse_id}:`, insertError);
+            continue;
+          }
+
+          console.log(`Successfully inserted new runner: ${runner.horse}`);
         }
-      } else {
-        console.log(`No existing runner found for horse_id ${runner.horse_id}, race_id ${raceId}`);
+      } catch (error) {
+        console.error(`Error processing runner ${runner.horse_id}:`, error);
+        continue;
       }
     }
   }
