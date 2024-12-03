@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { prepareRaceData } from "./utils.ts";
+import { processHorseResults, processHorseDistanceAnalysis } from "./horseDataProcessing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,12 +69,6 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('API Response structure:', {
-      hasRacecards: !!data.racecards,
-      hasDataRacecards: !!data.data?.racecards,
-      totalRaces: (data.racecards || data.data?.racecards || []).length
-    });
-
     const races = data.racecards || data.data?.racecards || [];
 
     if (!races.length) {
@@ -96,6 +91,7 @@ serve(async (req) => {
     let processedCount = 0;
     let nonRunnerUpdates = 0;
     let oddsUpdates = 0;
+    let horseDataUpdates = 0;
 
     // Process races in batches
     for (let i = 0; i < races.length; i += BATCH_SIZE) {
@@ -119,8 +115,6 @@ serve(async (req) => {
           } else {
             // Prepare and insert new race
             const raceData = prepareRaceData(race);
-            console.log('Inserting race with data:', raceData);
-
             const { data: newRace, error: raceError } = await supabase
               .from('races')
               .insert(raceData)
@@ -136,7 +130,7 @@ serve(async (req) => {
             console.log(`Inserted new race with ID ${raceId}`);
           }
 
-          // Process runners
+          // Process runners and their historical data
           if (race.runners?.length > 0) {
             console.log(`Processing ${race.runners.length} runners for race ${raceId}`);
             
@@ -189,6 +183,15 @@ serve(async (req) => {
                       is_non_runner: runner.is_non_runner || false
                     });
                 }
+
+                // Process horse historical data
+                try {
+                  await processHorseResults(supabase, runner.horse_id);
+                  await processHorseDistanceAnalysis(supabase, runner.horse_id);
+                  horseDataUpdates++;
+                } catch (horseDataError) {
+                  console.error(`Error processing horse data for ${runner.horse_id}:`, horseDataError);
+                }
               } catch (runnerError) {
                 console.error(`Error processing runner ${runner.horse_id}:`, runnerError);
               }
@@ -207,7 +210,8 @@ serve(async (req) => {
                 processed: processedCount,
                 total: races.length,
                 nonRunnerUpdates,
-                oddsUpdates
+                oddsUpdates,
+                horseDataUpdates
               }
             })
             .eq('id', job.id);
@@ -227,7 +231,8 @@ serve(async (req) => {
           processed: processedCount,
           total: races.length,
           nonRunnerUpdates,
-          oddsUpdates
+          oddsUpdates,
+          horseDataUpdates
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
