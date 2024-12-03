@@ -13,41 +13,92 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Starting profile update for user:", userId);
       console.log("Update payload:", updatedProfile);
       
-      const { data, error } = await supabase
+      // First verify the profile exists
+      const { data: existingProfile, error: fetchError } = await supabase
         .from("profiles")
-        .update({
-          membership_level: updatedProfile.membership_level,
-          full_name: updatedProfile.full_name,
-          email: updatedProfile.email,
-          phone: updatedProfile.phone,
-          company: updatedProfile.company,
-          address: updatedProfile.address,
-          city: updatedProfile.city,
-          country: updatedProfile.country,
-          postal_code: updatedProfile.postal_code,
-          subscription_status: updatedProfile.subscription_status,
-          notes: updatedProfile.notes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
         .select()
-        .maybeSingle();
+        .eq('id', userId)
+        .single();
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        throw error;
+      if (fetchError) {
+        console.error("Error fetching existing profile:", fetchError);
+        throw fetchError;
       }
 
-      if (!data) {
+      if (!existingProfile) {
+        console.error("Profile not found for user:", userId);
         throw new Error("Profile not found");
       }
 
+      console.log("Existing profile:", existingProfile);
+
+      // Prepare update payload - only include fields that are actually being updated
+      const updatePayload: Partial<ProfileData> = {};
+      
+      if (updatedProfile.membership_level !== undefined) {
+        updatePayload.membership_level = updatedProfile.membership_level;
+      }
+      if (updatedProfile.full_name !== undefined) {
+        updatePayload.full_name = updatedProfile.full_name;
+      }
+      if (updatedProfile.email !== undefined) {
+        updatePayload.email = updatedProfile.email;
+      }
+      if (updatedProfile.phone !== undefined) {
+        updatePayload.phone = updatedProfile.phone;
+      }
+      if (updatedProfile.company !== undefined) {
+        updatePayload.company = updatedProfile.company;
+      }
+      if (updatedProfile.address !== undefined) {
+        updatePayload.address = updatedProfile.address;
+      }
+      if (updatedProfile.city !== undefined) {
+        updatePayload.city = updatedProfile.city;
+      }
+      if (updatedProfile.country !== undefined) {
+        updatePayload.country = updatedProfile.country;
+      }
+      if (updatedProfile.postal_code !== undefined) {
+        updatePayload.postal_code = updatedProfile.postal_code;
+      }
+      if (updatedProfile.subscription_status !== undefined) {
+        updatePayload.subscription_status = updatedProfile.subscription_status;
+      }
+      if (updatedProfile.notes !== undefined) {
+        updatePayload.notes = updatedProfile.notes;
+      }
+
+      // Always update the updated_at timestamp
+      updatePayload.updated_at = new Date().toISOString();
+
+      console.log("Final update payload:", updatePayload);
+
+      const { data: updatedData, error: updateError } = await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+        throw updateError;
+      }
+
+      if (!updatedData) {
+        console.error("No data returned after update");
+        throw new Error("Failed to update profile");
+      }
+
+      console.log("Profile updated successfully:", updatedData);
+
       // Track profile update
       await trackActivity('profile_update', undefined, {
-        updatedFields: Object.keys(updatedProfile)
+        updatedFields: Object.keys(updatePayload)
       });
 
-      return data;
+      return updatedData;
     },
     onSuccess: (data) => {
       console.log("Profile update successful:", data);
