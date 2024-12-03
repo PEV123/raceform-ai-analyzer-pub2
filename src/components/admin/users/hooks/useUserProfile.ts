@@ -3,21 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ProfileData } from "../profile/types";
 import type { Tables } from "@/integrations/supabase/types";
 
-type ProfileWithUser = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  membership_level: string;
-  subscription_status: string;
-  phone: string | null;
-  company: string | null;
-  address: string | null;
-  city: string | null;
-  country: string | null;
-  postal_code: string | null;
-  notes: string | null;
-  last_login: string | null;
-  is_admin: boolean;
+type ProfileWithUser = Tables<'profiles'> & {
   users: {
     email: string;
   };
@@ -42,21 +28,22 @@ export const useUserProfile = (userId: string) => {
 
       if (profile) {
         console.log("Found existing profile:", profile);
+        const typedProfile = profile as unknown as ProfileWithUser;
         const profileData: ProfileData = {
-          id: profile.id,
-          full_name: profile.full_name,
-          email: (profile as unknown as ProfileWithUser).users?.email,
-          membership_level: profile.membership_level,
-          subscription_status: profile.subscription_status,
-          phone: profile.phone,
-          company: profile.company,
-          address: profile.address,
-          city: profile.city,
-          country: profile.country,
-          postal_code: profile.postal_code,
-          notes: profile.notes,
-          last_login: profile.last_login,
-          is_admin: profile.is_admin || false
+          id: typedProfile.id,
+          full_name: typedProfile.full_name,
+          email: typedProfile.users?.email,
+          membership_level: typedProfile.membership_level,
+          subscription_status: typedProfile.subscription_status,
+          phone: typedProfile.phone,
+          company: typedProfile.company,
+          address: typedProfile.address,
+          city: typedProfile.city,
+          country: typedProfile.country,
+          postal_code: typedProfile.postal_code,
+          notes: typedProfile.notes,
+          last_login: typedProfile.last_login,
+          is_admin: typedProfile.is_admin || false
         };
         return profileData;
       }
@@ -78,21 +65,22 @@ export const useUserProfile = (userId: string) => {
       }
 
       console.log("Created new profile:", newProfile);
+      const typedNewProfile = newProfile as unknown as ProfileWithUser;
       const newProfileData: ProfileData = {
-        id: newProfile.id,
-        full_name: newProfile.full_name,
-        email: (newProfile as unknown as ProfileWithUser).users?.email,
-        membership_level: newProfile.membership_level,
-        subscription_status: newProfile.subscription_status,
-        phone: newProfile.phone,
-        company: newProfile.company,
-        address: newProfile.address,
-        city: newProfile.city,
-        country: newProfile.country,
-        postal_code: newProfile.postal_code,
-        notes: newProfile.notes,
-        last_login: newProfile.last_login,
-        is_admin: newProfile.is_admin || false
+        id: typedNewProfile.id,
+        full_name: typedNewProfile.full_name,
+        email: typedNewProfile.users?.email,
+        membership_level: typedNewProfile.membership_level,
+        subscription_status: typedNewProfile.subscription_status,
+        phone: typedNewProfile.phone,
+        company: typedNewProfile.company,
+        address: typedNewProfile.address,
+        city: typedNewProfile.city,
+        country: typedNewProfile.country,
+        postal_code: typedNewProfile.postal_code,
+        notes: typedNewProfile.notes,
+        last_login: typedNewProfile.last_login,
+        is_admin: typedNewProfile.is_admin || false
       };
       return newProfileData;
     },
