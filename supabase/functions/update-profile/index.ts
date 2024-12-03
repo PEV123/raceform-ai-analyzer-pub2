@@ -17,7 +17,7 @@ interface ProfileUpdatePayload {
   updated_at: string
 }
 
-const VALID_MEMBERSHIP_LEVELS = ['free', 'premium', 'pro', 'admin'];
+const VALID_MEMBERSHIP_LEVELS = ['free', 'moderator', 'premium', 'pro', 'admin'];
 const VALID_SUBSCRIPTION_STATUSES = ['active', 'inactive', 'suspended'];
 
 Deno.serve(async (req) => {
@@ -28,15 +28,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Get the request body
     const payload = await req.json() as ProfileUpdatePayload
     console.log('Received update payload:', payload)
 
@@ -73,11 +68,8 @@ Deno.serve(async (req) => {
       ...payload,
       membership_level: payload.membership_level || 'free',
       subscription_status: payload.subscription_status || 'active',
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
-    delete updateData.id // Remove id from update payload
-
-    console.log('Processing update with data:', updateData)
 
     const { data, error } = await supabaseClient
       .from('profiles')
@@ -86,28 +78,20 @@ Deno.serve(async (req) => {
       .select()
       .single()
 
-    if (error) {
-      console.error('Error updating profile:', error)
-      throw error
-    }
-
-    console.log('Profile updated successfully:', data)
+    if (error) throw error
 
     return new Response(
-      JSON.stringify({ data }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      JSON.stringify(data),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {
-    console.error('Error in update-profile function:', error)
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      }
+      },
     )
   }
 })
