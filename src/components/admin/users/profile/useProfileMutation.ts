@@ -18,7 +18,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
         .from("profiles")
         .select()
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error("Error fetching existing profile:", fetchError);
@@ -33,7 +33,9 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Existing profile:", existingProfile);
 
       // Prepare update payload - only include fields that are actually being updated
-      const updatePayload: Partial<ProfileData> = {};
+      const updatePayload: Partial<ProfileData> & { updated_at: string } = {
+        updated_at: new Date().toISOString()
+      };
       
       if (updatedProfile.membership_level !== undefined) {
         updatePayload.membership_level = updatedProfile.membership_level;
@@ -69,12 +71,9 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
         updatePayload.notes = updatedProfile.notes;
       }
 
-      // Always update the updated_at timestamp
-      updatePayload.updated_at = new Date().toISOString();
-
       console.log("Final update payload:", updatePayload);
 
-      const { data: updatedData, error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from("profiles")
         .update(updatePayload)
         .eq('id', userId)
@@ -86,19 +85,19 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
         throw updateError;
       }
 
-      if (!updatedData) {
+      if (!data) {
         console.error("No data returned after update");
         throw new Error("Failed to update profile");
       }
 
-      console.log("Profile updated successfully:", updatedData);
+      console.log("Profile updated successfully:", data);
 
       // Track profile update
       await trackActivity('profile_update', undefined, {
         updatedFields: Object.keys(updatePayload)
       });
 
-      return updatedData;
+      return data;
     },
     onSuccess: (data) => {
       console.log("Profile update successful:", data);
