@@ -47,8 +47,13 @@ const RaceDocuments = () => {
         return raceDate === selectedDate;
       });
 
-      console.log('Filtered races:', filteredRaces);
-      return filteredRaces;
+      // Sort the filtered races by course name
+      const sortedRaces = filteredRaces?.sort((a, b) => 
+        a.course.localeCompare(b.course)
+      );
+
+      console.log('Sorted races:', sortedRaces);
+      return sortedRaces;
     },
   });
 

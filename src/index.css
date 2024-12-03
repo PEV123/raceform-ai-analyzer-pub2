@@ -36,3 +36,8 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Ensure dropdown menus have solid backgrounds */
+[data-radix-popper-content-wrapper] {
+  @apply bg-popover shadow-lg rounded-md border border-border;
+}
