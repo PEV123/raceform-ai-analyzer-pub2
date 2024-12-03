@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { PlusCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AddUserDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,30 +25,20 @@ export const AddUserDialog = () => {
 
     try {
       console.log("Creating user with email:", email);
-      const response = await fetch(
-        'https://vlcrqrmqghskrdhhsgqt.supabase.co/functions/v1/create-user',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            fullName,
-            membershipLevel,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email,
+          password,
+          fullName,
+          membershipLevel,
+        },
+      });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (error) {
         console.error("Error response:", error);
-        throw new Error(error.message || 'Failed to create user');
+        throw error;
       }
 
-      const data = await response.json();
       console.log("User creation response:", data);
 
       toast({
