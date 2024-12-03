@@ -56,7 +56,9 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
     races.forEach((race: any) => {
       console.log(`Race at ${race.course}:`, {
         off_time: race.off_time,
-        off_dt: race.off_dt
+        off_dt: race.off_dt,
+        race_id: race.race_id,
+        runners: race.runners?.length || 0
       });
     });
 

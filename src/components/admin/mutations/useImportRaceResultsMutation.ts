@@ -21,14 +21,20 @@ export const useImportRaceResultsMutation = () => {
     mutationFn: async (race: Race) => {
       console.log('Starting race results import for:', {
         raceId: race.id,
+        raceApiId: race.race_id,
         course: race.course,
         time: race.off_time,
         runners: race.runners?.length
       });
 
+      if (!race.race_id) {
+        console.error('No race_id found for race:', race);
+        throw new Error('Race ID is required for importing results');
+      }
+
       const { data, error: importError } = await supabase
         .functions.invoke<FetchRaceResultsResponse>('fetch-race-results', {
-          body: { raceId: race.id }
+          body: { raceId: race.race_id }
         });
 
       if (importError) {
@@ -51,6 +57,7 @@ export const useImportRaceResultsMutation = () => {
 
       console.log('Successfully moved race to historical races:', {
         raceId: race.id,
+        raceApiId: race.race_id,
         course: race.course
       });
       

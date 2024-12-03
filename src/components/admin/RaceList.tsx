@@ -21,7 +21,13 @@ interface RaceListProps {
 }
 
 export const RaceList = ({ races }: RaceListProps) => {
-  console.log('RaceList rendered with races:', races);
+  console.log('RaceList rendered with races:', races.map(r => ({
+    id: r.id,
+    race_id: r.race_id,
+    course: r.course,
+    time: r.off_time,
+    runners: r.runners?.length || 0
+  })));
 
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
@@ -109,7 +115,8 @@ export const RaceList = ({ races }: RaceListProps) => {
   console.log('Sorted races by venue and time:', dedupedRaces.map(r => ({
     course: r.course,
     time: r.off_time,
-    runners: r.runners?.length || 0
+    runners: r.runners?.length || 0,
+    race_id: r.race_id
   })));
 
   return (
