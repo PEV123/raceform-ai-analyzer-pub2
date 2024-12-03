@@ -42,27 +42,43 @@ serve(async (req) => {
       const processedRaces = []
       
       for (const race of races) {
-        console.log(`Processing race at ${race.course} - ${race.off_time}`)
+        console.log(`Processing race at ${race.course} - ${race.off_time} - Race ID: ${race.race_id}`)
         
         try {
-          // Check if race already exists
-          const { data: existingRace } = await supabase
+          // IMPORTANT: Changed to check by race_id AND off_time to handle multiple races at same course
+          const { data: existingRace, error: checkError } = await supabase
             .from("races")
-            .select("id")
+            .select("id, race_id, off_time")
             .eq("race_id", race.race_id)
             .single()
 
+          if (checkError) {
+            console.error('Error checking existing race:', checkError)
+          }
+
+          console.log('Existing race check:', {
+            raceId: race.race_id,
+            exists: !!existingRace,
+            existingData: existingRace
+          })
+
           if (existingRace) {
             console.log(`Race ${race.race_id} already exists, skipping`)
-            processedRaces.push({ ...race, status: 'skipped' })
+            processedRaces.push({ 
+              ...race, 
+              status: 'skipped',
+              existing_id: existingRace.id 
+            })
             continue
           }
 
           // Ensure proper datetime format for off_time
           const raceData = {
             ...race,
-            off_time: new Date(race.off_time).toISOString()
+            off_time: race.off_dt || race.off_time // Use off_dt if available, fallback to off_time
           }
+
+          console.log('Inserting race data:', raceData)
 
           // Insert race
           const { data: insertedRace, error: insertError } = await supabase
@@ -80,6 +96,8 @@ serve(async (req) => {
 
           // Process runners if available
           if (race.runners && Array.isArray(race.runners)) {
+            console.log(`Processing ${race.runners.length} runners for race ${insertedRace.id}`)
+            
             for (const runner of race.runners) {
               if (!runner.horse_id || !runner.horse) {
                 console.warn(`Invalid runner data for race ${race.race_id}:`, runner)
@@ -108,6 +126,8 @@ serve(async (req) => {
                 is_non_runner: runner.is_non_runner || false
               }
 
+              console.log(`Inserting runner ${runner.horse_id} for race ${insertedRace.id}`)
+
               const { error: runnerError } = await supabase
                 .from("runners")
                 .insert(runnerData)
@@ -116,6 +136,8 @@ serve(async (req) => {
                 console.error(`Error inserting runner ${runner.horse_id}:`, runnerError)
                 continue
               }
+
+              console.log(`Successfully inserted runner ${runner.horse_id}`)
             }
           }
 
@@ -133,6 +155,7 @@ serve(async (req) => {
       console.log('Processed races summary:', processedRaces.map(r => ({
         course: r.course,
         off_time: r.off_time,
+        race_id: r.race_id,
         status: r.status,
         error: r.error
       })))
