@@ -3,6 +3,7 @@ import { ImportActions } from "./components/ImportActions";
 import { UpdateRaces } from "./components/UpdateRaces";
 import { ImportProgress } from "./components/ImportProgress";
 import { ClearRacesDialog } from "./components/ClearRacesDialog";
+import { ImportResults } from "./components/ImportResults";
 import { useState } from "react";
 import { useImportRacesMutation } from "./mutations/useImportRacesMutation";
 import { useClearRacesMutation } from "./mutations/useClearRacesMutation";
@@ -85,6 +86,8 @@ const ImportRaces = () => {
           </div>
           
           <UpdateRaces />
+          
+          <ImportResults />
         </div>
 
         {importRaces.isPending && (

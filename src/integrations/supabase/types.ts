@@ -539,6 +539,122 @@ export type Database = {
           },
         ]
       }
+      race_results: {
+        Row: {
+          age_band: string | null
+          api_race_id: string | null
+          class: string | null
+          comments: string | null
+          course: string | null
+          course_id: string | null
+          created_at: string | null
+          date: string | null
+          dist: string | null
+          dist_f: string | null
+          dist_m: string | null
+          dist_y: string | null
+          going: string | null
+          id: string
+          jumps: string | null
+          non_runners: string | null
+          off_dt: string | null
+          off_time: string | null
+          pattern: string | null
+          race_id: string | null
+          race_name: string | null
+          rating_band: string | null
+          region: string | null
+          sex_rest: string | null
+          tote_csf: string | null
+          tote_ex: string | null
+          tote_pl: string | null
+          tote_tricast: string | null
+          tote_trifecta: string | null
+          tote_win: string | null
+          type: string | null
+          updated_at: string | null
+          winning_time_detail: string | null
+        }
+        Insert: {
+          age_band?: string | null
+          api_race_id?: string | null
+          class?: string | null
+          comments?: string | null
+          course?: string | null
+          course_id?: string | null
+          created_at?: string | null
+          date?: string | null
+          dist?: string | null
+          dist_f?: string | null
+          dist_m?: string | null
+          dist_y?: string | null
+          going?: string | null
+          id?: string
+          jumps?: string | null
+          non_runners?: string | null
+          off_dt?: string | null
+          off_time?: string | null
+          pattern?: string | null
+          race_id?: string | null
+          race_name?: string | null
+          rating_band?: string | null
+          region?: string | null
+          sex_rest?: string | null
+          tote_csf?: string | null
+          tote_ex?: string | null
+          tote_pl?: string | null
+          tote_tricast?: string | null
+          tote_trifecta?: string | null
+          tote_win?: string | null
+          type?: string | null
+          updated_at?: string | null
+          winning_time_detail?: string | null
+        }
+        Update: {
+          age_band?: string | null
+          api_race_id?: string | null
+          class?: string | null
+          comments?: string | null
+          course?: string | null
+          course_id?: string | null
+          created_at?: string | null
+          date?: string | null
+          dist?: string | null
+          dist_f?: string | null
+          dist_m?: string | null
+          dist_y?: string | null
+          going?: string | null
+          id?: string
+          jumps?: string | null
+          non_runners?: string | null
+          off_dt?: string | null
+          off_time?: string | null
+          pattern?: string | null
+          race_id?: string | null
+          race_name?: string | null
+          rating_band?: string | null
+          region?: string | null
+          sex_rest?: string | null
+          tote_csf?: string | null
+          tote_ex?: string | null
+          tote_pl?: string | null
+          tote_tricast?: string | null
+          tote_trifecta?: string | null
+          tote_win?: string | null
+          type?: string | null
+          updated_at?: string | null
+          winning_time_detail?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       races: {
         Row: {
           age_band: string
@@ -628,6 +744,144 @@ export type Database = {
           weather?: string | null
         }
         Relationships: []
+      }
+      runner_results: {
+        Row: {
+          age: string | null
+          btn: string | null
+          comment: string | null
+          created_at: string | null
+          dam: string | null
+          dam_id: string | null
+          damsire: string | null
+          damsire_id: string | null
+          draw: string | null
+          headgear: string | null
+          horse: string | null
+          horse_id: string | null
+          id: string
+          jockey: string | null
+          jockey_claim_lbs: string | null
+          jockey_id: string | null
+          number: string | null
+          or_rating: string | null
+          ovr_btn: string | null
+          owner: string | null
+          owner_id: string | null
+          position: string | null
+          prize: string | null
+          race_result_id: string | null
+          rpr: string | null
+          runner_id: string | null
+          sex: string | null
+          silk_url: string | null
+          sire: string | null
+          sire_id: string | null
+          sp: string | null
+          sp_dec: number | null
+          time: string | null
+          trainer: string | null
+          trainer_id: string | null
+          tsr: string | null
+          weight: string | null
+          weight_lbs: number | null
+        }
+        Insert: {
+          age?: string | null
+          btn?: string | null
+          comment?: string | null
+          created_at?: string | null
+          dam?: string | null
+          dam_id?: string | null
+          damsire?: string | null
+          damsire_id?: string | null
+          draw?: string | null
+          headgear?: string | null
+          horse?: string | null
+          horse_id?: string | null
+          id?: string
+          jockey?: string | null
+          jockey_claim_lbs?: string | null
+          jockey_id?: string | null
+          number?: string | null
+          or_rating?: string | null
+          ovr_btn?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          position?: string | null
+          prize?: string | null
+          race_result_id?: string | null
+          rpr?: string | null
+          runner_id?: string | null
+          sex?: string | null
+          silk_url?: string | null
+          sire?: string | null
+          sire_id?: string | null
+          sp?: string | null
+          sp_dec?: number | null
+          time?: string | null
+          trainer?: string | null
+          trainer_id?: string | null
+          tsr?: string | null
+          weight?: string | null
+          weight_lbs?: number | null
+        }
+        Update: {
+          age?: string | null
+          btn?: string | null
+          comment?: string | null
+          created_at?: string | null
+          dam?: string | null
+          dam_id?: string | null
+          damsire?: string | null
+          damsire_id?: string | null
+          draw?: string | null
+          headgear?: string | null
+          horse?: string | null
+          horse_id?: string | null
+          id?: string
+          jockey?: string | null
+          jockey_claim_lbs?: string | null
+          jockey_id?: string | null
+          number?: string | null
+          or_rating?: string | null
+          ovr_btn?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          position?: string | null
+          prize?: string | null
+          race_result_id?: string | null
+          rpr?: string | null
+          runner_id?: string | null
+          sex?: string | null
+          silk_url?: string | null
+          sire?: string | null
+          sire_id?: string | null
+          sp?: string | null
+          sp_dec?: number | null
+          time?: string | null
+          trainer?: string | null
+          trainer_id?: string | null
+          tsr?: string | null
+          weight?: string | null
+          weight_lbs?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runner_results_race_result_id_fkey"
+            columns: ["race_result_id"]
+            isOneToOne: false
+            referencedRelation: "race_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "runner_results_runner_id_fkey"
+            columns: ["runner_id"]
+            isOneToOne: false
+            referencedRelation: "runners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       runners: {
         Row: {

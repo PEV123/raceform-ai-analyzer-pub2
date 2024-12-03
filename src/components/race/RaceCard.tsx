@@ -10,6 +10,7 @@ import { RaceHeader } from "./RaceHeader";
 import { RunnersList } from "./RunnersList";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { RaceResults } from "./RaceResults";
 
 interface RaceCardProps {
   race: any;
@@ -115,6 +116,8 @@ export const RaceCard = ({ race }: RaceCardProps) => {
             View AI Analysis
           </Button>
         </div>
+
+        {raceResult && <RaceResults raceResult={raceResult} />}
 
         {distanceAnalyses?.length > 0 && (
           <div className="mb-6">
