@@ -1,17 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-interface ImportableRace {
-  id: string;
-  race_id: string | null;
-  course: string;
-  off_time: string;
-  runners?: Array<{
-    horse_id: string;
-    horse: string;
-  }>;
-}
+// Use a more specific type that includes only the fields we need
+type ImportableRace = Pick<Tables<"races">, "id" | "race_id" | "course" | "off_time"> & {
+  runners?: Array<Pick<Tables<"runners">, "horse_id" | "horse">>;
+};
 
 interface FetchRaceResultsResponse {
   success: boolean;
