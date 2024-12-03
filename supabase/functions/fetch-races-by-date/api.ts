@@ -10,7 +10,10 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
   // Construct the API URL for racecards/pro endpoint
   const apiUrl = `${RACING_API_BASE_URL}/racecards/pro?date=${date}`
   console.log('Full API URL:', apiUrl)
-  console.log('Using credentials:', { username: RACING_API_USERNAME?.slice(0,3) + '***' })
+  console.log('Using credentials:', { 
+    username: RACING_API_USERNAME?.slice(0,3) + '***',
+    password: RACING_API_PASSWORD ? '***' : 'not set'
+  })
   
   try {
     const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`);
@@ -43,7 +46,12 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
       hasRacecards: !!data.racecards,
       isArray: Array.isArray(data),
       keys: Object.keys(data),
-      raceCount: Array.isArray(data.racecards) ? data.racecards.length : 'N/A'
+      raceCount: data.racecards?.length || 'N/A',
+      firstRace: data.racecards?.[0] ? {
+        race_id: data.racecards[0].race_id,
+        course: data.racecards[0].course,
+        off_time: data.racecards[0].off_time
+      } : 'No races found'
     })
     
     // Handle empty response
