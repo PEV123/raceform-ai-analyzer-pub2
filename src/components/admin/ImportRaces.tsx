@@ -10,17 +10,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface UpdateSummary {
-  nonRunnerUpdates: {
-    raceId: string;
-    course: string;
-    count: number;
-  }[];
-  oddsUpdates: {
-    raceId: string;
-    course: string;
-    count: number;
-  }[];
+interface ImportStats {
+  totalRaces: number;
+  successfulRaces: number;
+  failedRaces: number;
+  horseResults: {
+    attempted: number;
+    successful: number;
+    failed: number;
+  };
+  distanceAnalysis: {
+    attempted: number;
+    successful: number;
+    failed: number;
+  };
 }
 
 const ImportRaces = () => {
@@ -28,13 +31,13 @@ const ImportRaces = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [progress, setProgress] = useState(0);
   const [operation, setOperation] = useState("");
-  const [updateSummary, setUpdateSummary] = useState<UpdateSummary | null>(null);
+  const [importSummary, setImportSummary] = useState<ImportStats | null>(null);
   
   const importRaces = useImportRacesMutation();
   const clearRaces = useClearRacesMutation();
 
   const handleImport = async () => {
-    setUpdateSummary(null);
+    setImportSummary(null);
     await importRaces.mutate({
       date,
       onProgress: (progress, operation) => {
@@ -42,8 +45,9 @@ const ImportRaces = () => {
         setOperation(operation);
         console.log(`Import progress: ${progress}% - ${operation}`);
       },
-      onUpdateSummary: (summary: UpdateSummary) => {
-        setUpdateSummary(summary);
+      onUpdateSummary: (summary: ImportStats) => {
+        setImportSummary(summary);
+        console.log('Import summary:', summary);
       }
     });
   };
@@ -84,44 +88,20 @@ const ImportRaces = () => {
         </div>
 
         {importRaces.isPending && (
-          <ImportProgress progress={progress} operation={operation} />
+          <ImportProgress 
+            progress={progress} 
+            operation={operation}
+            summary={importSummary}
+          />
         )}
 
-        {updateSummary && (
-          <div className="space-y-4">
-            <Alert>
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                Update Summary:
-              </AlertDescription>
-            </Alert>
-            
-            {updateSummary.nonRunnerUpdates.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium">Non-Runner Updates:</h3>
-                {updateSummary.nonRunnerUpdates.map((update, index) => (
-                  <p key={index} className="text-sm text-muted-foreground">
-                    {update.course}: {update.count} non-runners updated
-                  </p>
-                ))}
-              </div>
-            )}
-            
-            {updateSummary.oddsUpdates.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium">Odds Updates:</h3>
-                {updateSummary.oddsUpdates.map((update, index) => (
-                  <p key={index} className="text-sm text-muted-foreground">
-                    {update.course}: {update.count} runners with updated odds
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {updateSummary.nonRunnerUpdates.length === 0 && updateSummary.oddsUpdates.length === 0 && (
-              <p className="text-sm text-muted-foreground">No updates were required.</p>
-            )}
-          </div>
+        {importSummary && !importRaces.isPending && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>
+              Import completed. Check the summary above for details.
+            </AlertDescription>
+          </Alert>
         )}
       </div>
 

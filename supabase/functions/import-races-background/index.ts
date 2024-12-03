@@ -10,6 +10,22 @@ const corsHeaders = {
 
 const BATCH_SIZE = 5;
 
+interface ImportStats {
+  totalRaces: number;
+  successfulRaces: number;
+  failedRaces: number;
+  horseResults: {
+    attempted: number;
+    successful: number;
+    failed: number;
+  };
+  distanceAnalysis: {
+    attempted: number;
+    successful: number;
+    failed: number;
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,13 +40,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Initialize stats
+    const stats: ImportStats = {
+      totalRaces: 0,
+      successfulRaces: 0,
+      failedRaces: 0,
+      horseResults: {
+        attempted: 0,
+        successful: 0,
+        failed: 0
+      },
+      distanceAnalysis: {
+        attempted: 0,
+        successful: 0,
+        failed: 0
+      }
+    };
+
     // Create a job record
     const { data: job, error: jobError } = await supabase
       .from('import_jobs')
       .insert({
         date,
         status: 'processing',
-        progress: 0
+        progress: 0,
+        summary: stats
       })
       .select()
       .single();
@@ -70,6 +104,7 @@ serve(async (req) => {
 
     const data = await response.json();
     const races = data.racecards || data.data?.racecards || [];
+    stats.totalRaces = races.length;
 
     if (!races.length) {
       await supabase
@@ -77,7 +112,7 @@ serve(async (req) => {
         .update({ 
           status: 'completed',
           progress: 100,
-          summary: { message: 'No races found for this date' }
+          summary: stats
         })
         .eq('id', job.id);
 
@@ -89,9 +124,6 @@ serve(async (req) => {
 
     console.log(`Processing ${races.length} races`);
     let processedCount = 0;
-    let nonRunnerUpdates = 0;
-    let oddsUpdates = 0;
-    let horseDataUpdates = 0;
 
     // Process races in batches
     for (let i = 0; i < races.length; i += BATCH_SIZE) {
@@ -123,10 +155,12 @@ serve(async (req) => {
 
             if (raceError) {
               console.error(`Error inserting race ${race.race_id}:`, raceError);
+              stats.failedRaces++;
               throw raceError;
             }
             
             raceId = newRace.id;
+            stats.successfulRaces++;
             console.log(`Inserted new race with ID ${raceId}`);
           }
 
@@ -144,13 +178,6 @@ serve(async (req) => {
                   .single();
 
                 if (existingRunner) {
-                  if (existingRunner.is_non_runner !== runner.is_non_runner) {
-                    nonRunnerUpdates++;
-                  }
-                  if (JSON.stringify(existingRunner.odds) !== JSON.stringify(runner.odds)) {
-                    oddsUpdates++;
-                  }
-
                   await supabase
                     .from('runners')
                     .update({
@@ -186,11 +213,21 @@ serve(async (req) => {
 
                 // Process horse historical data
                 try {
+                  stats.horseResults.attempted++;
                   await processHorseResults(supabase, runner.horse_id);
+                  stats.horseResults.successful++;
+                } catch (horseResultsError) {
+                  console.error(`Error processing horse results for ${runner.horse_id}:`, horseResultsError);
+                  stats.horseResults.failed++;
+                }
+
+                try {
+                  stats.distanceAnalysis.attempted++;
                   await processHorseDistanceAnalysis(supabase, runner.horse_id);
-                  horseDataUpdates++;
-                } catch (horseDataError) {
-                  console.error(`Error processing horse data for ${runner.horse_id}:`, horseDataError);
+                  stats.distanceAnalysis.successful++;
+                } catch (analysisError) {
+                  console.error(`Error processing distance analysis for ${runner.horse_id}:`, analysisError);
+                  stats.distanceAnalysis.failed++;
                 }
               } catch (runnerError) {
                 console.error(`Error processing runner ${runner.horse_id}:`, runnerError);
@@ -206,13 +243,7 @@ serve(async (req) => {
             .update({ 
               progress,
               status: progress === 100 ? 'completed' : 'processing',
-              summary: {
-                processed: processedCount,
-                total: races.length,
-                nonRunnerUpdates,
-                oddsUpdates,
-                horseDataUpdates
-              }
+              summary: stats
             })
             .eq('id', job.id);
 
@@ -227,13 +258,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         jobId: job.id,
-        summary: {
-          processed: processedCount,
-          total: races.length,
-          nonRunnerUpdates,
-          oddsUpdates,
-          horseDataUpdates
-        }
+        summary: stats
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
