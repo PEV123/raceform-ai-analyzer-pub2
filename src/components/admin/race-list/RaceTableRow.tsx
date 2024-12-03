@@ -51,7 +51,16 @@ export const RaceTableRow = ({
 
   return (
     <TableRow>
-      <TableCell>{race.course}</TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <span>{race.course}</span>
+          {race.race_id && (
+            <span className="text-xs text-muted-foreground">
+              ID: {race.race_id}
+            </span>
+          )}
+        </div>
+      </TableCell>
       <TableCell>{formatTime(race.off_time)}</TableCell>
       <TableCell>{race.runners?.length || 0}</TableCell>
       <TableCell>
