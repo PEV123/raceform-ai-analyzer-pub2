@@ -74,12 +74,6 @@ export const RaceList = ({ races }: RaceListProps) => {
     await importDistanceAnalysis.mutate(uniqueRunners);
   };
 
-  const formatTime = (date: string) => {
-    // Extract just the time portion from the ISO string
-    const timeMatch = date.match(/T(\d{2}:\d{2})/);
-    return timeMatch ? timeMatch[1] : '';
-  };
-
   // Create a Map to store unique races by their course and off_time combination
   const uniqueRaces = new Map<string, Race>();
   races.forEach(race => {
@@ -98,15 +92,28 @@ export const RaceList = ({ races }: RaceListProps) => {
     }
   });
 
-  // Convert the Map back to an array and sort by off_time
+  // Convert the Map back to an array and sort by course name first, then by off_time
   const dedupedRaces = Array.from(uniqueRaces.values())
-    .sort((a, b) => new Date(a.off_time).getTime() - new Date(b.off_time).getTime());
+    .sort((a, b) => {
+      // First sort by course name
+      const courseComparison = a.course.localeCompare(b.course);
+      // If courses are the same, sort by time
+      if (courseComparison === 0) {
+        return new Date(a.off_time).getTime() - new Date(b.off_time).getTime();
+      }
+      return courseComparison;
+    });
+
+  console.log('Sorted races by venue and time:', dedupedRaces.map(r => `${r.course} - ${r.off_time}`));
 
   return (
     <>
       <RaceTable
         races={dedupedRaces}
-        formatTime={formatTime}
+        formatTime={(date) => {
+          const timeMatch = date.match(/T(\d{2}:\d{2})/);
+          return timeMatch ? timeMatch[1] : '';
+        }}
         onUploadDocs={setSelectedRace}
         onViewRawData={setRawDataRace}
         onViewDbData={setDbDataRace}
