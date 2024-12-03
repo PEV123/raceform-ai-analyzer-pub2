@@ -12,77 +12,17 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
     mutationFn: async (updatedProfile: Partial<ProfileData>) => {
       console.log("Starting profile update for user:", userId);
       console.log("Update payload:", updatedProfile);
-      
-      // First verify the profile exists
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
 
-      if (fetchError) {
-        console.error("Error fetching existing profile:", fetchError);
-        throw fetchError;
-      }
+      const { data, error } = await supabase.functions.invoke('update-profile', {
+        body: {
+          id: userId,
+          ...updatedProfile
+        }
+      });
 
-      if (!existingProfile) {
-        console.error("Profile not found for user:", userId);
-        throw new Error("Profile not found");
-      }
-
-      console.log("Existing profile:", existingProfile);
-
-      // Prepare update payload - only include fields that are actually being updated
-      const updatePayload: Partial<ProfileData> & { updated_at: string } = {
-        updated_at: new Date().toISOString()
-      };
-      
-      if (updatedProfile.membership_level !== undefined) {
-        updatePayload.membership_level = updatedProfile.membership_level;
-      }
-      if (updatedProfile.full_name !== undefined) {
-        updatePayload.full_name = updatedProfile.full_name;
-      }
-      if (updatedProfile.email !== undefined) {
-        updatePayload.email = updatedProfile.email;
-      }
-      if (updatedProfile.phone !== undefined) {
-        updatePayload.phone = updatedProfile.phone;
-      }
-      if (updatedProfile.company !== undefined) {
-        updatePayload.company = updatedProfile.company;
-      }
-      if (updatedProfile.address !== undefined) {
-        updatePayload.address = updatedProfile.address;
-      }
-      if (updatedProfile.city !== undefined) {
-        updatePayload.city = updatedProfile.city;
-      }
-      if (updatedProfile.country !== undefined) {
-        updatePayload.country = updatedProfile.country;
-      }
-      if (updatedProfile.postal_code !== undefined) {
-        updatePayload.postal_code = updatedProfile.postal_code;
-      }
-      if (updatedProfile.subscription_status !== undefined) {
-        updatePayload.subscription_status = updatedProfile.subscription_status;
-      }
-      if (updatedProfile.notes !== undefined) {
-        updatePayload.notes = updatedProfile.notes;
-      }
-
-      console.log("Final update payload:", updatePayload);
-
-      const { data, error: updateError } = await supabase
-        .from("profiles")
-        .update(updatePayload)
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
-        throw updateError;
+      if (error) {
+        console.error("Error updating profile:", error);
+        throw error;
       }
 
       if (!data) {
@@ -94,7 +34,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
 
       // Track profile update
       await trackActivity('profile_update', undefined, {
-        updatedFields: Object.keys(updatePayload)
+        updatedFields: Object.keys(updatedProfile)
       });
 
       return data;
