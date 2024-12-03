@@ -42,10 +42,23 @@ export const useUserProfile = (userId: string) => {
 
       if (profile) {
         console.log("Found existing profile:", profile);
-        return {
-          ...profile,
-          email: (profile as unknown as ProfileWithUser).users?.email
-        } as ProfileData;
+        const profileData: ProfileData = {
+          id: profile.id,
+          full_name: profile.full_name,
+          email: (profile as unknown as ProfileWithUser).users?.email,
+          membership_level: profile.membership_level,
+          subscription_status: profile.subscription_status,
+          phone: profile.phone,
+          company: profile.company,
+          address: profile.address,
+          city: profile.city,
+          country: profile.country,
+          postal_code: profile.postal_code,
+          notes: profile.notes,
+          last_login: profile.last_login,
+          is_admin: profile.is_admin || false
+        };
+        return profileData;
       }
 
       console.log("No profile found, creating default profile");
@@ -65,10 +78,23 @@ export const useUserProfile = (userId: string) => {
       }
 
       console.log("Created new profile:", newProfile);
-      return {
-        ...newProfile,
-        email: (newProfile as unknown as ProfileWithUser).users?.email
-      } as ProfileData;
+      const newProfileData: ProfileData = {
+        id: newProfile.id,
+        full_name: newProfile.full_name,
+        email: (newProfile as unknown as ProfileWithUser).users?.email,
+        membership_level: newProfile.membership_level,
+        subscription_status: newProfile.subscription_status,
+        phone: newProfile.phone,
+        company: newProfile.company,
+        address: newProfile.address,
+        city: newProfile.city,
+        country: newProfile.country,
+        postal_code: newProfile.postal_code,
+        notes: newProfile.notes,
+        last_login: newProfile.last_login,
+        is_admin: newProfile.is_admin || false
+      };
+      return newProfileData;
     },
   });
 };
