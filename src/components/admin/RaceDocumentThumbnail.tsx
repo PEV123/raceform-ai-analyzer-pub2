@@ -3,7 +3,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
 
-interface RaceDocumentThumbnailProps {
+export interface RaceDocumentThumbnailProps {
   doc: Tables<"race_documents">;
   onDelete: (doc: Tables<"race_documents">) => void;
 }

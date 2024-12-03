@@ -5,6 +5,11 @@ import { Tables } from "@/integrations/supabase/types";
 
 type Race = Tables<"races">;
 
+interface RaceResults {
+  results: any[];
+  [key: string]: any;
+}
+
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -15,7 +20,7 @@ export const useImportRaceResultsMutation = () => {
       
       try {
         // Fetch results from Racing API
-        const { data: resultsData, error: apiError } = await supabase.functions.invoke<any>('fetch-race-results', {
+        const { data: resultsData, error: apiError } = await supabase.functions.invoke<RaceResults>('fetch-race-results', {
           body: { raceId: race.race_id }
         });
 

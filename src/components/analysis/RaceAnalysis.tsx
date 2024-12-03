@@ -151,6 +151,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
             <h3 className="text-lg font-semibold mb-2">Race Documents</h3>
             <RaceDocumentsCell
               documents={race.race_documents}
+              onUploadDocs={() => setShowUploadDialog(true)}
               onDeleteDocument={handleDeleteDocument}
             />
           </div>

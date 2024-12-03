@@ -55,6 +55,7 @@ const Analysis = () => {
           </div>
           <RaceDocumentsCell
             documents={race.race_documents}
+            onUploadDocs={() => setShowUploadDialog(true)}
             onDeleteDocument={handleDeleteDocument}
           />
         </Card>

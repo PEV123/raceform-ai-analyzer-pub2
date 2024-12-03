@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export interface RaceDocumentsCellProps {
   documents: Tables<"race_documents">[];
-  onUploadDocs: (race: Tables<"races">) => void;
+  onUploadDocs: () => void;
   onDeleteDocument: (doc: Tables<"race_documents">) => void;
 }
 
@@ -16,7 +16,7 @@ export const RaceDocumentsCell = ({
   return (
     <div className="flex flex-col">
       <div className="flex gap-2 mb-2">
-        <Button variant="outline" onClick={() => onUploadDocs()}>
+        <Button variant="outline" onClick={onUploadDocs}>
           Upload Document
         </Button>
       </div>
@@ -24,7 +24,7 @@ export const RaceDocumentsCell = ({
         {documents.map((doc) => (
           <RaceDocumentThumbnail
             key={doc.id}
-            document={doc}
+            doc={doc}
             onDelete={() => onDeleteDocument(doc)}
           />
         ))}
