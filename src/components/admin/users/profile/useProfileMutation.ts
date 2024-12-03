@@ -10,63 +10,66 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
 
   return useMutation({
     mutationFn: async (updatedProfile: Partial<ProfileData>) => {
-      console.log("Updating profile:", updatedProfile);
+      console.log("Starting profile update for user:", userId);
+      console.log("Update payload:", updatedProfile);
       
-      try {
-        // First check if the profile exists
-        const { data: existingProfile, error: checkError } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select()
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("Error checking profile existence:", checkError);
+        throw checkError;
+      }
+
+      if (!existingProfile) {
+        console.log("Profile not found, creating new profile");
+        const { data: newProfile, error: createError } = await supabase
           .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error("Error checking profile:", checkError);
-          throw new Error("Failed to check if profile exists");
-        }
-
-        if (!existingProfile) {
-          console.log("Profile not found, creating new profile");
-          // If profile doesn't exist, create it
-          const { data: newProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert({ id: userId, ...updatedProfile })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error("Error creating profile:", createError);
-            throw createError;
-          }
-
-          return newProfile;
-        }
-
-        // If profile exists, update it
-        const { data: updatedData, error: updateError } = await supabase
-          .from("profiles")
-          .update(updatedProfile)
-          .eq("id", userId)
+          .insert({ 
+            id: userId,
+            ...updatedProfile,
+            membership_level: updatedProfile.membership_level || "free",
+            subscription_status: updatedProfile.subscription_status || "active"
+          })
           .select()
           .single();
 
-        if (updateError) {
-          console.error("Error updating profile:", updateError);
-          throw updateError;
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          throw createError;
         }
 
-        // Track profile update
-        await trackActivity('profile_update', undefined, {
-          updatedFields: Object.keys(updatedProfile)
-        });
-
-        return updatedData;
-      } catch (error) {
-        console.error("Error in profile mutation:", error);
-        throw error;
+        return newProfile;
       }
+
+      console.log("Updating existing profile");
+      const { data: updated, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          ...updatedProfile,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", userId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+        throw updateError;
+      }
+
+      // Track profile update
+      await trackActivity('profile_update', undefined, {
+        updatedFields: Object.keys(updatedProfile)
+      });
+
+      return updated;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Profile update successful:", data);
       queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
@@ -75,11 +78,11 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       });
       onSuccess?.();
     },
-    onError: (error) => {
-      console.error("Mutation error:", error);
+    onError: (error: any) => {
+      console.error("Profile update failed:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     },

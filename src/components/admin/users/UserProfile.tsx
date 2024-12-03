@@ -21,25 +21,25 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
     queryFn: async () => {
       console.log("Fetching user profile:", userId);
       
-      // First try to get the existing profile
       const { data: existingProfile, error: fetchError } = await supabase
         .from("profiles")
-        .select()
+        .select("*, auth.users!inner(email)")
         .eq("id", userId)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         console.error("Error fetching user profile:", fetchError);
         throw fetchError;
       }
 
       if (existingProfile) {
         console.log("Found existing profile:", existingProfile);
-        return existingProfile as ProfileData;
+        return {
+          ...existingProfile,
+          email: existingProfile.users?.email
+        } as ProfileData;
       }
 
-      // If no profile exists, create a default one
       console.log("No profile found, creating default profile");
       const { data: newProfile, error: createError } = await supabase
         .from("profiles")
@@ -48,7 +48,7 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
           membership_level: "free",
           subscription_status: "active",
         })
-        .select()
+        .select("*, auth.users!inner(email)")
         .single();
 
       if (createError) {
@@ -57,7 +57,10 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
       }
 
       console.log("Created new profile:", newProfile);
-      return newProfile as ProfileData;
+      return {
+        ...newProfile,
+        email: newProfile.users?.email
+      } as ProfileData;
     },
   });
 
@@ -69,16 +72,17 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const updatedProfile = {
-      full_name: formData.get("full_name"),
-      membership_level: formData.get("membership_level"),
-      subscription_status: formData.get("subscription_status"),
-      phone: formData.get("phone"),
-      company: formData.get("company"),
-      address: formData.get("address"),
-      city: formData.get("city"),
-      country: formData.get("country"),
-      postal_code: formData.get("postal_code"),
-      notes: formData.get("notes"),
+      full_name: formData.get("full_name") as string,
+      membership_level: formData.get("membership_level") as string,
+      subscription_status: formData.get("subscription_status") as string,
+      phone: formData.get("phone") as string,
+      company: formData.get("company") as string,
+      address: formData.get("address") as string,
+      city: formData.get("city") as string,
+      country: formData.get("country") as string,
+      postal_code: formData.get("postal_code") as string,
+      notes: formData.get("notes") as string,
+      email: formData.get("email") as string,
     };
     updateProfile.mutate(updatedProfile as ProfileData);
   };
