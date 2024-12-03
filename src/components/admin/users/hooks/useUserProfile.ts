@@ -6,6 +6,12 @@ export const useUserProfile = (userId: string) => {
   return useQuery({
     queryKey: ["user-profile", userId],
     queryFn: async () => {
+      // Only proceed if we have a valid userId
+      if (!userId) {
+        console.log("No user ID provided to useUserProfile");
+        return null;
+      }
+
       console.log("Fetching user profile for:", userId);
       
       // Check if profile exists
@@ -83,5 +89,6 @@ export const useUserProfile = (userId: string) => {
       };
       return newProfileData;
     },
+    enabled: !!userId, // Only run the query if we have a userId
   });
 };
