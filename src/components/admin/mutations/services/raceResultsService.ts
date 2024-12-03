@@ -40,9 +40,9 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
   try {
     const { data: moveData, error: moveError } = await supabase
-      .rpc<boolean>('move_race_to_historical', {
+      .rpc<MoveRaceResponse, MoveRaceParams>('move_race_to_historical', {
         p_race_id: race.id
-      } satisfies MoveRaceParams);
+      });
 
     if (moveError) {
       console.error('=== ERROR: Move Race Failed ===');
@@ -57,7 +57,7 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
     console.log('=== SUCCESS: Move Race Complete ===');
     console.log('Move operation result:', {
-      success: moveData,
+      success: moveData?.success,
       raceId: race.id,
       raceApiId: race.race_id,
       course: race.course
