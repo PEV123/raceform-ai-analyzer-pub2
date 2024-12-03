@@ -1,13 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileData } from "../profile/types";
-import type { Tables } from "@/integrations/supabase/types";
-
-type ProfileWithUser = Tables<'profiles'> & {
-  users: {
-    email: string;
-  };
-};
 
 export const useUserProfile = (userId: string) => {
   return useQuery({
@@ -15,14 +8,10 @@ export const useUserProfile = (userId: string) => {
     queryFn: async () => {
       console.log("Fetching user profile:", userId);
       
+      // First check if profile exists
       const { data: profile, error: fetchError } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          users:auth.users (
-            email
-          )
-        `)
+        .select()
         .eq("id", userId)
         .single();
 
@@ -31,28 +20,40 @@ export const useUserProfile = (userId: string) => {
         throw fetchError;
       }
 
+      // If profile exists, get the email from auth.users
       if (profile) {
         console.log("Found existing profile:", profile);
-        const typedProfile = profile as unknown as ProfileWithUser;
+        
+        const { data: userData, error: userError } = await supabase
+          .from('auth.users')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (userError) {
+          console.error("Error fetching user email:", userError);
+        }
+
         const profileData: ProfileData = {
-          id: typedProfile.id,
-          full_name: typedProfile.full_name,
-          email: typedProfile.users?.email,
-          membership_level: typedProfile.membership_level,
-          subscription_status: typedProfile.subscription_status,
-          phone: typedProfile.phone,
-          company: typedProfile.company,
-          address: typedProfile.address,
-          city: typedProfile.city,
-          country: typedProfile.country,
-          postal_code: typedProfile.postal_code,
-          notes: typedProfile.notes,
-          last_login: typedProfile.last_login,
-          is_admin: typedProfile.is_admin || false
+          id: profile.id,
+          full_name: profile.full_name,
+          email: userData?.email || null,
+          membership_level: profile.membership_level || 'free',
+          subscription_status: profile.subscription_status || 'active',
+          phone: profile.phone,
+          company: profile.company,
+          address: profile.address,
+          city: profile.city,
+          country: profile.country,
+          postal_code: profile.postal_code,
+          notes: profile.notes,
+          last_login: profile.last_login,
+          is_admin: profile.is_admin || false
         };
         return profileData;
       }
 
+      // If no profile exists, create a new one
       console.log("No profile found, creating default profile");
       const { data: newProfile, error: createError } = await supabase
         .from("profiles")
@@ -61,12 +62,7 @@ export const useUserProfile = (userId: string) => {
           membership_level: "free",
           subscription_status: "active",
         })
-        .select(`
-          *,
-          users:auth.users (
-            email
-          )
-        `)
+        .select()
         .single();
 
       if (createError) {
@@ -74,23 +70,33 @@ export const useUserProfile = (userId: string) => {
         throw createError;
       }
 
+      // Get the email for the new profile
+      const { data: userData, error: userError } = await supabase
+        .from('auth.users')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        console.error("Error fetching user email for new profile:", userError);
+      }
+
       console.log("Created new profile:", newProfile);
-      const typedNewProfile = newProfile as unknown as ProfileWithUser;
       const newProfileData: ProfileData = {
-        id: typedNewProfile.id,
-        full_name: typedNewProfile.full_name,
-        email: typedNewProfile.users?.email,
-        membership_level: typedNewProfile.membership_level,
-        subscription_status: typedNewProfile.subscription_status,
-        phone: typedNewProfile.phone,
-        company: typedNewProfile.company,
-        address: typedNewProfile.address,
-        city: typedNewProfile.city,
-        country: typedNewProfile.country,
-        postal_code: typedNewProfile.postal_code,
-        notes: typedNewProfile.notes,
-        last_login: typedNewProfile.last_login,
-        is_admin: typedNewProfile.is_admin || false
+        id: newProfile.id,
+        full_name: newProfile.full_name,
+        email: userData?.email || null,
+        membership_level: newProfile.membership_level || 'free',
+        subscription_status: newProfile.subscription_status || 'active',
+        phone: newProfile.phone,
+        company: newProfile.company,
+        address: newProfile.address,
+        city: newProfile.city,
+        country: newProfile.country,
+        postal_code: newProfile.postal_code,
+        notes: newProfile.notes,
+        last_login: newProfile.last_login,
+        is_admin: newProfile.is_admin || false
       };
       return newProfileData;
     },
