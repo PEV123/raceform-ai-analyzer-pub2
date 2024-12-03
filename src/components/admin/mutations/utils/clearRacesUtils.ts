@@ -53,6 +53,35 @@ export const clearRaceDocuments = async (raceIds: string[]) => {
 };
 
 export const clearRunners = async (raceIds: string[]) => {
+  // First get all runner IDs for the races
+  const { data: runners, error: runnersQueryError } = await supabase
+    .from("runners")
+    .select("id")
+    .in("race_id", raceIds);
+
+  if (runnersQueryError) {
+    console.error("Error fetching runners:", runnersQueryError);
+    throw runnersQueryError;
+  }
+
+  if (runners && runners.length > 0) {
+    const runnerIds = runners.map(runner => runner.id);
+    console.log(`Found ${runnerIds.length} runners to clear`);
+
+    // First clear odds history for these runners
+    const { error: oddsError } = await supabase
+      .from("odds_history")
+      .delete()
+      .in("runner_id", runnerIds);
+
+    if (oddsError) {
+      console.error("Error clearing odds history:", oddsError);
+      throw oddsError;
+    }
+    console.log("Successfully cleared odds history");
+  }
+
+  // Now we can safely delete the runners
   const { error: runnersError } = await supabase
     .from("runners")
     .delete()
