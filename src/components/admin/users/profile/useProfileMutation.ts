@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ProfileData } from "./types";
 import { trackActivity } from "@/utils/activity";
+import type { Tables } from "@/integrations/supabase/types";
+
+type ProfileInsert = Tables<"profiles">;
 
 export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
   const { toast } = useToast();
@@ -28,19 +31,22 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       // Clean up the update payload to only include non-null values
       const cleanedProfile = Object.fromEntries(
         Object.entries(updatedProfile).filter(([_, value]) => value !== null)
-      );
+      ) as Partial<ProfileInsert>;
 
       if (!existingProfile) {
         console.log("Profile not found, creating new profile");
+        const insertData: ProfileInsert = {
+          id: userId,
+          ...cleanedProfile,
+          membership_level: cleanedProfile.membership_level || "free",
+          subscription_status: cleanedProfile.subscription_status || "active",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        };
+
         const { data: newProfile, error: createError } = await supabase
           .from("profiles")
-          .insert({ 
-            id: userId,
-            ...cleanedProfile,
-            membership_level: cleanedProfile.membership_level || "free",
-            subscription_status: cleanedProfile.subscription_status || "active",
-            updated_at: new Date().toISOString()
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -53,12 +59,14 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       }
 
       console.log("Updating existing profile");
+      const updateData: Partial<ProfileInsert> = {
+        ...cleanedProfile,
+        updated_at: new Date().toISOString()
+      };
+
       const { data: updated, error: updateError } = await supabase
         .from("profiles")
-        .update({
-          ...cleanedProfile,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq("id", userId)
         .select()
         .single();
