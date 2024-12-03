@@ -40,12 +40,23 @@ export const UserProfileForm = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Get form data
     const formData = new FormData(e.currentTarget);
     
-    // Ensure we get all form values, even if they're empty strings
-    const formValues = Object.fromEntries(formData.entries());
-    console.log("Form values before submit:", formValues);
+    // Ensure membership_level is included in the form data
+    const membershipLevel = formData.get('membership_level');
+    if (!membershipLevel) {
+      formData.set('membership_level', profile.membership_level || 'free');
+    }
     
+    // Ensure subscription_status is included
+    const subscriptionStatus = formData.get('subscription_status');
+    if (!subscriptionStatus) {
+      formData.set('subscription_status', profile.subscription_status || 'active');
+    }
+    
+    console.log("Form data before submit:", Object.fromEntries(formData.entries()));
     onSubmit(e);
   };
 

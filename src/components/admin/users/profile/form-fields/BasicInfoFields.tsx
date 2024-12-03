@@ -36,6 +36,8 @@ export const BasicInfoFields = ({ control, isEditing }: BasicInfoFieldsProps) =>
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
+              name="membership_level"
             >
               <FormControl>
                 <SelectTrigger>
@@ -65,6 +67,8 @@ export const BasicInfoFields = ({ control, isEditing }: BasicInfoFieldsProps) =>
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
+              name="subscription_status"
             >
               <FormControl>
                 <SelectTrigger>
