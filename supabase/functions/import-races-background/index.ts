@@ -1,30 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { prepareRaceData } from "./utils.ts";
-import { processHorseResults, processHorseDistanceAnalysis } from "./horseDataProcessing.ts";
+import { processRaceBatch } from "./raceProcessing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BATCH_SIZE = 5;
-
-interface ImportStats {
-  totalRaces: number;
-  successfulRaces: number;
-  failedRaces: number;
-  horseResults: {
-    attempted: number;
-    successful: number;
-    failed: number;
-  };
-  distanceAnalysis: {
-    attempted: number;
-    successful: number;
-    failed: number;
-  };
-}
+const BATCH_SIZE = 3; // Reduced batch size to prevent resource exhaustion
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -41,7 +24,7 @@ serve(async (req) => {
     );
 
     // Initialize stats
-    const stats: ImportStats = {
+    const stats = {
       totalRaces: 0,
       successfulRaces: 0,
       failedRaces: 0,
@@ -123,135 +106,14 @@ serve(async (req) => {
     }
 
     console.log(`Processing ${races.length} races`);
-    let processedCount = 0;
 
-    // Process races in batches
+    // Process races in smaller batches with delays between batches
     for (let i = 0; i < races.length; i += BATCH_SIZE) {
       const batch = races.slice(i, i + BATCH_SIZE);
+      await processRaceBatch(batch, supabase, stats, job.id);
       
-      await Promise.all(batch.map(async (race) => {
-        try {
-          console.log(`Processing race at ${race.course}`);
-          
-          // Check if race exists
-          const { data: existingRace } = await supabase
-            .from('races')
-            .select('id')
-            .eq('race_id', race.race_id)
-            .single();
-
-          let raceId;
-          if (existingRace) {
-            raceId = existingRace.id;
-            console.log(`Race ${race.race_id} already exists with ID ${raceId}`);
-          } else {
-            // Prepare and insert new race
-            const raceData = prepareRaceData(race);
-            const { data: newRace, error: raceError } = await supabase
-              .from('races')
-              .insert(raceData)
-              .select()
-              .single();
-
-            if (raceError) {
-              console.error(`Error inserting race ${race.race_id}:`, raceError);
-              stats.failedRaces++;
-              throw raceError;
-            }
-            
-            raceId = newRace.id;
-            stats.successfulRaces++;
-            console.log(`Inserted new race with ID ${raceId}`);
-          }
-
-          // Process runners and their historical data
-          if (race.runners?.length > 0) {
-            console.log(`Processing ${race.runners.length} runners for race ${raceId}`);
-            
-            for (const runner of race.runners) {
-              try {
-                const { data: existingRunner } = await supabase
-                  .from('runners')
-                  .select('id, odds, is_non_runner')
-                  .eq('race_id', raceId)
-                  .eq('horse_id', runner.horse_id)
-                  .single();
-
-                if (existingRunner) {
-                  await supabase
-                    .from('runners')
-                    .update({
-                      odds: runner.odds || [],
-                      is_non_runner: runner.is_non_runner || false
-                    })
-                    .eq('id', existingRunner.id);
-                } else {
-                  await supabase
-                    .from('runners')
-                    .insert({
-                      race_id: raceId,
-                      horse_id: runner.horse_id,
-                      number: parseInt(runner.number) || 0,
-                      draw: parseInt(runner.draw) || 0,
-                      horse: runner.horse,
-                      silk_url: runner.silk_url,
-                      sire: runner.sire,
-                      sire_region: runner.sire_region,
-                      dam: runner.dam,
-                      dam_region: runner.dam_region,
-                      form: runner.form,
-                      lbs: parseInt(runner.lbs) || 0,
-                      headgear: runner.headgear,
-                      ofr: runner.ofr,
-                      ts: runner.ts,
-                      jockey: runner.jockey,
-                      trainer: runner.trainer,
-                      odds: runner.odds || [],
-                      is_non_runner: runner.is_non_runner || false
-                    });
-                }
-
-                // Process horse historical data
-                try {
-                  stats.horseResults.attempted++;
-                  await processHorseResults(supabase, runner.horse_id);
-                  stats.horseResults.successful++;
-                } catch (horseResultsError) {
-                  console.error(`Error processing horse results for ${runner.horse_id}:`, horseResultsError);
-                  stats.horseResults.failed++;
-                }
-
-                try {
-                  stats.distanceAnalysis.attempted++;
-                  await processHorseDistanceAnalysis(supabase, runner.horse_id);
-                  stats.distanceAnalysis.successful++;
-                } catch (analysisError) {
-                  console.error(`Error processing distance analysis for ${runner.horse_id}:`, analysisError);
-                  stats.distanceAnalysis.failed++;
-                }
-              } catch (runnerError) {
-                console.error(`Error processing runner ${runner.horse_id}:`, runnerError);
-              }
-            }
-          }
-
-          processedCount++;
-          const progress = Math.round((processedCount / races.length) * 100);
-          
-          await supabase
-            .from('import_jobs')
-            .update({ 
-              progress,
-              status: progress === 100 ? 'completed' : 'processing',
-              summary: stats
-            })
-            .eq('id', job.id);
-
-        } catch (error) {
-          console.error(`Error processing race:`, error);
-          throw error;
-        }
-      }));
+      // Add delay between batches
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     return new Response(
