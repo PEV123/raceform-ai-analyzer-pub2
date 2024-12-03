@@ -9,6 +9,7 @@ const corsHeaders = {
 
 // Reduced batch size to prevent resource exhaustion
 const BATCH_SIZE = 2;
+const FUNCTION_TIMEOUT = 25000; // 25 seconds
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -71,9 +72,9 @@ serve(async (req) => {
       throw new Error('Racing API credentials not configured');
     }
 
-    // Fetch races with timeout and retry
+    // Set up timeout handler
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+    const timeout = setTimeout(() => controller.abort(), FUNCTION_TIMEOUT);
 
     try {
       const response = await fetch(
