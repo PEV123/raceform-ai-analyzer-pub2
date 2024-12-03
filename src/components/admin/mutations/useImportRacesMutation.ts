@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { processRace, processRunners } from "@/services/race";
 import { supabase } from "@/integrations/supabase/client";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface ImportRacesParams {
   date: Date;
@@ -16,17 +17,27 @@ export const useImportRacesMutation = () => {
     mutationFn: async ({ date, onProgress, onUpdateSummary }: ImportRacesParams) => {
       console.log('Importing races for date:', date);
       
+      // Format the date range in UK timezone for consistency
+      const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
+      const startTime = `${ukDate}T00:00:00Z`;
+      const endTime = `${ukDate}T23:59:59Z`;
+
+      console.log('Fetching races between:', startTime, 'and', endTime);
+      
       const { data: races, error: fetchError } = await supabase
         .from("races")
         .select("*")
-        .eq("date", date.toISOString().split('T')[0]);
+        .gte("off_time", startTime)
+        .lt("off_time", endTime);
 
       if (fetchError) {
         console.error("Error fetching races:", fetchError);
         throw fetchError;
       }
 
-      for (const race of races) {
+      console.log(`Processing ${races?.length || 0} races`);
+
+      for (const race of races || []) {
         const processedRace = await processRace(race);
         
         // Fetch runners for this race
