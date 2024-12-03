@@ -1,11 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Tables } from "@/integrations/supabase/types";
 
-type Race = Tables<"races"> & {
-  runners: Tables<"runners">[];
-};
+interface ImportableRace {
+  id: string;
+  race_id: string | null;
+  course: string;
+  off_time: string;
+  runners?: Array<{
+    horse_id: string;
+    horse: string;
+  }>;
+}
 
 interface FetchRaceResultsResponse {
   success: boolean;
@@ -18,7 +24,7 @@ export const useImportRaceResultsMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (race: Race) => {
+    mutationFn: async (race: ImportableRace) => {
       console.log('Starting race results import for:', {
         raceId: race.id,
         raceApiId: race.race_id,
