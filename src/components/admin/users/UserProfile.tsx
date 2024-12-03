@@ -20,40 +20,44 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
     queryKey: ["user-profile", userId],
     queryFn: async () => {
       console.log("Fetching user profile:", userId);
-      const { data, error } = await supabase
+      
+      // First try to get the existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
         .from("profiles")
-        .select("*")
+        .select()
         .eq("id", userId)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        throw error;
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error fetching user profile:", fetchError);
+        throw fetchError;
+      }
+
+      if (existingProfile) {
+        console.log("Found existing profile:", existingProfile);
+        return existingProfile as ProfileData;
       }
 
       // If no profile exists, create a default one
-      if (!data) {
-        console.log("No profile found, creating default profile");
-        const { data: newProfile, error: createError } = await supabase
-          .from("profiles")
-          .insert({
-            id: userId,
-            membership_level: "free",
-            subscription_status: "active",
-          })
-          .select()
-          .single();
+      console.log("No profile found, creating default profile");
+      const { data: newProfile, error: createError } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          membership_level: "free",
+          subscription_status: "active",
+        })
+        .select()
+        .single();
 
-        if (createError) {
-          console.error("Error creating default profile:", createError);
-          throw createError;
-        }
-
-        return newProfile as ProfileData;
+      if (createError) {
+        console.error("Error creating default profile:", createError);
+        throw createError;
       }
 
-      console.log("Fetched user profile:", data);
-      return data as ProfileData;
+      console.log("Created new profile:", newProfile);
+      return newProfile as ProfileData;
     },
   });
 
