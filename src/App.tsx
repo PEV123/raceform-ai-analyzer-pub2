@@ -16,11 +16,39 @@ import SingleRace from "./pages/SingleRace";
 import RaceDocuments from "./pages/RaceDocuments";
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from "./integrations/supabase/client";
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  useEffect(() => {
+    const updateLastLogin = async (userId: string) => {
+      console.log("Updating last_login for user:", userId);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          last_login: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error("Error updating last_login:", error);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        updateLastLogin(session.user.id);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <React.StrictMode>
       <HelmetProvider>

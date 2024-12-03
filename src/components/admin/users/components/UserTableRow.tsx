@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import type { ProfileData } from "../profile/types";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 interface UserTableRowProps {
   user: ProfileData;
@@ -18,7 +18,8 @@ export const UserTableRow = ({ user, onViewProfile }: UserTableRowProps) => {
     }
     
     try {
-      return format(new Date(date), "PPp");
+      const loginDate = new Date(date);
+      return formatDistanceToNow(loginDate, { addSuffix: true });
     } catch (error) {
       console.error("Error formatting date:", error, "Date value:", date);
       return "Invalid date";
