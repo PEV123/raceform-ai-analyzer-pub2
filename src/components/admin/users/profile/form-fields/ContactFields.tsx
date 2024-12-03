@@ -13,6 +13,20 @@ export const ContactFields = ({ control, isEditing }: ContactFieldsProps) => {
     <>
       <FormField
         control={control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input {...field} disabled={!isEditing} type="email" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
         name="phone"
         render={({ field }) => (
           <FormItem>
