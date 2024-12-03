@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BATCH_SIZE = 3; // Reduced batch size to prevent resource exhaustion
+// Reduced batch size to prevent resource exhaustion
+const BATCH_SIZE = 2;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -70,26 +71,70 @@ serve(async (req) => {
       throw new Error('Racing API credentials not configured');
     }
 
-    // Fetch races
-    const response = await fetch(
-      `${apiUrl}/racecards/pro?date=${date}`,
-      {
-        headers: {
-          'Authorization': `Basic ${btoa(`${apiUsername}:${apiPassword}`)}`,
-          'Accept': 'application/json'
+    // Fetch races with timeout and retry
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+    try {
+      const response = await fetch(
+        `${apiUrl}/racecards/pro?date=${date}`,
+        {
+          headers: {
+            'Authorization': `Basic ${btoa(`${apiUsername}:${apiPassword}`)}`,
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
         }
+      );
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${await response.text()}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${await response.text()}`);
-    }
+      const data = await response.json();
+      const races = data.racecards || data.data?.racecards || [];
+      stats.totalRaces = races.length;
 
-    const data = await response.json();
-    const races = data.racecards || data.data?.racecards || [];
-    stats.totalRaces = races.length;
+      if (!races.length) {
+        await supabase
+          .from('import_jobs')
+          .update({ 
+            status: 'completed',
+            progress: 100,
+            summary: stats
+          })
+          .eq('id', job.id);
 
-    if (!races.length) {
+        return new Response(
+          JSON.stringify({ success: true, jobId: job.id }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Processing ${races.length} races in batches of ${BATCH_SIZE}`);
+
+      // Process races in smaller batches with delays between batches
+      for (let i = 0; i < races.length; i += BATCH_SIZE) {
+        const batch = races.slice(i, i + BATCH_SIZE);
+        await processRaceBatch(batch, supabase, stats, job.id);
+        
+        // Update progress after each batch
+        const progress = Math.round(((i + batch.length) / races.length) * 100);
+        await supabase
+          .from('import_jobs')
+          .update({ 
+            progress,
+            summary: stats
+          })
+          .eq('id', job.id);
+        
+        // Add delay between batches
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Mark job as completed
       await supabase
         .from('import_jobs')
         .update({ 
@@ -100,30 +145,18 @@ serve(async (req) => {
         .eq('id', job.id);
 
       return new Response(
-        JSON.stringify({ success: true, jobId: job.id }),
+        JSON.stringify({ 
+          success: true, 
+          jobId: job.id,
+          summary: stats
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
     }
-
-    console.log(`Processing ${races.length} races`);
-
-    // Process races in smaller batches with delays between batches
-    for (let i = 0; i < races.length; i += BATCH_SIZE) {
-      const batch = races.slice(i, i + BATCH_SIZE);
-      await processRaceBatch(batch, supabase, stats, job.id);
-      
-      // Add delay between batches
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        jobId: job.id,
-        summary: stats
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
     console.error('Error:', error);
