@@ -13,6 +13,8 @@ import { useState } from "react";
 import { Tables } from "@/integrations/supabase/types";
 import { RaceDocumentsCell } from "../admin/RaceDocumentsCell";
 import { useRaceDocuments } from "../admin/hooks/useRaceDocuments";
+import { useSession } from "@supabase/auth-helpers-react";
+import { Link } from "react-router-dom";
 
 interface RaceAnalysisProps {
   raceId: string;
@@ -28,6 +30,7 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
   const [showRawData, setShowRawData] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const { handleDeleteDocument } = useRaceDocuments();
+  const session = useSession();
   
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
@@ -87,22 +90,24 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-3xl font-bold">Race Analysis</h1>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button
-            variant="outline"
-            onClick={() => setShowUploadDialog(true)}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Documents
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowRawData(true)}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            View Raw Data
-          </Button>
-        </div>
+        {session && (
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              onClick={() => setShowUploadDialog(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Documents
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowRawData(true)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Raw Data
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card className="p-6">
@@ -153,21 +158,39 @@ export const RaceAnalysis = ({ raceId }: RaceAnalysisProps) => {
 
         <div>
           <h3 className="text-xl font-bold mb-4">AI Analysis Chat</h3>
-          <RaceChat raceId={raceId} />
+          {session ? (
+            <RaceChat raceId={raceId} />
+          ) : (
+            <Card className="p-8 text-center bg-muted/50">
+              <p className="text-lg font-medium mb-4">
+                PLEASE LOGIN FOR AI ANALYSIS
+              </p>
+              <Link 
+                to="/login" 
+                className="text-primary hover:underline"
+              >
+                Click here to login
+              </Link>
+            </Card>
+          )}
         </div>
       </Card>
 
-      <RawDataDialog 
-        open={showRawData} 
-        onOpenChange={setShowRawData}
-        race={race}
-      />
+      {session && (
+        <>
+          <RawDataDialog 
+            open={showRawData} 
+            onOpenChange={setShowRawData}
+            race={race}
+          />
 
-      <DocumentUploadDialog
-        race={race}
-        open={showUploadDialog}
-        onOpenChange={setShowUploadDialog}
-      />
+          <DocumentUploadDialog
+            race={race}
+            open={showUploadDialog}
+            onOpenChange={setShowUploadDialog}
+          />
+        </>
+      )}
     </div>
   );
 };

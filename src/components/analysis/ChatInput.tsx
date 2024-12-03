@@ -6,6 +6,7 @@ import { ImagePreview } from "./ImagePreview";
 import { UploadButton } from "./UploadButton";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSession } from "@supabase/auth-helpers-react";
 
 interface ChatInputProps {
   onSendMessage: (message: string, imageBase64?: { data: string; type: string }, excludeRaceDocuments?: boolean) => Promise<void>;
@@ -18,6 +19,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
   const [excludeRaceDocuments, setExcludeRaceDocuments] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const { uploadProgress, uploadState, handleImageUpload, resetUploadState } = useImageUpload();
+  const session = useSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,19 +108,21 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
           >
             Send
           </Button>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="excludeRaceDocuments"
-              checked={excludeRaceDocuments}
-              onCheckedChange={(checked) => setExcludeRaceDocuments(checked as boolean)}
-            />
-            <label
-              htmlFor="excludeRaceDocuments"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Exclude race documents
-            </label>
-          </div>
+          {session && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="excludeRaceDocuments"
+                checked={excludeRaceDocuments}
+                onCheckedChange={(checked) => setExcludeRaceDocuments(checked as boolean)}
+              />
+              <label
+                htmlFor="excludeRaceDocuments"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Exclude race documents
+              </label>
+            </div>
+          )}
         </div>
       </div>
     </form>
