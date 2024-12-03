@@ -1,73 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Tables } from "@/integrations/supabase/types";
-
-type Race = Tables<"races"> & {
-  race_documents: Tables<"race_documents">[];
-  runners: Tables<"runners">[];
-};
-
-interface FetchRaceResultsParams {
-  raceId: string;
-}
-
-interface FetchRaceResultsResponse {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
+import { Race } from "./types/raceResults";
+import { importRaceResults } from "./services/raceResultsService";
 
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (race: Race) => {
-      console.log('Starting race results import for:', {
-        raceId: race.id,
-        raceApiId: race.race_id,
-        course: race.course,
-        time: race.off_time,
-        runners: race.runners?.length
-      });
-
-      if (!race.race_id) {
-        console.error('No race_id found for race:', race);
-        throw new Error('Race ID is required for importing results');
-      }
-
-      const { data, error: importError } = await supabase
-        .functions.invoke<FetchRaceResultsResponse>('fetch-race-results', {
-          body: { raceId: race.race_id } as FetchRaceResultsParams
-        });
-
-      if (importError) {
-        console.error('Error importing race results:', importError);
-        throw importError;
-      }
-
-      console.log('Successfully imported race results:', data);
-
-      // Move race to historical races
-      const { error: moveError } = await supabase
-        .rpc('move_race_to_historical', {
-          p_race_id: race.id
-        });
-
-      if (moveError) {
-        console.error('Error moving race to historical:', moveError);
-        throw moveError;
-      }
-
-      console.log('Successfully moved race to historical races:', {
-        raceId: race.id,
-        raceApiId: race.race_id,
-        course: race.course
-      });
-      
-      return race;
-    },
+    mutationFn: importRaceResults,
     onSuccess: (race) => {
       toast({
         title: "Success",
