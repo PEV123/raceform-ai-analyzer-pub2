@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString()
     }
 
+    console.log('Processing update with data:', updateData)
+
     const { data, error } = await supabaseClient
       .from('profiles')
       .update(updateData)
@@ -78,7 +80,12 @@ Deno.serve(async (req) => {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Database error:', error)
+      throw error
+    }
+
+    console.log('Profile updated successfully:', data)
 
     return new Response(
       JSON.stringify(data),
