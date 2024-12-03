@@ -29,7 +29,7 @@ const RaceDocuments = () => {
         `)
         .gte('off_time', start)
         .lt('off_time', end)
-        .order('course', { ascending: true }); // Sort by venue name
+        .order('course', { ascending: true }); // Sort by venue name in the database query
 
       if (error) {
         console.error('Error fetching races:', error);
@@ -47,12 +47,12 @@ const RaceDocuments = () => {
         return raceDate === selectedDate;
       });
 
-      // Sort the filtered races by course name
+      // Sort the filtered races by course name again to ensure proper ordering
       const sortedRaces = filteredRaces?.sort((a, b) => 
         a.course.localeCompare(b.course)
       );
 
-      console.log('Sorted races:', sortedRaces);
+      console.log('Sorted races by venue:', sortedRaces?.map(r => r.course));
       return sortedRaces;
     },
   });
