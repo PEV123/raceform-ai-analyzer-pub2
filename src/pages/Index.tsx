@@ -23,6 +23,7 @@ const Index = () => {
   const { data: races, isLoading: racesLoading } = useQuery({
     queryKey: ["races", selectedDate],
     queryFn: async () => {
+      // Convert selected date to UK timezone range
       const startTime = `${selectedDate}T00:00:00.000Z`;
       const endTime = `${selectedDate}T23:59:59.999Z`;
 
@@ -39,8 +40,19 @@ const Index = () => {
         .order('off_time', { ascending: true });
 
       if (error) throw error;
-      console.log("Fetched races:", data);
-      return data;
+
+      // Filter races to ensure they fall within the UK date
+      const filteredRaces = data?.filter(race => {
+        const raceDate = formatInTimeZone(
+          new Date(race.off_time),
+          'Europe/London',
+          'yyyy-MM-dd'
+        );
+        return raceDate === selectedDate;
+      });
+
+      console.log("Fetched and filtered races:", filteredRaces);
+      return filteredRaces;
     },
   });
 
