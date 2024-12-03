@@ -2,6 +2,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { HorseHead } from "@/components/icons/HorseHead";
+import { Flag } from "lucide-react";
 
 interface RaceResultsProps {
   raceResult: Tables<"race_results"> & {
@@ -40,8 +41,9 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
     ...runnersWithCumulative.map(r => r.cumulativeDistance || 0)
   );
 
-  // Scale factor to ensure horses don't go off screen (60% of container width)
-  const scaleFactor = 60 / (maxCumulativeDistance || 1);
+  // Scale factor to ensure horses don't go off screen (80% of container width)
+  // Adjusted to make distances more noticeable
+  const scaleFactor = 80 / (maxCumulativeDistance || 1);
 
   return (
     <Card className="p-4 mb-4 bg-gradient-to-br from-secondary/5 to-accent/5">
@@ -60,19 +62,26 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
 
       {/* Visual representation of finishing positions */}
       <div className="relative h-[400px] mb-8 overflow-hidden border border-accent/20 rounded-lg bg-white/50 p-4">
+        {/* Finishing Line */}
+        <div className="absolute left-20 top-0 bottom-0 border-l-2 border-dashed border-accent/30" />
+        <Flag className="absolute left-16 top-2 text-accent w-8 h-8" />
+        
         {runnersWithCumulative.map((runner, index) => {
           const position = parseInt(runner.position);
           if (isNaN(position)) return null;
 
           // Calculate horizontal position based on cumulative distance
-          const xPosition = runner.cumulativeDistance * scaleFactor;
+          // Non-finishers go to the far right
+          const xPosition = isNaN(parseFloat(runner.btn || ""))
+            ? 100 // Non-finishers at the right edge
+            : runner.cumulativeDistance * scaleFactor;
           
           return (
             <motion.div
               key={runner.id}
               initial={{ x: -100, opacity: 0 }}
               animate={{ 
-                x: isNaN(position) ? '100%' : xPosition,
+                x: xPosition,
                 opacity: 1 
               }}
               transition={{ 
@@ -100,7 +109,9 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
                   }}
                   className="w-12 h-12"
                 >
-                  <HorseHead className="w-full h-full text-accent" />
+                  <HorseHead 
+                    className="w-full h-full text-accent transform scale-x-[-1]" // Flip the horse head
+                  />
                 </motion.div>
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
                   {position}
