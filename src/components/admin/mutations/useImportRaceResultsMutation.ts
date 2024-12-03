@@ -41,7 +41,7 @@ export const useImportRaceResultsMutation = () => {
         console.log('Successfully fetched results:', resultsData);
 
         // Move race to historical tables with results
-        const { error: moveError } = await supabase.rpc<MoveRaceParams>('move_race_to_historical', {
+        const { error: moveError } = await supabase.rpc<MoveRaceParams, null>('move_race_to_historical', {
           race_id: race.id
         });
 
