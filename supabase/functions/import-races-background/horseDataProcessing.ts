@@ -27,22 +27,22 @@ export const processHorseResults = async (supabase: any, horseId: string) => {
   console.log('Processing results for horse:', horseId);
   
   try {
-    // First check if we already have results for this horse
-    const { data: existingResults } = await supabase
-      .from('horse_results')
-      .select('id')
-      .eq('horse_id', horseId)
-      .limit(1);
-
-    if (existingResults?.length > 0) {
-      console.log(`Horse ${horseId} already has results, skipping`);
-      return;
-    }
-
     const data = await fetchFromRacingApi(`${RACING_API_URL}/horses/${horseId}/results`);
     console.log(`Got ${data.results?.length || 0} results for horse ${horseId}`);
 
     if (data?.results) {
+      // Delete existing results for this horse to ensure clean data
+      const { error: deleteError } = await supabase
+        .from('horse_results')
+        .delete()
+        .eq('horse_id', horseId);
+
+      if (deleteError) {
+        console.error(`Error deleting existing results for horse ${horseId}:`, deleteError);
+        throw deleteError;
+      }
+
+      // Insert new results
       for (const result of data.results) {
         const horsePerformance = result.runners?.find(
           (runner: any) => runner.horse_id === horseId
@@ -77,9 +77,7 @@ export const processHorseResults = async (supabase: any, horseId: string) => {
 
         const { error: insertError } = await supabase
           .from('horse_results')
-          .upsert(resultData, {
-            onConflict: 'horse_id,race_id'
-          });
+          .insert(resultData);
 
         if (insertError) {
           console.error(`Error storing result for horse ${horseId}:`, insertError);
@@ -99,26 +97,25 @@ export const processHorseDistanceAnalysis = async (supabase: any, horseId: strin
   console.log('Processing distance analysis for horse:', horseId);
   
   try {
-    // First check if we already have analysis for this horse
-    const { data: existingAnalysis } = await supabase
-      .from('horse_distance_analysis')
-      .select('id')
-      .eq('horse_id', horseId)
-      .limit(1);
-
-    if (existingAnalysis?.length > 0) {
-      console.log(`Horse ${horseId} already has distance analysis, skipping`);
-      return;
-    }
-
     const data = await fetchFromRacingApi(`${RACING_API_URL}/horses/${horseId}/analysis/distance-times`);
     console.log('Got distance analysis for horse:', horseId);
 
     if (data && data.id) {
+      // Delete existing analysis for this horse
+      const { error: deleteAnalysisError } = await supabase
+        .from('horse_distance_analysis')
+        .delete()
+        .eq('horse_id', horseId);
+
+      if (deleteAnalysisError) {
+        console.error(`Error deleting existing analysis for horse ${horseId}:`, deleteAnalysisError);
+        throw deleteAnalysisError;
+      }
+
       // Store main analysis record
       const { data: analysis, error: analysisError } = await supabase
         .from('horse_distance_analysis')
-        .upsert({
+        .insert({
           horse_id: data.id,
           horse: data.horse,
           sire: data.sire,
@@ -142,7 +139,7 @@ export const processHorseDistanceAnalysis = async (supabase: any, horseId: strin
           // Store distance details
           const { data: distanceDetail, error: distanceError } = await supabase
             .from('horse_distance_details')
-            .upsert({
+            .insert({
               analysis_id: analysis.id,
               dist: distance.dist,
               dist_y: distance.dist_y,
@@ -167,10 +164,21 @@ export const processHorseDistanceAnalysis = async (supabase: any, horseId: strin
 
           // Store times for this distance
           if (distanceDetail && distance.times) {
+            // Delete existing times for this distance detail
+            const { error: deleteTimesError } = await supabase
+              .from('horse_distance_times')
+              .delete()
+              .eq('distance_detail_id', distanceDetail.id);
+
+            if (deleteTimesError) {
+              console.error(`Error deleting existing times for horse ${horseId}:`, deleteTimesError);
+              throw deleteTimesError;
+            }
+
             for (const time of distance.times) {
               const { error: timeError } = await supabase
                 .from('horse_distance_times')
-                .upsert({
+                .insert({
                   distance_detail_id: distanceDetail.id,
                   date: new Date(time.date).toISOString(),
                   region: time.region,
