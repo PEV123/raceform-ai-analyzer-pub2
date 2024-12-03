@@ -1,13 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Race, RaceResultsParams, RaceResultsResponse } from "../types/raceResults";
-
-interface MoveRaceParams {
-  p_race_id: string;
-}
-
-interface MoveRaceResponse {
-  success: boolean;
-}
+import { Race, RaceResultsParams, RaceResultsResponse, MoveRaceParams, MoveRaceResponse } from "../types/raceResults";
 
 export const importRaceResults = async (race: Race): Promise<Race> => {
   if (!race.race_id) {
@@ -44,23 +36,13 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
   });
 
   console.log('=== START: Move Race to Historical ===');
-  console.log('Race object structure:', {
-    id: race.id,
-    idType: typeof race.id,
-    hasId: !!race.id,
-    isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(race.id)
-  });
+  console.log('Moving race with ID:', race.id);
 
   try {
-    console.log('Attempting RPC call with params:', {
-      functionName: 'move_race_to_historical',
-      params: { p_race_id: race.id }
-    });
-
     const { data: moveData, error: moveError } = await supabase
-      .rpc('move_race_to_historical', {
+      .rpc<boolean>('move_race_to_historical', {
         p_race_id: race.id
-      });
+      } satisfies MoveRaceParams);
 
     if (moveError) {
       console.error('=== ERROR: Move Race Failed ===');
@@ -75,8 +57,7 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
     console.log('=== SUCCESS: Move Race Complete ===');
     console.log('Move operation result:', {
-      success: !!moveData,
-      response: moveData,
+      success: moveData,
       raceId: race.id,
       raceApiId: race.race_id,
       course: race.course

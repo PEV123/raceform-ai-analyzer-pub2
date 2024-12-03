@@ -903,7 +903,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      move_race_to_historical: {
+        Args: {
+          p_race_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

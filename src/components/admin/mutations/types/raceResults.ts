@@ -14,3 +14,11 @@ export interface RaceResultsResponse {
 export interface RaceResultsParams {
   raceId: string;
 }
+
+export interface MoveRaceParams {
+  p_race_id: string;
+}
+
+export interface MoveRaceResponse {
+  success: boolean;
+}
