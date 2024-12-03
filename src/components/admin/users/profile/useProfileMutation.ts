@@ -11,24 +11,30 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
   return useMutation({
     mutationFn: async (updatedProfile: Partial<ProfileData>) => {
       console.log("Updating profile:", updatedProfile);
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(updatedProfile)
-        .eq("id", userId)
-        .select()
-        .single();
+      
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .update(updatedProfile)
+          .eq("id", userId)
+          .select()
+          .single();
 
-      if (error) {
-        console.error("Error updating profile:", error);
+        if (error) {
+          console.error("Error updating profile:", error);
+          throw error;
+        }
+
+        // Track profile update
+        await trackActivity('profile_update', undefined, {
+          updatedFields: Object.keys(updatedProfile)
+        });
+
+        return data;
+      } catch (error) {
+        console.error("Error in profile mutation:", error);
         throw error;
       }
-
-      // Track profile update
-      await trackActivity('profile_update', undefined, {
-        updatedFields: Object.keys(updatedProfile)
-      });
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
@@ -43,7 +49,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.error("Mutation error:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     },
