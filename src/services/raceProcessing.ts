@@ -56,11 +56,16 @@ export const processRace = async (race: any) => {
         is_abandoned: race.is_abandoned,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (raceError) {
       console.error("Error inserting race:", raceError);
       throw raceError;
+    }
+
+    if (!raceData) {
+      console.error("No race data returned after insert");
+      throw new Error("Failed to create race");
     }
 
     console.log('Successfully inserted race:', raceData);
@@ -98,12 +103,18 @@ export const processRunners = async (raceId: string, runners: any[]) => {
 
   if (validRunners.length > 0) {
     for (const runner of validRunners) {
-      const { data: existingRunner } = await supabase
+      // Use maybeSingle() instead of single() to handle cases where no runner is found
+      const { data: existingRunner, error: queryError } = await supabase
         .from("runners")
         .select("id, odds, is_non_runner")
         .eq("race_id", raceId)
         .eq("horse_id", runner.horse_id)
-        .single();
+        .maybeSingle();
+
+      if (queryError) {
+        console.error(`Error querying runner ${runner.horse_id}:`, queryError);
+        continue;
+      }
 
       if (existingRunner) {
         // Check for non-runner status change
@@ -125,7 +136,7 @@ export const processRunners = async (raceId: string, runners: any[]) => {
 
         if (updateError) {
           console.error("Error updating runner:", updateError);
-          throw updateError;
+          continue;
         }
 
         // Save odds history if odds have changed
@@ -133,6 +144,8 @@ export const processRunners = async (raceId: string, runners: any[]) => {
           await saveOddsHistory(existingRunner.id, runner.odds);
           oddsUpdates++;
         }
+      } else {
+        console.log(`No existing runner found for horse_id ${runner.horse_id}, race_id ${raceId}`);
       }
     }
   }
