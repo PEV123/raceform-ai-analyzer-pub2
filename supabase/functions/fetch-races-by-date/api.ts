@@ -2,11 +2,13 @@ import { ApiResponse } from './types.ts';
 
 const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME')
 const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD')
+const RACING_API_BASE_URL = 'https://api.theracingapi.com/v1'
 
 export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
   console.log('Making request to Racing API for date:', date)
   
-  const apiUrl = `https://api.theracingapi.com/v1/racecards/pro?date=${date}`
+  // First, fetch from racecards/pro endpoint
+  const apiUrl = `${RACING_API_BASE_URL}/racecards/pro?date=${date}`
   console.log('API URL:', apiUrl)
   
   try {
@@ -39,14 +41,14 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
       return { races: [] }
     }
 
-    // The API returns racecards directly or nested in data
+    // The API returns racecards directly in the response for /pro endpoint
     let races = []
     if (data.racecards && Array.isArray(data.racecards)) {
       console.log('Found races in data.racecards')
       races = data.racecards
-    } else if (data.data?.racecards && Array.isArray(data.data.racecards)) {
-      console.log('Found races in data.data.racecards')
-      races = data.data.racecards
+    } else if (Array.isArray(data)) {
+      console.log('Found races in root array')
+      races = data
     } else {
       console.log('No valid races array found in response')
       return { races: [] }
