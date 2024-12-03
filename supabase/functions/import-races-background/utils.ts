@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { format, parseISO } from "https://esm.sh/date-fns@3.3.1";
-import { zonedTimeToUtc } from "https://esm.sh/date-fns-tz@3.0.1";
+import { fromZonedTime } from "https://esm.sh/date-fns-tz@3.0.1";
 
 export const formatRaceDateTime = (raceDate: string, raceTime: string): string => {
   try {
@@ -17,7 +17,7 @@ export const formatRaceDateTime = (raceDate: string, raceTime: string): string =
     dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
     // Convert to UTC while preserving the intended UK time
-    const ukTime = zonedTimeToUtc(dateObj, 'Europe/London');
+    const ukTime = fromZonedTime(dateObj, 'Europe/London');
     
     console.log('Formatted race datetime:', {
       input: { date: raceDate, time: raceTime },
