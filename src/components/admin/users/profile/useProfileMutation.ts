@@ -13,9 +13,10 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Starting profile update for user:", userId);
       console.log("Update payload:", updatedProfile);
       
+      // First check if profile exists
       const { data: existingProfile, error: checkError } = await supabase
         .from("profiles")
-        .select()
+        .select("*")
         .eq("id", userId)
         .maybeSingle();
 
@@ -24,15 +25,21 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
         throw checkError;
       }
 
+      // Clean up the update payload to only include non-null values
+      const cleanedProfile = Object.fromEntries(
+        Object.entries(updatedProfile).filter(([_, value]) => value !== null)
+      );
+
       if (!existingProfile) {
         console.log("Profile not found, creating new profile");
         const { data: newProfile, error: createError } = await supabase
           .from("profiles")
           .insert({ 
             id: userId,
-            ...updatedProfile,
-            membership_level: updatedProfile.membership_level || "free",
-            subscription_status: updatedProfile.subscription_status || "active"
+            ...cleanedProfile,
+            membership_level: cleanedProfile.membership_level || "free",
+            subscription_status: cleanedProfile.subscription_status || "active",
+            updated_at: new Date().toISOString()
           })
           .select()
           .single();
@@ -49,7 +56,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       const { data: updated, error: updateError } = await supabase
         .from("profiles")
         .update({
-          ...updatedProfile,
+          ...cleanedProfile,
           updated_at: new Date().toISOString()
         })
         .eq("id", userId)
@@ -63,7 +70,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
 
       // Track profile update
       await trackActivity('profile_update', undefined, {
-        updatedFields: Object.keys(updatedProfile)
+        updatedFields: Object.keys(cleanedProfile)
       });
 
       return updated;
