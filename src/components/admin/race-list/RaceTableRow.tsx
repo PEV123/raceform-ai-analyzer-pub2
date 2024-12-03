@@ -1,8 +1,10 @@
 import { TableCell, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { Database, Clock } from "lucide-react";
-import { RaceActionButtons } from "../RaceActionButtons";
 import { RaceDocumentsCell } from "../RaceDocumentsCell";
+import { RaceActionButtons } from "../RaceActionButtons";
+import { useImportRaceResultsMutation } from "../mutations/useImportRaceResultsMutation";
+import { Loader2 } from "lucide-react";
 
 type Race = Tables<"races"> & {
   race_documents: Tables<"race_documents">[];
@@ -42,58 +44,71 @@ export const RaceTableRow = ({
   isImportingAnalysis,
   onDeleteDocument,
 }: RaceTableRowProps) => {
+  const importRaceResults = useImportRaceResultsMutation();
+  const raceTime = new Date(race.off_time);
+  const now = new Date();
+  const raceHasFinished = raceTime < now;
+
   return (
-    <TableRow key={race.id}>
-      <TableCell>
-        <div>
-          {race.course}
-          <div className="text-xs text-muted-foreground mt-1">
-            ID: {race.id}
-          </div>
-          {race.race_id && (
-            <div className="text-xs text-muted-foreground">
-              API ID: {race.race_id}
-            </div>
-          )}
-        </div>
-      </TableCell>
+    <TableRow>
+      <TableCell>{race.course}</TableCell>
       <TableCell>{formatTime(race.off_time)}</TableCell>
-      <TableCell>{race.field_size}</TableCell>
+      <TableCell>{race.runners?.length || 0}</TableCell>
       <TableCell>
-        <div className="flex items-center gap-1">
-          <Database className="h-4 w-4" />
-          <span>
-            {getImportedResultsCount(race)}/{race.field_size}
+        {hasImportedResults(race) ? (
+          <span className="text-green-600">
+            {getImportedResultsCount(race)} results
           </span>
-        </div>
+        ) : (
+          <span className="text-gray-400">No results</span>
+        )}
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-1">
-          <Clock className="h-4 w-4" />
-          <span>
-            {getImportedAnalysisCount(race)}/{race.field_size}
+        {hasImportedAnalysis(race) ? (
+          <span className="text-green-600">
+            {getImportedAnalysisCount(race)} analyzed
           </span>
-        </div>
+        ) : (
+          <span className="text-gray-400">No analysis</span>
+        )}
       </TableCell>
       <TableCell>
         <RaceDocumentsCell
-          documents={race.race_documents || []}
+          race={race}
+          onUploadDocs={onUploadDocs}
           onDeleteDocument={onDeleteDocument}
         />
       </TableCell>
       <TableCell>
-        <RaceActionButtons
-          race={race}
-          onUploadDocs={() => onUploadDocs(race)}
-          onViewRawData={() => onViewRawData(race)}
-          onViewDbData={() => onViewDbData(race)}
-          onImportHorseResults={() => onImportHorseResults(race)}
-          onImportDistanceAnalysis={() => onImportDistanceAnalysis(race)}
-          hasImportedResults={hasImportedResults(race)}
-          hasImportedAnalysis={hasImportedAnalysis(race)}
-          isImportingResults={isImportingResults}
-          isImportingAnalysis={isImportingAnalysis}
-        />
+        <div className="flex items-center gap-2">
+          <RaceActionButtons
+            race={race}
+            onViewRawData={onViewRawData}
+            onViewDbData={onViewDbData}
+            onImportHorseResults={onImportHorseResults}
+            onImportDistanceAnalysis={onImportDistanceAnalysis}
+            isImportingResults={isImportingResults}
+            isImportingAnalysis={isImportingAnalysis}
+          />
+          
+          {raceHasFinished && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => importRaceResults.mutate(race)}
+              disabled={importRaceResults.isPending}
+            >
+              {importRaceResults.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Importing Results
+                </>
+              ) : (
+                "Import Results"
+              )}
+            </Button>
+          )}
+        </div>
       </TableCell>
     </TableRow>
   );
