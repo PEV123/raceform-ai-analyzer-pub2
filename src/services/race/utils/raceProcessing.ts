@@ -22,8 +22,8 @@ export const processRace = async (race: any) => {
       return existingRaces[0];
     }
 
-    // Use off_dt for the full datetime if available, otherwise construct from off_time
-    const raceDateTime = race.off_dt || race.off_time;
+    // Use off_dt if available, otherwise construct from date and off_time
+    const raceDateTime = race.off_dt || `${race.date}T${race.off_time}:00+00:00`;
     console.log('Using race datetime:', raceDateTime);
 
     const { data: raceData, error: raceError } = await supabase

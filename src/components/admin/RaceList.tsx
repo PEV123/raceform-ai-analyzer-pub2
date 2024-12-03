@@ -75,7 +75,9 @@ export const RaceList = ({ races }: RaceListProps) => {
   };
 
   const formatTime = (date: string) => {
-    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm');
+    // Extract just the time portion from the ISO string
+    const timeMatch = date.match(/T(\d{2}:\d{2})/);
+    return timeMatch ? timeMatch[1] : '';
   };
 
   // Create a Map to store unique races by their course and off_time combination

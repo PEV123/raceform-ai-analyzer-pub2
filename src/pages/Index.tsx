@@ -54,7 +54,9 @@ const Index = () => {
   }, {}) || {};
 
   const formatTime = (date: string) => {
-    return formatInTimeZone(new Date(date), 'Europe/London', 'HH:mm');
+    // Extract just the time portion from the ISO string
+    const timeMatch = date.match(/T(\d{2}:\d{2})/);
+    return timeMatch ? timeMatch[1] : '';
   };
 
   const handleRaceClick = (raceId: string) => {
