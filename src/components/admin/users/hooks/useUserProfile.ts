@@ -6,9 +6,9 @@ export const useUserProfile = (userId: string) => {
   return useQuery({
     queryKey: ["user-profile", userId],
     queryFn: async () => {
-      console.log("Fetching user profile:", userId);
+      console.log("Fetching user profile for:", userId);
       
-      // First check if profile exists
+      // Check if profile exists
       const { data: profile, error: fetchError } = await supabase
         .from("profiles")
         .select()
@@ -20,24 +20,14 @@ export const useUserProfile = (userId: string) => {
         throw fetchError;
       }
 
-      // If profile exists, get the email from auth.users
+      // If profile exists, return it
       if (profile) {
         console.log("Found existing profile:", profile);
         
-        const { data: userData, error: userError } = await supabase
-          .from('auth.users')
-          .select('email')
-          .eq('id', userId)
-          .single();
-
-        if (userError) {
-          console.error("Error fetching user email:", userError);
-        }
-
         const profileData: ProfileData = {
           id: profile.id,
           full_name: profile.full_name,
-          email: userData?.email || null,
+          email: profile.email,
           membership_level: profile.membership_level || 'free',
           subscription_status: profile.subscription_status || 'active',
           phone: profile.phone,
@@ -70,22 +60,11 @@ export const useUserProfile = (userId: string) => {
         throw createError;
       }
 
-      // Get the email for the new profile
-      const { data: userData, error: userError } = await supabase
-        .from('auth.users')
-        .select('email')
-        .eq('id', userId)
-        .single();
-
-      if (userError) {
-        console.error("Error fetching user email for new profile:", userError);
-      }
-
       console.log("Created new profile:", newProfile);
       const newProfileData: ProfileData = {
         id: newProfile.id,
         full_name: newProfile.full_name,
-        email: userData?.email || null,
+        email: newProfile.email,
         membership_level: newProfile.membership_level || 'free',
         subscription_status: newProfile.subscription_status || 'active',
         phone: newProfile.phone,
