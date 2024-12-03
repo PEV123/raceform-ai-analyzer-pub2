@@ -8,6 +8,10 @@ type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
 };
 
+interface FetchRaceResultsParams {
+  raceId: string;
+}
+
 interface FetchRaceResultsResponse {
   success: boolean;
   data?: any;
@@ -35,7 +39,7 @@ export const useImportRaceResultsMutation = () => {
 
       const { data, error: importError } = await supabase
         .functions.invoke<FetchRaceResultsResponse>('fetch-race-results', {
-          body: { raceId: race.race_id }
+          body: { raceId: race.race_id } as FetchRaceResultsParams
         });
 
       if (importError) {
