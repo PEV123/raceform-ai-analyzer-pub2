@@ -12,7 +12,8 @@ export const useUserProfile = (userId: string) => {
       const { data: profiles, error: fetchError } = await supabase
         .from("profiles")
         .select()
-        .eq("id", userId);
+        .eq("id", userId)
+        .maybeSingle();
 
       if (fetchError) {
         console.error("Error fetching user profile:", fetchError);
@@ -20,8 +21,8 @@ export const useUserProfile = (userId: string) => {
       }
 
       // If profile exists, return it
-      if (profiles && profiles.length > 0) {
-        const profile = profiles[0];
+      if (profiles) {
+        const profile = profiles;
         console.log("Found existing profile:", profile);
         
         const profileData: ProfileData = {
@@ -38,7 +39,8 @@ export const useUserProfile = (userId: string) => {
           postal_code: profile.postal_code || null,
           notes: profile.notes || null,
           last_login: profile.last_login || null,
-          is_admin: profile.is_admin || false
+          is_admin: profile.is_admin || false,
+          updated_at: profile.updated_at
         };
         return profileData;
       }
@@ -51,6 +53,7 @@ export const useUserProfile = (userId: string) => {
           id: userId,
           membership_level: "free",
           subscription_status: "active",
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -75,7 +78,8 @@ export const useUserProfile = (userId: string) => {
         postal_code: newProfile.postal_code || null,
         notes: newProfile.notes || null,
         last_login: newProfile.last_login || null,
-        is_admin: newProfile.is_admin || false
+        is_admin: newProfile.is_admin || false,
+        updated_at: newProfile.updated_at
       };
       return newProfileData;
     },
