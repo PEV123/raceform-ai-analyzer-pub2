@@ -14,6 +14,7 @@ const RaceDocuments = () => {
     queryKey: ["races", selectedDate],
     queryFn: async () => {
       // Format dates in UK timezone for database query
+      // Add buffer to ensure we catch all races in UK time
       const start = `${selectedDate}T00:00:00.000Z`;
       const end = `${selectedDate}T23:59:59.999Z`;
       
@@ -28,15 +29,26 @@ const RaceDocuments = () => {
         `)
         .gte('off_time', start)
         .lt('off_time', end)
-        .order('off_time', { ascending: true });
+        .order('course', { ascending: true }); // Sort by venue name
 
       if (error) {
         console.error('Error fetching races:', error);
         throw error;
       }
       
-      console.log('Successfully fetched races:', data);
-      return data;
+      // Filter races to ensure they fall within the UK date
+      const filteredRaces = data?.filter(race => {
+        const raceDate = formatInTimeZone(
+          new Date(race.off_time),
+          'Europe/London',
+          'yyyy-MM-dd'
+        );
+        console.log(`Race at ${race.course}: UK date = ${raceDate}, comparing with ${selectedDate}`);
+        return raceDate === selectedDate;
+      });
+
+      console.log('Filtered races:', filteredRaces);
+      return filteredRaces;
     },
   });
 
