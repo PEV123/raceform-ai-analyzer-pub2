@@ -38,9 +38,9 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
   console.log('Successfully imported race results:', data);
 
   const { data: moveData, error: moveError } = await supabase
-    .rpc<MoveRaceResponse, MoveRaceParams>('move_race_to_historical', {
+    .rpc('move_race_to_historical', {
       p_race_id: race.id
-    });
+    }) as { data: MoveRaceResponse | null, error: Error | null };
 
   if (moveError) {
     console.error('Error moving race to historical:', moveError);
