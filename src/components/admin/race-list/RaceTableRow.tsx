@@ -74,8 +74,8 @@ export const RaceTableRow = ({
       </TableCell>
       <TableCell>
         <RaceDocumentsCell
-          race={race}
-          onUploadDocs={onUploadDocs}
+          documents={race.race_documents}
+          onUploadDocs={() => onUploadDocs(race)}
           onDeleteDocument={onDeleteDocument}
         />
       </TableCell>
@@ -83,10 +83,13 @@ export const RaceTableRow = ({
         <div className="flex items-center gap-2">
           <RaceActionButtons
             race={race}
-            onViewRawData={onViewRawData}
-            onViewDbData={onViewDbData}
-            onImportHorseResults={onImportHorseResults}
-            onImportDistanceAnalysis={onImportDistanceAnalysis}
+            onUploadDocs={() => onUploadDocs(race)}
+            onViewRawData={() => onViewRawData(race)}
+            onViewDbData={() => onViewDbData(race)}
+            onImportHorseResults={() => onImportHorseResults(race)}
+            onImportDistanceAnalysis={() => onImportDistanceAnalysis(race)}
+            hasImportedResults={hasImportedResults(race)}
+            hasImportedAnalysis={hasImportedAnalysis(race)}
             isImportingResults={isImportingResults}
             isImportingAnalysis={isImportingAnalysis}
           />

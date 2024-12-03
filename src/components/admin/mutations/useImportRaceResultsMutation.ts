@@ -15,7 +15,7 @@ export const useImportRaceResultsMutation = () => {
       
       try {
         // Fetch results from Racing API
-        const { data: resultsData, error: apiError } = await supabase.functions.invoke('fetch-race-results', {
+        const { data: resultsData, error: apiError } = await supabase.functions.invoke<any>('fetch-race-results', {
           body: { raceId: race.race_id }
         });
 

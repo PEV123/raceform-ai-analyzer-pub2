@@ -1,34 +1,34 @@
 import { Tables } from "@/integrations/supabase/types";
 import { RaceDocumentThumbnail } from "./RaceDocumentThumbnail";
+import { Button } from "@/components/ui/button";
 
-interface RaceDocumentsCellProps {
+export interface RaceDocumentsCellProps {
   documents: Tables<"race_documents">[];
+  onUploadDocs: (race: Tables<"races">) => void;
   onDeleteDocument: (doc: Tables<"race_documents">) => void;
 }
 
-export const RaceDocumentsCell = ({ documents, onDeleteDocument }: RaceDocumentsCellProps) => {
-  console.log('Rendering RaceDocumentsCell with documents:', documents);
-
-  if (!documents?.length) {
-    console.log('No documents to display');
-    return "No documents";
-  }
-
+export const RaceDocumentsCell = ({
+  documents,
+  onUploadDocs,
+  onDeleteDocument,
+}: RaceDocumentsCellProps) => {
   return (
-    <div className="flex gap-2">
-      {documents.map((doc) => {
-        console.log('Rendering thumbnail for document:', doc);
-        return (
+    <div className="flex flex-col">
+      <div className="flex gap-2 mb-2">
+        <Button variant="outline" onClick={() => onUploadDocs()}>
+          Upload Document
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {documents.map((doc) => (
           <RaceDocumentThumbnail
             key={doc.id}
-            doc={doc}
-            onDelete={(doc) => {
-              console.log('Delete triggered for document:', doc);
-              onDeleteDocument(doc);
-            }}
+            document={doc}
+            onDelete={() => onDeleteDocument(doc)}
           />
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 };
