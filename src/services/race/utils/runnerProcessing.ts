@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { processHorseResults, processHorseDistanceAnalysis } from "./horseDataProcessing";
+import { processHorseResults } from "./horseResults";
+import { processHorseDistanceAnalysis } from "./distanceAnalysis";
 
 interface ImportStats {
   horseResults: {
