@@ -3,6 +3,7 @@ import { HorseDistanceAnalysis } from "./HorseDistanceAnalysis";
 import { RaceProAnalysis } from "./RaceProAnalysis";
 import { HorseResultsAnalysis } from "./HorseResultsAnalysis";
 import { RacecardsAnalysis } from "./RacecardsAnalysis";
+import { RaceResultsAnalysis } from "./RaceResultsAnalysis";
 
 export const ApiTesting = () => {
   return (
@@ -10,6 +11,7 @@ export const ApiTesting = () => {
       <h2 className="text-2xl font-semibold mb-4">API Testing Tools</h2>
       <div className="space-y-6">
         <RacecardsAnalysis />
+        <RaceResultsAnalysis />
         <HorseDistanceAnalysis />
         <HorseResultsAnalysis />
         <RaceProAnalysis />

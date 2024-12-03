@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error('Racing API credentials not configured')
     }
 
-    const endpoint = `${RACING_API_BASE_URL}/races/${raceId}/results`
+    const endpoint = `${RACING_API_BASE_URL}/results/${raceId}`
     console.log('Making request to Racing API endpoint:', endpoint)
 
     const response = await fetch(endpoint, {
