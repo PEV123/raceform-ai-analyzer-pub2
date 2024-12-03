@@ -20,23 +20,16 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
     return posA - posB;
   });
 
-  // Calculate cumulative distances with enhanced spacing for the winner
+  // Calculate cumulative distances while keeping actual BTN values
   const runnersWithCumulative = sortedRunners.map((runner, index) => {
     let cumulativeDistance = 0;
     if (index > 0) {
-      // Double the distance between first and second
-      if (index === 1) {
-        const distance = parseFloat(runner.btn || "0") * 2; // Double the actual distance
-        cumulativeDistance = distance;
-      } else {
-        // For subsequent horses, add up all previous distances
-        for (let i = 1; i <= index; i++) {
-          const prevRunner = sortedRunners[i];
-          const distance = parseFloat(prevRunner.btn || "0");
-          if (!isNaN(distance)) {
-            // Only double the first gap
-            cumulativeDistance += (i === 1) ? distance * 2 : distance;
-          }
+      // For each horse, sum up all the distances of previous horses
+      for (let i = 1; i <= index; i++) {
+        const prevRunner = sortedRunners[i];
+        const distance = parseFloat(prevRunner.btn || "0");
+        if (!isNaN(distance)) {
+          cumulativeDistance += distance;
         }
       }
     }
@@ -49,7 +42,8 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
   );
 
   // Scale factor to ensure horses don't go off screen (80% of container width)
-  const scaleFactor = 80 / (maxCumulativeDistance || 1);
+  // Multiply by 10 to make the visual gaps more pronounced
+  const scaleFactor = (80 / (maxCumulativeDistance || 1)) * 10;
 
   return (
     <Card className="p-4 mb-4 bg-gradient-to-br from-secondary/5 to-accent/5">
