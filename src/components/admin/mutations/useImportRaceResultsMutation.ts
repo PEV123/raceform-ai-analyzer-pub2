@@ -47,7 +47,7 @@ export const useImportRaceResultsMutation = () => {
       // Move race to historical races
       const { error: moveError } = await supabase
         .rpc('move_race_to_historical', {
-          p_race_id: race.id
+          p_race_id: race.id as string // Type assertion to fix the error
         });
 
       if (moveError) {
