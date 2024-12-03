@@ -14,8 +14,10 @@ interface ImportStats {
   };
 }
 
-export const processRunner = async (supabase: any, raceId: string, runner: any, stats: ImportStats) => {
+export const processRunner = async (supabaseClient: any, raceId: string, runner: any, stats: ImportStats) => {
   try {
+    console.log(`Processing runner ${runner.horse_id} for race ${raceId}`);
+    
     // Prepare runner data
     const runnerData = {
       race_id: raceId,
@@ -71,7 +73,7 @@ export const processRunner = async (supabase: any, raceId: string, runner: any, 
     };
 
     // Upsert runner data
-    const { error: runnerError } = await supabase
+    const { error: runnerError } = await supabaseClient
       .from('runners')
       .upsert(runnerData, {
         onConflict: 'race_id,horse_id',
@@ -86,7 +88,7 @@ export const processRunner = async (supabase: any, raceId: string, runner: any, 
     // Process horse historical data with delays between calls
     try {
       stats.horseResults.attempted++;
-      await processHorseResults(supabase, runner.horse_id);
+      await processHorseResults(runner.horse_id);
       stats.horseResults.successful++;
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (horseResultsError) {
@@ -96,7 +98,7 @@ export const processRunner = async (supabase: any, raceId: string, runner: any, 
 
     try {
       stats.distanceAnalysis.attempted++;
-      await processHorseDistanceAnalysis(supabase, runner.horse_id);
+      await processHorseDistanceAnalysis(runner.horse_id);
       stats.distanceAnalysis.successful++;
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (analysisError) {

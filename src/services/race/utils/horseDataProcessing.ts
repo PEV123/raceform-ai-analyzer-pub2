@@ -73,32 +73,27 @@ export const processHorseDistanceAnalysis = async (horseId: string) => {
   console.log('Processing distance analysis for horse:', horseId);
   
   try {
-    const { data, error } = await supabase.functions.invoke('fetch-horse-results', {
+    const { data: analysisData } = await supabase.functions.invoke('fetch-horse-results', {
       body: { 
         horseId,
         type: 'distance-analysis'
       }
     });
-
-    if (error) {
-      console.error('Error fetching distance analysis:', error);
-      throw error;
-    }
-
-    if (data && data.id) {
+    
+    if (analysisData && analysisData.id) {
       // Store the main analysis record
       const { data: analysis, error: analysisError } = await supabase
         .from('horse_distance_analysis')
         .upsert({
-          horse_id: data.id,
-          horse: data.horse,
-          sire: data.sire,
-          sire_id: data.sire_id,
-          dam: data.dam,
-          dam_id: data.dam_id,
-          damsire: data.damsire,
-          damsire_id: data.damsire_id,
-          total_runs: data.total_runs
+          horse_id: analysisData.id,
+          horse: analysisData.horse,
+          sire: analysisData.sire,
+          sire_id: analysisData.sire_id,
+          dam: analysisData.dam,
+          dam_id: analysisData.dam_id,
+          damsire: analysisData.damsire,
+          damsire_id: analysisData.damsire_id,
+          total_runs: analysisData.total_runs
         })
         .select()
         .single();
@@ -108,8 +103,8 @@ export const processHorseDistanceAnalysis = async (horseId: string) => {
         throw analysisError;
       }
 
-      if (analysis && data.distances) {
-        for (const distance of data.distances) {
+      if (analysis && analysisData.distances) {
+        for (const distance of analysisData.distances) {
           // Store distance details
           const { data: distanceDetail, error: distanceError } = await supabase
             .from('horse_distance_details')
