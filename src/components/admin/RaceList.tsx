@@ -21,6 +21,8 @@ interface RaceListProps {
 }
 
 export const RaceList = ({ races }: RaceListProps) => {
+  console.log('RaceList rendered with races:', races);
+
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [rawDataRace, setRawDataRace] = useState<Race | null>(null);
   const [dbDataRace, setDbDataRace] = useState<Race | null>(null);
@@ -104,7 +106,11 @@ export const RaceList = ({ races }: RaceListProps) => {
       return courseComparison;
     });
 
-  console.log('Sorted races by venue and time:', dedupedRaces.map(r => `${r.course} - ${r.off_time}`));
+  console.log('Sorted races by venue and time:', dedupedRaces.map(r => ({
+    course: r.course,
+    time: r.off_time,
+    runners: r.runners?.length || 0
+  })));
 
   return (
     <>

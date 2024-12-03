@@ -35,6 +35,8 @@ const RaceDocuments = () => {
         console.error('Error fetching races:', error);
         throw error;
       }
+
+      console.log('Raw races data from API:', data);
       
       // Filter races to ensure they fall within the UK date
       const filteredRaces = data?.filter(race => {
@@ -47,12 +49,19 @@ const RaceDocuments = () => {
         return raceDate === selectedDate;
       });
 
+      console.log('Filtered races for UK date:', filteredRaces?.length);
+
       // Sort the filtered races by course name again to ensure proper ordering
       const sortedRaces = filteredRaces?.sort((a, b) => 
         a.course.localeCompare(b.course)
       );
 
-      console.log('Sorted races by venue:', sortedRaces?.map(r => r.course));
+      console.log('Sorted races by venue:', sortedRaces?.map(r => ({
+        course: r.course,
+        time: r.off_time,
+        runners: r.runners?.length || 0
+      })));
+      
       return sortedRaces;
     },
   });
