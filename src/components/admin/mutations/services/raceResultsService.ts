@@ -5,6 +5,10 @@ interface MoveRaceParams {
   p_race_id: string;
 }
 
+interface MoveRaceResponse {
+  success: boolean;
+}
+
 export const importRaceResults = async (race: Race): Promise<Race> => {
   if (!race.race_id) {
     console.error('No race_id found for race:', race);
@@ -33,9 +37,8 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
   console.log('Successfully imported race results:', data);
 
-  // Use properly typed RPC call
-  const { error: moveError } = await supabase
-    .rpc<void, MoveRaceParams>('move_race_to_historical', {
+  const { data: moveData, error: moveError } = await supabase
+    .rpc<MoveRaceResponse>('move_race_to_historical', {
       p_race_id: race.id
     });
 
