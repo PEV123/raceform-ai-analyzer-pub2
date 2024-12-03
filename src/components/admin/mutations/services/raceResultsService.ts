@@ -37,14 +37,20 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
   console.log('Successfully imported race results:', data);
 
-  // Debug log to check the race.id value
-  console.log('Attempting to move race with ID:', race.id);
+  // Debug log to check the race.id value and type
+  console.log('Moving race to historical - Debug info:', {
+    raceId: race.id,
+    raceIdType: typeof race.id,
+    race: race
+  });
 
   try {
+    // Explicitly type the RPC call
     const { data: moveData, error: moveError } = await supabase
-      .rpc('move_race_to_historical', {
-        p_race_id: race.id
-      });
+      .rpc<MoveRaceResponse, MoveRaceParams>(
+        'move_race_to_historical',
+        { p_race_id: race.id }
+      );
 
     console.log('Move race response:', { moveData, moveError });
 
@@ -56,7 +62,8 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
     console.log('Successfully moved race to historical races:', {
       raceId: race.id,
       raceApiId: race.race_id,
-      course: race.course
+      course: race.course,
+      moveResponse: moveData
     });
 
     return race;
