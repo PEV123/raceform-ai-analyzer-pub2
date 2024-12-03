@@ -28,7 +28,19 @@ export const useImportRacesMutation = () => {
 
       for (const race of races) {
         const processedRace = await processRace(race);
-        await processRunners(processedRace.id, race.runners);
+        
+        // Fetch runners for this race
+        const { data: runners, error: runnersError } = await supabase
+          .from("runners")
+          .select("*")
+          .eq("race_id", race.id);
+
+        if (runnersError) {
+          console.error("Error fetching runners:", runnersError);
+          throw runnersError;
+        }
+
+        await processRunners(processedRace.id, runners || []);
       }
     },
     onSuccess: () => {
