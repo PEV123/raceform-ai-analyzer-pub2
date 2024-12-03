@@ -71,7 +71,7 @@ export const useImportRaceResultsMutation = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["races"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Race results import error:', error);
       toast({
         title: "Error",
