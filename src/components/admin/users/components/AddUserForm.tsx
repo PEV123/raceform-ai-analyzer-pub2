@@ -73,7 +73,6 @@ export const AddUserForm = ({ onSubmit, isLoading, onCancel }: AddUserFormProps)
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="free">Free</SelectItem>
-            <SelectItem value="moderator">Moderator</SelectItem>
             <SelectItem value="premium">Premium</SelectItem>
             <SelectItem value="pro">Pro</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>

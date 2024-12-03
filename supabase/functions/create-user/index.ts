@@ -27,6 +27,8 @@ Deno.serve(async (req) => {
 
     const { email, password, fullName, membershipLevel } = await req.json() as CreateUserPayload;
 
+    console.log('Creating user with data:', { email, fullName, membershipLevel });
+
     // Create user
     const { data: userData, error: createUserError } = await supabaseClient.auth.admin.createUser({
       email,
@@ -35,7 +37,16 @@ Deno.serve(async (req) => {
     });
 
     if (createUserError) {
+      console.error('Error creating user:', createUserError);
       throw createUserError;
+    }
+
+    console.log('User created successfully:', userData.user.id);
+
+    // Validate membership level
+    const validMembershipLevels = ['free', 'premium', 'pro', 'admin'];
+    if (!validMembershipLevels.includes(membershipLevel)) {
+      throw new Error(`Invalid membership level. Must be one of: ${validMembershipLevels.join(', ')}`);
     }
 
     // Update profile
@@ -48,8 +59,11 @@ Deno.serve(async (req) => {
       .eq('id', userData.user.id);
 
     if (updateProfileError) {
+      console.error('Error updating profile:', updateProfileError);
       throw updateProfileError;
     }
+
+    console.log('Profile updated successfully');
 
     return new Response(
       JSON.stringify({ user: userData.user }),
@@ -59,6 +73,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error('Error in create-user function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
