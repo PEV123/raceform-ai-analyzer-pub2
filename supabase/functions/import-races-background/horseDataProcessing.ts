@@ -1,24 +1,45 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const RACING_API_URL = Deno.env.get('RACING_API_URL') || '';
+const RACING_API_USERNAME = Deno.env.get('RACING_API_USERNAME') || '';
+const RACING_API_PASSWORD = Deno.env.get('RACING_API_PASSWORD') || '';
+
+async function fetchFromRacingApi(endpoint: string) {
+  console.log(`Making request to Racing API: ${endpoint}`);
+  
+  const response = await fetch(endpoint, {
+    headers: {
+      'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`API request failed: ${response.status} - ${errorText}`);
+    throw new Error(`API request failed: ${response.status} at ${endpoint}`);
+  }
+
+  return response.json();
+}
+
 export const processHorseResults = async (supabase: any, horseId: string) => {
-  console.log('Fetching results for horse:', horseId);
+  console.log('Processing results for horse:', horseId);
   
   try {
-    const response = await fetch(
-      `${Deno.env.get('RACING_API_URL')}/horses/${horseId}/results`,
-      {
-        headers: {
-          'Authorization': `Basic ${btoa(`${Deno.env.get('RACING_API_USERNAME')}:${Deno.env.get('RACING_API_PASSWORD')}`)}`,
-          'Accept': 'application/json'
-        }
-      }
-    );
+    // First check if we already have results for this horse
+    const { data: existingResults } = await supabase
+      .from('horse_results')
+      .select('id')
+      .eq('horse_id', horseId)
+      .limit(1);
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+    if (existingResults?.length > 0) {
+      console.log(`Horse ${horseId} already has results, skipping`);
+      return;
     }
 
-    const data = await response.json();
+    const data = await fetchFromRacingApi(`${RACING_API_URL}/horses/${horseId}/results`);
     console.log(`Got ${data.results?.length || 0} results for horse ${horseId}`);
 
     if (data?.results) {
@@ -75,24 +96,22 @@ export const processHorseResults = async (supabase: any, horseId: string) => {
 };
 
 export const processHorseDistanceAnalysis = async (supabase: any, horseId: string) => {
-  console.log('Fetching distance analysis for horse:', horseId);
+  console.log('Processing distance analysis for horse:', horseId);
   
   try {
-    const response = await fetch(
-      `${Deno.env.get('RACING_API_URL')}/horses/${horseId}/analysis/distance-times`,
-      {
-        headers: {
-          'Authorization': `Basic ${btoa(`${Deno.env.get('RACING_API_USERNAME')}:${Deno.env.get('RACING_API_PASSWORD')}`)}`,
-          'Accept': 'application/json'
-        }
-      }
-    );
+    // First check if we already have analysis for this horse
+    const { data: existingAnalysis } = await supabase
+      .from('horse_distance_analysis')
+      .select('id')
+      .eq('horse_id', horseId)
+      .limit(1);
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+    if (existingAnalysis?.length > 0) {
+      console.log(`Horse ${horseId} already has distance analysis, skipping`);
+      return;
     }
 
-    const data = await response.json();
+    const data = await fetchFromRacingApi(`${RACING_API_URL}/horses/${horseId}/analysis/distance-times`);
     console.log('Got distance analysis for horse:', horseId);
 
     if (data && data.id) {
