@@ -10,10 +10,6 @@ interface RaceResults {
   [key: string]: any;
 }
 
-type MoveRaceParams = {
-  race_id: string;
-}
-
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -42,7 +38,7 @@ export const useImportRaceResultsMutation = () => {
 
         // Move race to historical tables with results
         const { error: moveError } = await supabase.rpc('move_race_to_historical', {
-          race_id: race.id
+          p_race_id: race.id
         });
 
         if (moveError) {
