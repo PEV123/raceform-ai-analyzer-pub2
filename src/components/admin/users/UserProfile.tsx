@@ -13,6 +13,26 @@ interface UserProfileProps {
   userId: string;
 }
 
+interface ProfileResponse {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  membership_level: string;
+  subscription_status: string;
+  phone: string | null;
+  company: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  postal_code: string | null;
+  notes: string | null;
+  last_login: string | null;
+  is_admin: boolean;
+  users: {
+    email: string;
+  } | null;
+}
+
 export const UserProfile = ({ userId }: UserProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   
@@ -34,9 +54,10 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
 
       if (existingProfile) {
         console.log("Found existing profile:", existingProfile);
+        const typedProfile = existingProfile as ProfileResponse;
         return {
-          ...existingProfile,
-          email: existingProfile.users?.email
+          ...typedProfile,
+          email: typedProfile.users?.email
         } as ProfileData;
       }
 
@@ -57,9 +78,10 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
       }
 
       console.log("Created new profile:", newProfile);
+      const typedNewProfile = newProfile as ProfileResponse;
       return {
-        ...newProfile,
-        email: newProfile.users?.email
+        ...typedNewProfile,
+        email: typedNewProfile.users?.email
       } as ProfileData;
     },
   });
