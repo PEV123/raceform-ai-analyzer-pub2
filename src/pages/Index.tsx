@@ -48,6 +48,7 @@ const Index = () => {
           'Europe/London',
           'yyyy-MM-dd'
         );
+        console.log(`Race at ${race.course}: UK date = ${raceDate}, comparing with ${selectedDate}`);
         return raceDate === selectedDate;
       });
 
