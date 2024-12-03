@@ -24,11 +24,32 @@ export const UserProfile = ({ userId }: UserProfileProps) => {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching user profile:", error);
         throw error;
+      }
+
+      // If no profile exists, create a default one
+      if (!data) {
+        console.log("No profile found, creating default profile");
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: userId,
+            membership_level: "free",
+            subscription_status: "active",
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating default profile:", createError);
+          throw createError;
+        }
+
+        return newProfile as ProfileData;
       }
 
       console.log("Fetched user profile:", data);
