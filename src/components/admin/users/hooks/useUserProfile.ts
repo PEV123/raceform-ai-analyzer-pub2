@@ -19,7 +19,9 @@ export const useUserProfile = (userId: string) => {
         .from("profiles")
         .select(`
           *,
-          users:auth.users(email)
+          users:auth.users (
+            email
+          )
         `)
         .eq("id", userId)
         .single();
@@ -61,7 +63,9 @@ export const useUserProfile = (userId: string) => {
         })
         .select(`
           *,
-          users:auth.users(email)
+          users:auth.users (
+            email
+          )
         `)
         .single();
 
