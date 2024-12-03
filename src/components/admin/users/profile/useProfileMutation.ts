@@ -13,16 +13,46 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Updating profile:", updatedProfile);
       
       try {
-        const { data, error } = await supabase
+        // First check if the profile exists
+        const { data: existingProfile, error: checkError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error("Error checking profile:", checkError);
+          throw new Error("Failed to check if profile exists");
+        }
+
+        if (!existingProfile) {
+          console.log("Profile not found, creating new profile");
+          // If profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({ id: userId, ...updatedProfile })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            throw createError;
+          }
+
+          return newProfile;
+        }
+
+        // If profile exists, update it
+        const { data: updatedData, error: updateError } = await supabase
           .from("profiles")
           .update(updatedProfile)
           .eq("id", userId)
           .select()
           .single();
 
-        if (error) {
-          console.error("Error updating profile:", error);
-          throw error;
+        if (updateError) {
+          console.error("Error updating profile:", updateError);
+          throw updateError;
         }
 
         // Track profile update
@@ -30,7 +60,7 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
           updatedFields: Object.keys(updatedProfile)
         });
 
-        return data;
+        return updatedData;
       } catch (error) {
         console.error("Error in profile mutation:", error);
         throw error;
