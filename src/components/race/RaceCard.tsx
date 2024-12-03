@@ -11,6 +11,7 @@ import { RunnersList } from "./RunnersList";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RaceResults } from "./RaceResults";
+import { Tables } from "@/integrations/supabase/types";
 
 interface RaceCardProps {
   race: any;
@@ -77,6 +78,28 @@ export const RaceCard = ({ race }: RaceCardProps) => {
       return data;
     },
     retry: 2
+  });
+
+  // Add query for race results
+  const { data: raceResult } = useQuery({
+    queryKey: ['race-result', race.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('race_results')
+        .select(`
+          *,
+          runner_results (*)
+        `)
+        .eq('race_id', race.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching race result:', error);
+        return null;
+      }
+      
+      return data;
+    }
   });
 
   const getHorseResults = (horseId: string) => {

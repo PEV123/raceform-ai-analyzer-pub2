@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Race, RaceResultsParams, RaceResultsResponse, MoveRaceParams, MoveRaceResponse } from "../types/raceResults";
+import { Race } from "../types/raceResults";
 
 export const importRaceResults = async (race: Race): Promise<Race> => {
   if (!race.race_id) {
@@ -14,12 +14,12 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
     course: race.course
   });
 
-  const { data, error: importError } = await supabase.functions.invoke<RaceResultsResponse>(
+  const { data, error: importError } = await supabase.functions.invoke(
     'fetch-race-results',
     {
       body: {
         raceId: race.race_id
-      } satisfies RaceResultsParams
+      }
     }
   );
 
@@ -40,7 +40,7 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
   try {
     const { data: moveData, error: moveError } = await supabase
-      .rpc<MoveRaceResponse, MoveRaceParams>('move_race_to_historical', {
+      .rpc('move_race_to_historical', {
         p_race_id: race.id
       });
 
@@ -57,7 +57,7 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
     console.log('=== SUCCESS: Move Race Complete ===');
     console.log('Move operation result:', {
-      success: moveData?.success,
+      success: !!moveData,
       raceId: race.id,
       raceApiId: race.race_id,
       course: race.course
