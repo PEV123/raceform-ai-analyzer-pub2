@@ -54,9 +54,13 @@ const Index = () => {
   }, {}) || {};
 
   const formatTime = (date: string) => {
-    // Extract just the time portion from the ISO string
-    const timeMatch = date.match(/T(\d{2}:\d{2})/);
-    return timeMatch ? timeMatch[1] : '';
+    // Extract hours and minutes from the ISO string and format as HH:mm
+    const match = date.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      const [_, hours, minutes] = match;
+      return `${hours}:${minutes}`;
+    }
+    return '';
   };
 
   const handleRaceClick = (raceId: string) => {
