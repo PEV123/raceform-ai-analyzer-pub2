@@ -100,6 +100,8 @@ export const processRunners = async (raceId: string, runners: any[]) => {
       return isValid;
     });
 
+  console.log(`Processing ${validRunners.length} valid runners for race ${raceId}`);
+
   if (validRunners.length > 0) {
     for (const runner of validRunners) {
       try {
@@ -114,6 +116,29 @@ export const processRunners = async (raceId: string, runners: any[]) => {
           console.error(`Error querying runner ${runner.horse_id}:`, queryError);
           continue;
         }
+
+        // Ensure numeric fields are properly converted
+        const runnerData = {
+          race_id: raceId,
+          horse_id: runner.horse_id,
+          number: parseInt(runner.number) || null,
+          draw: parseInt(runner.draw) || null,
+          horse: runner.horse,
+          silk_url: runner.silk_url,
+          sire: runner.sire,
+          sire_region: runner.sire_region,
+          dam: runner.dam,
+          dam_region: runner.dam_region,
+          form: runner.form,
+          lbs: parseInt(runner.lbs) || null,
+          headgear: runner.headgear,
+          ofr: runner.ofr,
+          ts: runner.ts,
+          jockey: runner.jockey,
+          trainer: runner.trainer,
+          odds: runner.odds || [],
+          is_non_runner: runner.is_non_runner || false
+        };
 
         const existingRunner = existingRunners && existingRunners[0];
 
@@ -146,30 +171,11 @@ export const processRunners = async (raceId: string, runners: any[]) => {
             oddsUpdates++;
           }
         } else {
+          console.log(`Inserting new runner:`, runnerData);
           // Insert new runner
           const { error: insertError } = await supabase
             .from("runners")
-            .insert({
-              race_id: raceId,
-              horse_id: runner.horse_id,
-              number: runner.number,
-              draw: runner.draw,
-              horse: runner.horse,
-              silk_url: runner.silk_url,
-              sire: runner.sire,
-              sire_region: runner.sire_region,
-              dam: runner.dam,
-              dam_region: runner.dam_region,
-              form: runner.form,
-              lbs: runner.lbs,
-              headgear: runner.headgear,
-              ofr: runner.ofr,
-              ts: runner.ts,
-              jockey: runner.jockey,
-              trainer: runner.trainer,
-              odds: runner.odds,
-              is_non_runner: runner.is_non_runner || false
-            });
+            .insert(runnerData);
 
           if (insertError) {
             console.error(`Error inserting new runner ${runner.horse_id}:`, insertError);
