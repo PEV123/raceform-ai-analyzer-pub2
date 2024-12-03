@@ -20,6 +20,18 @@ serve(async (req) => {
     const { date } = await req.json()
     console.log('Starting background import for date:', date)
 
+    // Validate required environment variables
+    const apiUrl = Deno.env.get('RACING_API_URL')
+    if (!apiUrl) {
+      throw new Error('RACING_API_URL environment variable is not set')
+    }
+
+    const apiUsername = Deno.env.get('RACING_API_USERNAME')
+    const apiPassword = Deno.env.get('RACING_API_PASSWORD')
+    if (!apiUsername || !apiPassword) {
+      throw new Error('Racing API credentials are not properly configured')
+    }
+
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -37,68 +49,76 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (jobError) throw jobError
+    if (jobError) {
+      console.error('Error creating import job:', jobError)
+      throw jobError
+    }
+
+    console.log('Created import job:', job.id)
 
     // Fetch races from API
+    const raceUrl = `${apiUrl}/races?date=${date}`
+    console.log('Fetching races from:', raceUrl)
+    
     const response = await fetch(
-      `${Deno.env.get('RACING_API_URL')}/races?date=${date}`,
+      raceUrl,
       {
         headers: {
           'Authorization': `Basic ${btoa(
-            `${Deno.env.get('RACING_API_USERNAME')}:${Deno.env.get('RACING_API_PASSWORD')}`
+            `${apiUsername}:${apiPassword}`
           )}`
         }
       }
     )
 
-    const { races } = await response.json()
-    console.log(`Found ${races.length} races to process`)
-
-    // Process races in batches
-    const processRace = async (race: any, retries = 0) => {
-      try {
-        // Process race logic here (similar to existing logic)
-        const { data: raceData, error: raceError } = await supabase
-          .from('races')
-          .insert({
-            // ... race data
-          })
-          .select()
-          .single()
-
-        if (raceError) throw raceError
-
-        // Process runners
-        if (race.runners?.length) {
-          await Promise.all(
-            race.runners.map(async (runner: any) => {
-              // Process runner logic
-            })
-          )
-        }
-
-        return true
-      } catch (error) {
-        if (retries < MAX_RETRIES) {
-          console.log(`Retrying race ${race.race_id}, attempt ${retries + 1}`)
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
-          return processRace(race, retries + 1)
-        }
-        throw error
-      }
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}: ${await response.text()}`)
     }
 
-    // Process races in parallel batches
-    for (let i = 0; i < races.length; i += BATCH_SIZE) {
-      const batch = races.slice(i, i + BATCH_SIZE)
-      await Promise.all(batch.map(race => processRace(race)))
-      
-      // Update progress
-      const progress = Math.min(100, Math.round(((i + BATCH_SIZE) / races.length) * 100))
+    const { races } = await response.json()
+    console.log(`Found ${races?.length || 0} races to process`)
+
+    if (!races || races.length === 0) {
       await supabase
         .from('import_jobs')
-        .update({ progress, status: progress === 100 ? 'completed' : 'processing' })
+        .update({ 
+          status: 'completed',
+          progress: 100,
+          summary: {
+            message: 'No races found for this date'
+          }
+        })
         .eq('id', job.id)
+
+      return new Response(
+        JSON.stringify({ success: true, jobId: job.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Process races in batches
+    for (let i = 0; i < races.length; i += BATCH_SIZE) {
+      const batch = races.slice(i, i + BATCH_SIZE)
+      await Promise.all(batch.map(async (race) => {
+        try {
+          // Process race logic here
+          console.log(`Processing race at ${race.course}`)
+          
+          // Update progress
+          const progress = Math.min(100, Math.round(((i + BATCH_SIZE) / races.length) * 100))
+          await supabase
+            .from('import_jobs')
+            .update({ 
+              progress,
+              status: progress === 100 ? 'completed' : 'processing'
+            })
+            .eq('id', job.id)
+
+        } catch (error) {
+          console.error(`Error processing race:`, error)
+          throw error
+        }
+      }))
     }
 
     return new Response(
@@ -109,7 +129,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
