@@ -43,8 +43,12 @@ export const AddUserDialog = () => {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("Error response:", error);
         throw new Error(error.message || 'Failed to create user');
       }
+
+      const data = await response.json();
+      console.log("User creation response:", data);
 
       toast({
         title: "Success",
@@ -64,7 +68,7 @@ export const AddUserDialog = () => {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: error instanceof Error ? error.message : "Failed to create user",
         variant: "destructive",
       });
     } finally {
