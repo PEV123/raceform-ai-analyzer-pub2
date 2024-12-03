@@ -15,6 +15,7 @@ const API_TIMEOUT = 30000; // 30 seconds
 const BATCH_DELAY = 2000; // 2 seconds between batches
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
