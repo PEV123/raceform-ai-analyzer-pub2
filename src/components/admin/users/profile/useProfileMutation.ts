@@ -3,9 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ProfileData } from "./types";
 import { trackActivity } from "@/utils/activity";
-import type { Tables } from "@/integrations/supabase/types";
-
-type ProfileInsert = Tables<"profiles">;
 
 export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
   const { toast } = useToast();
@@ -16,72 +13,47 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Starting profile update for user:", userId);
       console.log("Update payload:", updatedProfile);
       
-      // First check if profile exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error("Error checking profile existence:", checkError);
-        throw checkError;
-      }
-
-      // Clean up the update payload to only include non-null values
-      const cleanedProfile = Object.fromEntries(
-        Object.entries(updatedProfile).filter(([_, value]) => value !== null)
-      ) as Partial<ProfileInsert>;
-
-      if (!existingProfile) {
-        console.log("Profile not found, creating new profile");
-        const insertData: ProfileInsert = {
-          id: userId,
-          ...cleanedProfile,
-          membership_level: cleanedProfile.membership_level || "free",
-          subscription_status: cleanedProfile.subscription_status || "active",
-          updated_at: new Date().toISOString(),
-          created_at: new Date().toISOString()
-        };
-
-        const { data: newProfile, error: createError } = await supabase
+      try {
+        // Update the profile
+        const { data, error } = await supabase
           .from("profiles")
-          .insert(insertData)
+          .update({
+            membership_level: updatedProfile.membership_level,
+            full_name: updatedProfile.full_name,
+            email: updatedProfile.email,
+            phone: updatedProfile.phone,
+            company: updatedProfile.company,
+            address: updatedProfile.address,
+            city: updatedProfile.city,
+            country: updatedProfile.country,
+            postal_code: updatedProfile.postal_code,
+            subscription_status: updatedProfile.subscription_status,
+            notes: updatedProfile.notes,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
           .select()
-          .single();
+          .maybeSingle();
 
-        if (createError) {
-          console.error("Error creating profile:", createError);
-          throw createError;
+        if (error) {
+          console.error("Error updating profile:", error);
+          throw error;
         }
 
-        return newProfile;
+        if (!data) {
+          throw new Error("Profile not found");
+        }
+
+        // Track profile update
+        await trackActivity('profile_update', undefined, {
+          updatedFields: Object.keys(updatedProfile)
+        });
+
+        return data;
+      } catch (error) {
+        console.error("Profile update failed:", error);
+        throw error;
       }
-
-      console.log("Updating existing profile");
-      const updateData: Partial<ProfileInsert> = {
-        ...cleanedProfile,
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: updated, error: updateError } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", userId)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
-        throw updateError;
-      }
-
-      // Track profile update
-      await trackActivity('profile_update', undefined, {
-        updatedFields: Object.keys(cleanedProfile)
-      });
-
-      return updated;
     },
     onSuccess: (data) => {
       console.log("Profile update successful:", data);
