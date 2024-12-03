@@ -22,8 +22,13 @@ export const processRace = async (race: any) => {
       return existingRaces[0];
     }
 
-    // Use off_dt if available, otherwise construct from date and off_time
-    const raceDateTime = race.off_dt || `${race.date}T${race.off_time}:00+00:00`;
+    // Extract time from off_time if it exists
+    const timeMatch = race.off_time?.match(/(\d{2}:\d{2})/);
+    const raceTime = timeMatch ? timeMatch[1] : '00:00';
+    console.log('Extracted race time:', raceTime);
+
+    // Construct ISO datetime string while preserving the original time
+    const raceDateTime = `${race.date}T${raceTime}:00.000Z`;
     console.log('Using race datetime:', raceDateTime);
 
     const { data: raceData, error: raceError } = await supabase
