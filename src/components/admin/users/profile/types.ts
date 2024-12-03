@@ -13,4 +13,5 @@ export interface ProfileData {
   notes: string | null;
   last_login: string | null;
   is_admin: boolean;
+  updated_at: string;
 }
