@@ -9,6 +9,17 @@ interface ImportRacesParams {
   onUpdateSummary?: (summary: any) => void;
 }
 
+interface ImportJob {
+  id: string;
+  date: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  error: string | null;
+  summary: any;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useImportRacesMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,22 +61,23 @@ export const useImportRacesMutation = () => {
         }
 
         if (job) {
-          onProgress?.(job.progress, `Processing races (${job.progress}%)`);
+          const typedJob = job as ImportJob;
+          onProgress?.(typedJob.progress, `Processing races (${typedJob.progress}%)`);
 
-          if (job.status === 'completed') {
+          if (typedJob.status === 'completed') {
             clearInterval(pollInterval);
             onProgress?.(100, 'Import complete');
             
             // Fetch and display summary if available
-            if (job.summary && onUpdateSummary) {
-              onUpdateSummary(job.summary);
+            if (typedJob.summary && onUpdateSummary) {
+              onUpdateSummary(typedJob.summary);
             }
             
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['races'] });
-          } else if (job.status === 'failed') {
+          } else if (typedJob.status === 'failed') {
             clearInterval(pollInterval);
-            throw new Error(job.error || 'Import failed');
+            throw new Error(typedJob.error || 'Import failed');
           }
         }
       }, 2000); // Poll every 2 seconds

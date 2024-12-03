@@ -265,6 +265,39 @@ export type Database = {
         }
         Relationships: []
       }
+      import_jobs: {
+        Row: {
+          created_at: string
+          date: string
+          error: string | null
+          id: string
+          progress: number
+          status: string
+          summary: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          error?: string | null
+          id?: string
+          progress?: number
+          status?: string
+          summary?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          error?: string | null
+          id?: string
+          progress?: number
+          status?: string
+          summary?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       membership_level_permissions: {
         Row: {
           created_at: string
