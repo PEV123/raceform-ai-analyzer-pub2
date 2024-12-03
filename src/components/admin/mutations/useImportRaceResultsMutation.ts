@@ -7,16 +7,27 @@ type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
 };
 
+interface FetchRaceResultsResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (race: Race) => {
-      console.log('Importing race results for:', race);
+      console.log('Starting race results import for:', {
+        raceId: race.id,
+        course: race.course,
+        time: race.off_time,
+        runners: race.runners?.length
+      });
 
       const { data, error: importError } = await supabase
-        .functions.invoke('fetch-race-results', {
+        .functions.invoke<FetchRaceResultsResponse>('fetch-race-results', {
           body: { raceId: race.id }
         });
 
@@ -30,7 +41,7 @@ export const useImportRaceResultsMutation = () => {
       // Move race to historical races
       const { error: moveError } = await supabase
         .rpc('move_race_to_historical', {
-          race_id: race.id
+          p_race_id: race.id
         });
 
       if (moveError) {
@@ -38,7 +49,11 @@ export const useImportRaceResultsMutation = () => {
         throw moveError;
       }
 
-      console.log('Successfully moved race to historical');
+      console.log('Successfully moved race to historical races:', {
+        raceId: race.id,
+        course: race.course
+      });
+      
       return race;
     },
     onSuccess: (race) => {
