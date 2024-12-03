@@ -75,6 +75,14 @@ export const processRace = async (race: any) => {
   }
 };
 
+const parseNumber = (value: any): number => {
+  if (!value || value === 'NR' || value === '-') {
+    return 0; // Default value for non-runners or invalid numbers
+  }
+  const parsed = parseInt(value);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 export const processRunners = async (raceId: string, runners: any[]) => {
   if (!runners || !Array.isArray(runners)) {
     console.warn(`No runners found for race ${raceId}`);
@@ -119,8 +127,8 @@ export const processRunners = async (raceId: string, runners: any[]) => {
       const runnerData = {
         race_id: raceId,
         horse_id: runner.horse_id,
-        number: runner.number === 'NR' ? null : parseInt(runner.number) || null,
-        draw: runner.draw === 'NR' ? null : parseInt(runner.draw) || null,
+        number: parseNumber(runner.number),
+        draw: parseNumber(runner.draw),
         horse: runner.horse,
         silk_url: runner.silk_url,
         sire: runner.sire,
@@ -128,7 +136,7 @@ export const processRunners = async (raceId: string, runners: any[]) => {
         dam: runner.dam,
         dam_region: runner.dam_region,
         form: runner.form,
-        lbs: runner.lbs === 'NR' ? null : parseInt(runner.lbs) || null,
+        lbs: parseNumber(runner.lbs),
         headgear: runner.headgear,
         ofr: runner.ofr,
         ts: runner.ts,
