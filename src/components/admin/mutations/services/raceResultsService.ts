@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Race, RaceResultsParams, RaceResultsResponse } from "../types/raceResults";
 
+interface MoveRaceParams {
+  p_race_id: string;
+}
+
 export const importRaceResults = async (race: Race): Promise<Race> => {
   if (!race.race_id) {
     console.error('No race_id found for race:', race);
@@ -29,8 +33,9 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
 
   console.log('Successfully imported race results:', data);
 
+  // Use properly typed RPC call
   const { error: moveError } = await supabase
-    .rpc('move_race_to_historical', {
+    .rpc<void, MoveRaceParams>('move_race_to_historical', {
       p_race_id: race.id
     });
 
