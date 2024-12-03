@@ -1,21 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processRaceBatch } from "./raceProcessing.ts";
-import { fetchRacesFromApi } from "./apiClient.ts";
-import { JobManager } from "./jobManager.ts";
-import { ImportStats } from "./types.ts";
+import { processHorseBatch, splitIntoBatches } from "./horseProcessing.ts";
+import { ImportStats, HorseData } from "./types.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BATCH_SIZE = 2;
-const API_TIMEOUT = 30000; // 30 seconds
+const BATCH_SIZE = 5;
 const BATCH_DELAY = 2000; // 2 seconds between batches
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -34,6 +30,7 @@ serve(async (req) => {
       totalRaces: 0,
       successfulRaces: 0,
       failedRaces: 0,
+      totalHorses: 0,
       horseResults: {
         attempted: 0,
         successful: 0,
@@ -58,52 +55,73 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (jobError) {
-      console.error('Error creating import job:', jobError);
-      throw jobError;
-    }
-
-    const jobManager = new JobManager(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      job.id
-    );
-
-    // Set up timeout handler for API call
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT);
+    if (jobError) throw jobError;
 
     try {
-      const races = await fetchRacesFromApi(date, controller.signal);
-      clearTimeout(timeout);
+      // Fetch all runners for the date
+      const { data: races, error: racesError } = await supabase
+        .from('races')
+        .select('id, runners(horse_id, horse)')
+        .eq('date', date);
+
+      if (racesError) throw racesError;
+
+      // Collect all unique horses
+      const horses = new Set<HorseData>();
+      races?.forEach(race => {
+        race.runners?.forEach((runner: any) => {
+          if (runner.horse_id && runner.horse) {
+            horses.add({ horseId: runner.horse_id, horseName: runner.horse });
+          }
+        });
+      });
+
+      const uniqueHorses = Array.from(horses);
+      stats.totalHorses = uniqueHorses.length;
+      console.log(`Found ${stats.totalHorses} unique horses to process`);
+
+      // Update job with initial stats
+      await supabase
+        .from('import_jobs')
+        .update({
+          summary: stats
+        })
+        .eq('id', job.id);
+
+      // Process horses in batches
+      const batches = splitIntoBatches(uniqueHorses, BATCH_SIZE);
       
-      stats.totalRaces = races.length;
-      console.log(`Found ${races.length} races to process`);
-
-      if (!races.length) {
-        await jobManager.complete(stats);
-        return new Response(
-          JSON.stringify({ success: true, jobId: job.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Process races in batches
-      for (let i = 0; i < races.length; i += BATCH_SIZE) {
-        const batch = races.slice(i, i + BATCH_SIZE);
-        await processRaceBatch(batch, supabase, stats, job.id);
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        console.log(`Processing batch ${i + 1} of ${batches.length}`);
         
-        // Update progress
-        const progress = Math.round(((i + batch.length) / races.length) * 100);
-        await jobManager.updateProgress(progress, stats);
+        await processHorseBatch(supabase, batch, stats);
         
+        // Update progress after each batch
+        const progress = Math.round(((i + 1) / batches.length) * 100);
+        await supabase
+          .from('import_jobs')
+          .update({
+            progress,
+            summary: stats
+          })
+          .eq('id', job.id);
+
         // Add delay between batches
-        if (i + BATCH_SIZE < races.length) {
+        if (i < batches.length - 1) {
           await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
         }
       }
 
-      await jobManager.complete(stats);
+      // Mark job as completed
+      await supabase
+        .from('import_jobs')
+        .update({
+          status: 'completed',
+          progress: 100,
+          summary: stats
+        })
+        .eq('id', job.id);
 
       return new Response(
         JSON.stringify({ 
@@ -115,8 +133,18 @@ serve(async (req) => {
       );
 
     } catch (error) {
-      clearTimeout(timeout);
-      await jobManager.fail(error, stats);
+      console.error('Error:', error);
+      
+      // Update job with error status
+      await supabase
+        .from('import_jobs')
+        .update({
+          status: 'failed',
+          error: error.message,
+          summary: stats
+        })
+        .eq('id', job.id);
+
       throw error;
     }
 
