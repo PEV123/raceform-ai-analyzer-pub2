@@ -7,6 +7,10 @@ type Race = Tables<"races"> & {
   runners: Tables<"runners">[];
 };
 
+interface FetchRaceResultsParams {
+  raceId: string;
+}
+
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -16,7 +20,7 @@ export const useImportRaceResultsMutation = () => {
       console.log('Importing race results for:', race);
 
       const { error: importError } = await supabase
-        .functions.invoke('fetch-race-results', {
+        .functions.invoke<void, FetchRaceResultsParams>('fetch-race-results', {
           body: { raceId: race.id }
         });
 
@@ -28,7 +32,7 @@ export const useImportRaceResultsMutation = () => {
       // Move race to historical races
       const { error: moveError } = await supabase
         .rpc('move_race_to_historical', {
-          p_race_id: race.id // Changed from race_id to p_race_id to match the stored procedure
+          p_race_id: race.id
         });
 
       if (moveError) {
