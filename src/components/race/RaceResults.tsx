@@ -20,16 +20,23 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
     return posA - posB;
   });
 
-  // Calculate cumulative distances
+  // Calculate cumulative distances with enhanced spacing for the winner
   const runnersWithCumulative = sortedRunners.map((runner, index) => {
     let cumulativeDistance = 0;
     if (index > 0) {
-      // Sum up all the distances of previous horses
-      for (let i = 1; i <= index; i++) {
-        const prevRunner = sortedRunners[i];
-        const distance = parseFloat(prevRunner.btn || "0");
-        if (!isNaN(distance)) {
-          cumulativeDistance += distance;
+      // Double the distance between first and second
+      if (index === 1) {
+        const distance = parseFloat(runner.btn || "0") * 2; // Double the actual distance
+        cumulativeDistance = distance;
+      } else {
+        // For subsequent horses, add up all previous distances
+        for (let i = 1; i <= index; i++) {
+          const prevRunner = sortedRunners[i];
+          const distance = parseFloat(prevRunner.btn || "0");
+          if (!isNaN(distance)) {
+            // Only double the first gap
+            cumulativeDistance += (i === 1) ? distance * 2 : distance;
+          }
         }
       }
     }
@@ -42,7 +49,6 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
   );
 
   // Scale factor to ensure horses don't go off screen (80% of container width)
-  // Adjusted to make distances more noticeable
   const scaleFactor = 80 / (maxCumulativeDistance || 1);
 
   return (
@@ -110,7 +116,7 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
                   className="w-12 h-12"
                 >
                   <HorseHead 
-                    className="w-full h-full text-accent transform scale-x-[-1]" // Flip the horse head
+                    className="w-full h-full text-accent transform scale-x-[-1]"
                   />
                 </motion.div>
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
