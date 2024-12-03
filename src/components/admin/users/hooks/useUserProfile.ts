@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileData } from "../profile/types";
+import type { Tables } from "@/integrations/supabase/types";
+
+type ProfileWithUser = Tables<'profiles'> & {
+  users: {
+    email: string;
+  };
+};
 
 export const useUserProfile = (userId: string) => {
   return useQuery({
@@ -21,9 +28,10 @@ export const useUserProfile = (userId: string) => {
 
       if (profile) {
         console.log("Found existing profile:", profile);
+        const typedProfile = profile as ProfileWithUser;
         return {
-          ...profile,
-          email: profile.users?.email
+          ...typedProfile,
+          email: typedProfile.users?.email
         } as ProfileData;
       }
 
@@ -44,9 +52,10 @@ export const useUserProfile = (userId: string) => {
       }
 
       console.log("Created new profile:", newProfile);
+      const typedNewProfile = newProfile as ProfileWithUser;
       return {
-        ...newProfile,
-        email: newProfile.users?.email
+        ...typedNewProfile,
+        email: typedNewProfile.users?.email
       } as ProfileData;
     },
   });
