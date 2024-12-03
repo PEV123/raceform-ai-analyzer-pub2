@@ -7,21 +7,27 @@ const RACING_API_BASE_URL = 'https://api.theracingapi.com/v1'
 export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
   console.log('Making request to Racing API for date:', date)
   
-  // First, fetch from racecards/pro endpoint
+  // Construct the API URL for racecards/pro endpoint
   const apiUrl = `${RACING_API_BASE_URL}/racecards/pro?date=${date}`
-  console.log('API URL:', apiUrl)
+  console.log('Full API URL:', apiUrl)
+  console.log('Using credentials:', { username: RACING_API_USERNAME?.slice(0,3) + '***' })
   
   try {
+    const authHeader = btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`);
+    console.log('Auth header created (first 10 chars):', authHeader.slice(0, 10) + '***')
+    
     const response = await fetch(
       apiUrl,
       {
         headers: {
-          'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
+          'Authorization': `Basic ${authHeader}`,
           'Accept': 'application/json'
         }
       }
     )
 
+    console.log('API Response status:', response.status)
+    
     if (!response.ok) {
       const errorText = await response.text()
       console.error('API Error Response:', {
@@ -33,7 +39,12 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
     }
 
     const data = await response.json()
-    console.log('Raw API Response:', JSON.stringify(data, null, 2))
+    console.log('Raw API Response structure:', {
+      hasRacecards: !!data.racecards,
+      isArray: Array.isArray(data),
+      keys: Object.keys(data),
+      raceCount: Array.isArray(data.racecards) ? data.racecards.length : 'N/A'
+    })
     
     // Handle empty response
     if (!data) {
