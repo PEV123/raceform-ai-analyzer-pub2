@@ -3,7 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ProfileData } from "../profile/types";
 import type { Tables } from "@/integrations/supabase/types";
 
-type ProfileWithUser = Tables<'profiles'> & {
+type ProfileWithUser = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  membership_level: string;
+  subscription_status: string;
+  phone: string | null;
+  company: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  postal_code: string | null;
+  notes: string | null;
+  last_login: string | null;
+  is_admin: boolean;
   users: {
     email: string;
   };
@@ -28,10 +42,9 @@ export const useUserProfile = (userId: string) => {
 
       if (profile) {
         console.log("Found existing profile:", profile);
-        const typedProfile = profile as ProfileWithUser;
         return {
-          ...typedProfile,
-          email: typedProfile.users?.email
+          ...profile,
+          email: (profile as unknown as ProfileWithUser).users?.email
         } as ProfileData;
       }
 
@@ -52,10 +65,9 @@ export const useUserProfile = (userId: string) => {
       }
 
       console.log("Created new profile:", newProfile);
-      const typedNewProfile = newProfile as ProfileWithUser;
       return {
-        ...typedNewProfile,
-        email: typedNewProfile.users?.email
+        ...newProfile,
+        email: (newProfile as unknown as ProfileWithUser).users?.email
       } as ProfileData;
     },
   });
