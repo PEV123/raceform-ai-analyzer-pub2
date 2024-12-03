@@ -1,16 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processRaceBatch } from "./raceProcessing.ts";
+import { fetchRacesFromApi } from "./apiClient.ts";
+import { JobManager } from "./jobManager.ts";
+import { ImportStats } from "./types.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reduced batch size to prevent resource exhaustion
 const BATCH_SIZE = 2;
-const FUNCTION_TIMEOUT = 540000; // 9 minutes (Supabase edge function max is 10 minutes)
-const API_TIMEOUT = 30000; // 30 seconds for initial API call
+const API_TIMEOUT = 30000; // 30 seconds
+const BATCH_DELAY = 2000; // 2 seconds between batches
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,7 +29,7 @@ serve(async (req) => {
     );
 
     // Initialize stats
-    const stats = {
+    const stats: ImportStats = {
       totalRaces: 0,
       successfulRaces: 0,
       failedRaces: 0,
@@ -43,7 +45,7 @@ serve(async (req) => {
       }
     };
 
-    // Create a job record
+    // Create job record
     const { data: job, error: jobError } = await supabase
       .from('import_jobs')
       .insert({
@@ -60,121 +62,47 @@ serve(async (req) => {
       throw jobError;
     }
 
-    // Validate API configuration
-    let apiUrl = Deno.env.get('RACING_API_URL');
-    if (!apiUrl) throw new Error('RACING_API_URL not configured');
-    
-    apiUrl = apiUrl.replace(/\/$/, '');
-    if (!apiUrl.endsWith('/v1')) apiUrl = `${apiUrl}/v1`;
-
-    const apiUsername = Deno.env.get('RACING_API_USERNAME');
-    const apiPassword = Deno.env.get('RACING_API_PASSWORD');
-    if (!apiUsername || !apiPassword) {
-      throw new Error('Racing API credentials not configured');
-    }
+    const jobManager = new JobManager(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      job.id
+    );
 
     // Set up timeout handler for API call
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), API_TIMEOUT);
 
     try {
-      console.log(`Fetching races from API for date ${date}`);
-      const response = await fetch(
-        `${apiUrl}/racecards/pro?date=${date}`,
-        {
-          headers: {
-            'Authorization': `Basic ${btoa(`${apiUsername}:${apiPassword}`)}`,
-            'Accept': 'application/json'
-          },
-          signal: controller.signal
-        }
-      );
-
+      const races = await fetchRacesFromApi(date, controller.signal);
       clearTimeout(timeout);
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${await response.text()}`);
-      }
-
-      const data = await response.json();
-      const races = data.racecards || data.data?.racecards || [];
+      
       stats.totalRaces = races.length;
-
       console.log(`Found ${races.length} races to process`);
 
       if (!races.length) {
-        await supabase
-          .from('import_jobs')
-          .update({ 
-            status: 'completed',
-            progress: 100,
-            summary: stats
-          })
-          .eq('id', job.id);
-
+        await jobManager.complete(stats);
         return new Response(
           JSON.stringify({ success: true, jobId: job.id }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Start a timer for overall function execution
-      const functionStart = Date.now();
-
-      // Process races in smaller batches with delays between batches
+      // Process races in batches
       for (let i = 0; i < races.length; i += BATCH_SIZE) {
-        // Check if we're approaching the timeout
-        if (Date.now() - functionStart > FUNCTION_TIMEOUT - 30000) { // Leave 30s buffer
-          console.log('Approaching function timeout, updating progress and exiting');
-          const progress = Math.round((i / races.length) * 100);
-          await supabase
-            .from('import_jobs')
-            .update({ 
-              status: 'incomplete',
-              progress,
-              summary: stats,
-              error: 'Function timeout reached - partial import completed'
-            })
-            .eq('id', job.id);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              jobId: job.id,
-              status: 'incomplete',
-              progress,
-              summary: stats
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
         const batch = races.slice(i, i + BATCH_SIZE);
         await processRaceBatch(batch, supabase, stats, job.id);
         
-        // Update progress after each batch
+        // Update progress
         const progress = Math.round(((i + batch.length) / races.length) * 100);
-        await supabase
-          .from('import_jobs')
-          .update({ 
-            progress,
-            summary: stats
-          })
-          .eq('id', job.id);
+        await jobManager.updateProgress(progress, stats);
         
         // Add delay between batches
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (i + BATCH_SIZE < races.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+        }
       }
 
-      // Mark job as completed
-      await supabase
-        .from('import_jobs')
-        .update({ 
-          status: 'completed',
-          progress: 100,
-          summary: stats
-        })
-        .eq('id', job.id);
+      await jobManager.complete(stats);
 
       return new Response(
         JSON.stringify({ 
@@ -187,6 +115,7 @@ serve(async (req) => {
 
     } catch (error) {
       clearTimeout(timeout);
+      await jobManager.fail(error, stats);
       throw error;
     }
 
