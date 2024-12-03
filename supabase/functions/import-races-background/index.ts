@@ -20,11 +20,19 @@ serve(async (req) => {
     const { date } = await req.json()
     console.log('Starting background import for date:', date)
 
-    // Validate required environment variables
-    const apiUrl = Deno.env.get('RACING_API_URL')
+    // Validate and format API URL
+    let apiUrl = Deno.env.get('RACING_API_URL')
     if (!apiUrl) {
       throw new Error('RACING_API_URL environment variable is not set')
     }
+    
+    // Remove trailing slash if present
+    apiUrl = apiUrl.replace(/\/$/, '')
+    // Add /v1 if not present
+    if (!apiUrl.endsWith('/v1')) {
+      apiUrl = `${apiUrl}/v1`
+    }
+    console.log('Using API URL:', apiUrl)
 
     const apiUsername = Deno.env.get('RACING_API_USERNAME')
     const apiPassword = Deno.env.get('RACING_API_PASSWORD')
@@ -57,7 +65,7 @@ serve(async (req) => {
     console.log('Created import job:', job.id)
 
     // Fetch races from API
-    const raceUrl = `${apiUrl}/races?date=${date}`
+    const raceUrl = `${apiUrl}/racecards/pro?date=${date}`
     console.log('Fetching races from:', raceUrl)
     
     const response = await fetch(
@@ -66,7 +74,8 @@ serve(async (req) => {
         headers: {
           'Authorization': `Basic ${btoa(
             `${apiUsername}:${apiPassword}`
-          )}`
+          )}`,
+          'Accept': 'application/json'
         }
       }
     )
@@ -75,10 +84,12 @@ serve(async (req) => {
       throw new Error(`API request failed with status ${response.status}: ${await response.text()}`)
     }
 
-    const { races } = await response.json()
-    console.log(`Found ${races?.length || 0} races to process`)
-
-    if (!races || races.length === 0) {
+    const data = await response.json()
+    console.log('Raw API Response:', JSON.stringify(data, null, 2))
+    
+    // Handle empty response
+    if (!data) {
+      console.log('No data returned from API')
       await supabase
         .from('import_jobs')
         .update({ 
@@ -95,6 +106,35 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // The API returns racecards directly or nested in data
+    let races = []
+    if (data.racecards && Array.isArray(data.racecards)) {
+      console.log('Found races in data.racecards')
+      races = data.racecards
+    } else if (data.data?.racecards && Array.isArray(data.data.racecards)) {
+      console.log('Found races in data.data.racecards')
+      races = data.data.racecards
+    } else {
+      console.log('No valid races array found in response')
+      await supabase
+        .from('import_jobs')
+        .update({ 
+          status: 'completed',
+          progress: 100,
+          summary: {
+            message: 'No races found in API response'
+          }
+        })
+        .eq('id', job.id)
+
+      return new Response(
+        JSON.stringify({ success: true, jobId: job.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Found ${races.length} races to process`)
 
     // Process races in batches
     for (let i = 0; i < races.length; i += BATCH_SIZE) {
