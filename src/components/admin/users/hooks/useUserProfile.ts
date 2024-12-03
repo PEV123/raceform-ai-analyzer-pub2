@@ -17,7 +17,10 @@ export const useUserProfile = (userId: string) => {
       
       const { data: profile, error: fetchError } = await supabase
         .from("profiles")
-        .select("*, users:auth.users!inner(email)")
+        .select(`
+          *,
+          users:auth.users(email)
+        `)
         .eq("id", userId)
         .single();
 
@@ -56,7 +59,10 @@ export const useUserProfile = (userId: string) => {
           membership_level: "free",
           subscription_status: "active",
         })
-        .select("*, users:auth.users!inner(email)")
+        .select(`
+          *,
+          users:auth.users(email)
+        `)
         .single();
 
       if (createError) {
