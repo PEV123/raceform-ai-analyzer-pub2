@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from "../_shared/cors.ts"
-import { getSupabaseClient, insertRace, insertRunner, insertHorseResult } from "./db.ts"
-import { fetchRacesFromApi, fetchHorseResults } from "./api.ts"
-import { Race } from "./types.ts"
+import { getSupabaseClient } from "./db.ts"
+import { fetchRacesFromApi } from "./api.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -10,8 +9,8 @@ serve(async (req) => {
   }
 
   try {
-    const { date, timezone } = await req.json()
-    console.log('Fetching races for date:', date, 'in timezone:', timezone)
+    const { date } = await req.json()
+    console.log('Received request with date:', date)
 
     if (!date) {
       throw new Error('Date parameter is required')
@@ -21,7 +20,7 @@ serve(async (req) => {
     
     try {
       const { races } = await fetchRacesFromApi(date)
-      console.log(`Processing ${races.length} races from API`)
+      console.log(`Processing ${races?.length || 0} races from API`)
       
       if (!Array.isArray(races) || races.length === 0) {
         console.log('No races found for date:', date)
@@ -29,8 +28,7 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true,
             races: [],
-            message: 'No races found for the specified date',
-            timezone 
+            message: 'No races found for the specified date'
           }),
           { 
             headers: { 
@@ -40,12 +38,12 @@ serve(async (req) => {
           }
         )
       }
-      
-      const processedRaces: (Race & { status: string; error?: string })[] = []
+
+      const processedRaces = []
       
       for (const race of races) {
         console.log(`Processing race at ${race.course} - ${race.off_time}`)
-
+        
         try {
           // Check if race already exists
           const { data: existingRace } = await supabase
@@ -60,11 +58,27 @@ serve(async (req) => {
             continue
           }
 
-          // Insert race
-          const raceData = await insertRace(supabase, race)
-          console.log(`Successfully inserted race: ${raceData.id}`)
+          // Ensure proper datetime format for off_time
+          const raceData = {
+            ...race,
+            off_time: new Date(race.off_time).toISOString()
+          }
 
-          // Process runners
+          // Insert race
+          const { data: insertedRace, error: insertError } = await supabase
+            .from("races")
+            .insert(raceData)
+            .select()
+            .single()
+
+          if (insertError) {
+            console.error('Error inserting race:', insertError)
+            throw insertError
+          }
+
+          console.log(`Successfully inserted race: ${insertedRace.id}`)
+
+          // Process runners if available
           if (race.runners && Array.isArray(race.runners)) {
             for (const runner of race.runners) {
               if (!runner.horse_id || !runner.horse) {
@@ -72,27 +86,35 @@ serve(async (req) => {
                 continue
               }
 
-              await insertRunner(supabase, raceData.id, runner)
+              const runnerData = {
+                race_id: insertedRace.id,
+                horse_id: runner.horse_id,
+                number: parseInt(runner.number) || null,
+                draw: parseInt(runner.draw) || null,
+                horse: runner.horse,
+                silk_url: runner.silk_url,
+                sire: runner.sire,
+                sire_region: runner.sire_region,
+                dam: runner.dam,
+                dam_region: runner.dam_region,
+                form: runner.form,
+                lbs: parseInt(runner.lbs) || null,
+                headgear: runner.headgear,
+                ofr: runner.ofr,
+                ts: runner.ts,
+                jockey: runner.jockey,
+                trainer: runner.trainer,
+                odds: runner.odds || [],
+                is_non_runner: runner.is_non_runner || false
+              }
 
-              // Fetch and insert historical results
-              const resultsData = await fetchHorseResults(runner.horse_id)
-              if (resultsData?.results) {
-                for (const result of resultsData.results) {
-                  try {
-                    const { data: existingResult } = await supabase
-                      .from('horse_results')
-                      .select()
-                      .eq('horse_id', runner.horse_id)
-                      .eq('race_id', result.race_id)
-                      .single()
+              const { error: runnerError } = await supabase
+                .from("runners")
+                .insert(runnerData)
 
-                    if (!existingResult) {
-                      await insertHorseResult(supabase, runner.horse_id, result)
-                    }
-                  } catch (error) {
-                    console.error(`Error processing result for horse ${runner.horse_id}:`, error)
-                  }
-                }
+              if (runnerError) {
+                console.error(`Error inserting runner ${runner.horse_id}:`, runnerError)
+                continue
               }
             }
           }
@@ -118,8 +140,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true,
-          races: processedRaces,
-          timezone 
+          races: processedRaces
         }),
         { 
           headers: { 

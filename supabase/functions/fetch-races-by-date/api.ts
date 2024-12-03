@@ -67,31 +67,3 @@ export const fetchRacesFromApi = async (date: string): Promise<ApiResponse> => {
     throw error
   }
 }
-
-export const fetchHorseResults = async (horseId: string) => {
-  console.log('Fetching historical results for horse:', horseId)
-  
-  try {
-    const response = await fetch(
-      `https://api.theracingapi.com/v1/horses/${horseId}/results`,
-      {
-        headers: {
-          'Authorization': `Basic ${btoa(`${RACING_API_USERNAME}:${RACING_API_PASSWORD}`)}`,
-          'Accept': 'application/json'
-        }
-      }
-    )
-
-    if (!response.ok) {
-      console.error('Error fetching horse results:', response.statusText)
-      return null
-    }
-
-    const data = await response.json()
-    console.log(`Fetched ${data.results?.length || 0} results for horse:`, horseId)
-    return data
-  } catch (error) {
-    console.error(`Error fetching results for horse ${horseId}:`, error)
-    return null
-  }
-}
