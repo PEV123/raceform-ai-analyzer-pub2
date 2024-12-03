@@ -1,17 +1,15 @@
-import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatInTimeZone } from 'date-fns-tz';
-import { DetailedHorseForm } from "./DetailedHorseForm";
-import { RaceDistanceComparison } from "./RaceDistanceComparison";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { RaceHeader } from "./RaceHeader";
 import { RunnersList } from "./RunnersList";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { RaceResults } from "./RaceResults";
 import { Tables } from "@/integrations/supabase/types";
+import { RaceDistanceComparison } from "./RaceDistanceComparison";
+import { DetailedHorseForm } from "./DetailedHorseForm";
 
 interface RaceCardProps {
   race: any;
@@ -19,7 +17,7 @@ interface RaceCardProps {
 
 export const RaceCard = ({ race }: RaceCardProps) => {
   const navigate = useNavigate();
-  
+
   const { data: settings } = useQuery({
     queryKey: ["adminSettings"],
     queryFn: async () => {
@@ -80,25 +78,33 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     retry: 2
   });
 
-  // Add query for race results
+  // Query for race results - modified to handle no results case
   const { data: raceResult } = useQuery({
     queryKey: ['race-result', race.id],
     queryFn: async () => {
+      console.log('Fetching race results for race:', race.id);
+      
       const { data, error } = await supabase
         .from('race_results')
         .select(`
           *,
           runner_results (*)
         `)
-        .eq('race_id', race.id)
-        .single();
+        .eq('race_id', race.id);
 
       if (error) {
         console.error('Error fetching race result:', error);
         return null;
       }
+
+      // If we have results, return the first one
+      if (data && data.length > 0) {
+        console.log('Found race results:', data[0]);
+        return data[0];
+      }
       
-      return data;
+      console.log('No race results found');
+      return null;
     }
   });
 
@@ -110,12 +116,6 @@ export const RaceCard = ({ race }: RaceCardProps) => {
     return distanceAnalyses?.find(analysis => analysis.horse_id === horseId);
   };
 
-  const timezone = settings?.timezone || 'Europe/London';
-  const raceTime = formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm');
-
-  // Sort runners by number
-  const sortedRunners = [...(race.runners || [])].sort((a, b) => a.number - b.number);
-
   if (historicalError || analysesError) {
     return (
       <Alert variant="destructive">
@@ -126,6 +126,9 @@ export const RaceCard = ({ race }: RaceCardProps) => {
       </Alert>
     );
   }
+
+  // Sort runners by number
+  const sortedRunners = [...(race.runners || [])].sort((a, b) => a.number - b.number);
 
   return (
     <Card className="p-6 mb-6">
