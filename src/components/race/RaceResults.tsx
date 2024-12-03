@@ -1,8 +1,9 @@
 import { Tables } from "@/integrations/supabase/types";
 import { Card } from "@/components/ui/card";
-import { motion } from "framer-motion";
-import { HorseHead } from "@/components/icons/HorseHead";
-import { Flag } from "lucide-react";
+import { RaceResultsHeader } from "./results/RaceResultsHeader";
+import { FinishingPost } from "./results/FinishingPost";
+import { RunnerPosition } from "./results/RunnerPosition";
+import { ToteResults } from "./results/ToteResults";
 
 interface RaceResultsProps {
   raceResult: Tables<"race_results"> & {
@@ -13,6 +14,7 @@ interface RaceResultsProps {
 export const RaceResults = ({ raceResult }: RaceResultsProps) => {
   if (!raceResult) return null;
 
+  // Sort runners by position
   const sortedRunners = raceResult.runner_results?.sort((a, b) => {
     // Handle non-finishers (PU, etc) by placing them at the end
     const posA = parseInt(a.position) || 999;
@@ -47,24 +49,16 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
 
   return (
     <Card className="p-4 mb-4 bg-gradient-to-br from-secondary/5 to-accent/5">
-      <h3 className="text-2xl font-bold mb-4 text-primary">Race Result</h3>
-      
-      <div className="grid grid-cols-2 gap-8 mb-6">
-        <div className="space-y-1">
-          <p className="font-medium">Winning Time: <span className="text-secondary">{raceResult.winning_time_detail}</span></p>
-          <p className="font-medium">Going: <span className="text-secondary">{raceResult.going}</span></p>
-        </div>
-        <div className="space-y-1 text-right">
-          <p className="font-medium">Tote Win: <span className="text-success">{raceResult.tote_win}</span></p>
-          <p className="font-medium">Places: <span className="text-success">{raceResult.tote_pl}</span></p>
-        </div>
-      </div>
+      <RaceResultsHeader 
+        winningTime={raceResult.winning_time_detail || '--'}
+        going={raceResult.going || '--'}
+        toteWin={raceResult.tote_win || '--'}
+        totePlaces={raceResult.tote_pl || '--'}
+      />
 
       {/* Visual representation of finishing positions */}
       <div className="relative h-[400px] mb-8 overflow-hidden border border-accent/20 rounded-lg bg-white/50 p-4">
-        {/* Finishing Line */}
-        <div className="absolute left-20 top-0 bottom-0 border-l-2 border-dashed border-accent/30" />
-        <Flag className="absolute left-16 top-2 text-accent w-8 h-8" />
+        <FinishingPost />
         
         {runnersWithCumulative.map((runner, index) => {
           const position = parseInt(runner.position);
@@ -77,55 +71,15 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
             : runner.cumulativeDistance * scaleFactor;
           
           return (
-            <motion.div
+            <RunnerPosition
               key={runner.id}
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ 
-                x: xPosition,
-                opacity: 1 
-              }}
-              transition={{ 
-                duration: 1,
-                delay: index * 0.2,
-                type: "spring",
-                stiffness: 50
-              }}
-              className="absolute flex items-center gap-2"
-              style={{ 
-                top: `${index * 60 + 20}px`,
-                left: 20 // Starting position
-              }}
-            >
-              <div className="relative">
-                <motion.div
-                  animate={{
-                    y: [0, -5, 0],
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    delay: index * 0.1,
-                  }}
-                  className="w-12 h-12"
-                >
-                  <HorseHead 
-                    className="w-full h-full text-accent transform scale-x-[-1]"
-                  />
-                </motion.div>
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
-                  {position}
-                </div>
-              </div>
-              <div className="bg-white/90 backdrop-blur-sm shadow-lg rounded-lg p-2 min-w-[200px]">
-                <div className="font-medium text-primary">{runner.horse}</div>
-                <div className="text-xs text-muted-foreground">
-                  {runner.cumulativeDistance > 0 
-                    ? `${runner.cumulativeDistance.toFixed(1)}L behind winner` 
-                    : 'Winner'}
-                </div>
-              </div>
-            </motion.div>
+              position={runner.position}
+              horse={runner.horse}
+              cumulativeDistance={runner.cumulativeDistance}
+              xPosition={xPosition}
+              index={index}
+              isWinner={index === 0}
+            />
           );
         })}
       </div>
@@ -162,14 +116,12 @@ export const RaceResults = ({ raceResult }: RaceResultsProps) => {
         ))}
       </div>
 
-      {raceResult.tote_ex && (
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-1 text-sm">
-          <p><span className="font-medium">Exacta:</span> {raceResult.tote_ex}</p>
-          {raceResult.tote_csf && <p><span className="font-medium">CSF:</span> {raceResult.tote_csf}</p>}
-          {raceResult.tote_tricast && <p><span className="font-medium">Tricast:</span> {raceResult.tote_tricast}</p>}
-          {raceResult.tote_trifecta && <p><span className="font-medium">Trifecta:</span> {raceResult.tote_trifecta}</p>}
-        </div>
-      )}
+      <ToteResults 
+        toteEx={raceResult.tote_ex}
+        toteCSF={raceResult.tote_csf}
+        toteTricast={raceResult.tote_tricast}
+        toteTrifecta={raceResult.tote_trifecta}
+      />
     </Card>
   );
 };
