@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { usePageTracking } from "@/hooks/usePageTracking";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/navigation-menu";
 import { AppSidebar, MobileNav } from "./AppSidebar";
 import { TextLogo } from "../brand/TextLogo";
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useToast } from "@/components/ui/use-toast";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -18,6 +20,28 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
   usePageTracking();
+  const session = useSession();
+  const supabase = useSupabaseClient();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -52,9 +76,18 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <Link to="/login" className={navigationMenuTriggerStyle()}>
-                    Login
-                  </Link>
+                  {session ? (
+                    <button 
+                      onClick={handleLogout}
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      Logout
+                    </button>
+                  ) : (
+                    <Link to="/login" className={navigationMenuTriggerStyle()}>
+                      Login
+                    </Link>
+                  )}
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
