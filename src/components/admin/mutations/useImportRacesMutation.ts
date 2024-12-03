@@ -3,11 +3,29 @@ import { useToast } from "@/hooks/use-toast";
 import { processRace, processRunners } from "@/services/race";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ImportRacesParams {
+  date: Date;
+  onProgress?: (progress: number, operation: string) => void;
+  onUpdateSummary?: (summary: any) => void;
+}
+
 export const useImportRacesMutation = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (races: any[]) => {
+    mutationFn: async ({ date, onProgress, onUpdateSummary }: ImportRacesParams) => {
+      console.log('Importing races for date:', date);
+      
+      const { data: races, error: fetchError } = await supabase
+        .from("races")
+        .select("*")
+        .eq("date", date.toISOString().split('T')[0]);
+
+      if (fetchError) {
+        console.error("Error fetching races:", fetchError);
+        throw fetchError;
+      }
+
       for (const race of races) {
         const processedRace = await processRace(race);
         await processRunners(processedRace.id, race.runners);
