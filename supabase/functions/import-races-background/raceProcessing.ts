@@ -13,19 +13,19 @@ export const processRaceBatch = async (
       console.log(`Processing race at ${race.course}`);
       
       // Check if race already exists using race_id
-      const { data: existingRace, error: checkError } = await supabase
+      const { data: existingRaces, error: checkError } = await supabase
         .from("races")
         .select("id, race_id")
-        .eq("race_id", race.race_id)
-        .single();
+        .eq("race_id", race.race_id);
 
-      if (checkError && !checkError.message.includes('No rows found')) {
+      if (checkError) {
         console.error(`Error checking existing race:`, checkError);
         stats.failedRaces++;
         continue;
       }
 
-      if (existingRace) {
+      // If we found any existing races with this race_id, skip it
+      if (existingRaces && existingRaces.length > 0) {
         console.log(`Race ${race.race_id} already exists, skipping`);
         continue;
       }
