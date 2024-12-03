@@ -15,6 +15,7 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
     throw new Error('Race ID is required for importing results');
   }
 
+  console.log('=== START: Import Race Results ===');
   console.log('Importing results for race:', {
     raceId: race.id,
     raceApiId: race.race_id,
@@ -35,40 +36,60 @@ export const importRaceResults = async (race: Race): Promise<Race> => {
     throw importError;
   }
 
-  console.log('Successfully imported race results:', data);
+  console.log('=== SUCCESS: Race Results Import ===');
+  console.log('Results data structure:', {
+    hasData: !!data,
+    dataType: typeof data,
+    dataKeys: data ? Object.keys(data) : 'no data'
+  });
 
-  // Debug log to check the race.id value and type
-  console.log('Moving race to historical - Debug info:', {
-    raceId: race.id,
-    raceIdType: typeof race.id,
-    race: race
+  console.log('=== START: Move Race to Historical ===');
+  console.log('Race object structure:', {
+    id: race.id,
+    idType: typeof race.id,
+    hasId: !!race.id,
+    isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(race.id)
   });
 
   try {
-    // Explicitly type the RPC call
-    const { data: moveData, error: moveError } = await supabase
-      .rpc<MoveRaceResponse, MoveRaceParams>(
-        'move_race_to_historical',
-        { p_race_id: race.id }
-      );
+    console.log('Attempting RPC call with params:', {
+      functionName: 'move_race_to_historical',
+      params: { p_race_id: race.id }
+    });
 
-    console.log('Move race response:', { moveData, moveError });
+    const { data: moveData, error: moveError } = await supabase
+      .rpc('move_race_to_historical', {
+        p_race_id: race.id
+      });
 
     if (moveError) {
-      console.error('Error moving race to historical:', moveError);
+      console.error('=== ERROR: Move Race Failed ===');
+      console.error('Move race error details:', {
+        error: moveError,
+        errorMessage: moveError.message,
+        errorCode: moveError.code,
+        params: { p_race_id: race.id }
+      });
       throw moveError;
     }
 
-    console.log('Successfully moved race to historical races:', {
+    console.log('=== SUCCESS: Move Race Complete ===');
+    console.log('Move operation result:', {
+      success: !!moveData,
+      response: moveData,
       raceId: race.id,
       raceApiId: race.race_id,
-      course: race.course,
-      moveResponse: moveData
+      course: race.course
     });
 
     return race;
   } catch (error) {
-    console.error('Caught error in move_race_to_historical:', error);
+    console.error('=== ERROR: Unexpected Error in Move Race ===');
+    console.error('Caught error details:', {
+      error,
+      errorType: error instanceof Error ? 'Error object' : typeof error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    });
     throw error;
   }
 };
