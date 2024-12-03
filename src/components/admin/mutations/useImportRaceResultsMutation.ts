@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 
-// Use a more specific type that includes only the fields we need
-type ImportableRace = Pick<Tables<"races">, "id" | "race_id" | "course" | "off_time"> & {
-  runners?: Array<Pick<Tables<"runners">, "horse_id" | "horse">>;
+type Race = Tables<"races"> & {
+  race_documents: Tables<"race_documents">[];
+  runners: Tables<"runners">[];
 };
 
 interface FetchRaceResultsResponse {
@@ -19,7 +19,7 @@ export const useImportRaceResultsMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (race: ImportableRace) => {
+    mutationFn: async (race: Race) => {
       console.log('Starting race results import for:', {
         raceId: race.id,
         raceApiId: race.race_id,
