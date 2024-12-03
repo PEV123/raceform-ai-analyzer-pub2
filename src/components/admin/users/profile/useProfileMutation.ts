@@ -13,10 +13,18 @@ export const useProfileMutation = (userId: string, onSuccess?: () => void) => {
       console.log("Starting profile update for user:", userId);
       console.log("Update payload:", updatedProfile);
 
+      // Ensure membership_level is not null if it exists in the form
+      const payload = {
+        ...updatedProfile,
+        membership_level: updatedProfile.membership_level || 'free',
+        subscription_status: updatedProfile.subscription_status || 'active',
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase.functions.invoke('update-profile', {
         body: {
           id: userId,
-          ...updatedProfile
+          ...payload
         }
       });
 

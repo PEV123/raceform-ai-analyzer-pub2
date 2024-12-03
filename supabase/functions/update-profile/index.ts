@@ -14,6 +14,7 @@ interface ProfileUpdatePayload {
   country?: string | null
   postal_code?: string | null
   notes?: string | null
+  updated_at: string
 }
 
 Deno.serve(async (req) => {
@@ -36,9 +37,11 @@ Deno.serve(async (req) => {
     const payload = await req.json() as ProfileUpdatePayload
     console.log('Received update payload:', payload)
 
-    // Prepare update data with timestamp
+    // Ensure required fields have default values
     const updateData = {
       ...payload,
+      membership_level: payload.membership_level || 'free',
+      subscription_status: payload.subscription_status || 'active',
       updated_at: new Date().toISOString(),
     }
     delete updateData.id // Remove id from update payload

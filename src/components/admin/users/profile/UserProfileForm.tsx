@@ -34,11 +34,18 @@ export const UserProfileForm = ({
       notes: profile.notes || "",
       last_login: profile.last_login || null,
       is_admin: profile.is_admin || false,
+      updated_at: profile.updated_at,
     },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    // Ensure we get all form values, even if they're empty strings
+    const formValues = Object.fromEntries(formData.entries());
+    console.log("Form values before submit:", formValues);
+    
     onSubmit(e);
   };
 
