@@ -9,7 +9,8 @@ const corsHeaders = {
 
 // Reduced batch size to prevent resource exhaustion
 const BATCH_SIZE = 2;
-const FUNCTION_TIMEOUT = 25000; // 25 seconds
+const FUNCTION_TIMEOUT = 540000; // 9 minutes (Supabase edge function max is 10 minutes)
+const API_TIMEOUT = 30000; // 30 seconds for initial API call
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -72,11 +73,12 @@ serve(async (req) => {
       throw new Error('Racing API credentials not configured');
     }
 
-    // Set up timeout handler
+    // Set up timeout handler for API call
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FUNCTION_TIMEOUT);
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT);
 
     try {
+      console.log(`Fetching races from API for date ${date}`);
       const response = await fetch(
         `${apiUrl}/racecards/pro?date=${date}`,
         {
@@ -98,6 +100,8 @@ serve(async (req) => {
       const races = data.racecards || data.data?.racecards || [];
       stats.totalRaces = races.length;
 
+      console.log(`Found ${races.length} races to process`);
+
       if (!races.length) {
         await supabase
           .from('import_jobs')
@@ -114,10 +118,37 @@ serve(async (req) => {
         );
       }
 
-      console.log(`Processing ${races.length} races in batches of ${BATCH_SIZE}`);
+      // Start a timer for overall function execution
+      const functionStart = Date.now();
 
       // Process races in smaller batches with delays between batches
       for (let i = 0; i < races.length; i += BATCH_SIZE) {
+        // Check if we're approaching the timeout
+        if (Date.now() - functionStart > FUNCTION_TIMEOUT - 30000) { // Leave 30s buffer
+          console.log('Approaching function timeout, updating progress and exiting');
+          const progress = Math.round((i / races.length) * 100);
+          await supabase
+            .from('import_jobs')
+            .update({ 
+              status: 'incomplete',
+              progress,
+              summary: stats,
+              error: 'Function timeout reached - partial import completed'
+            })
+            .eq('id', job.id);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              jobId: job.id,
+              status: 'incomplete',
+              progress,
+              summary: stats
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         const batch = races.slice(i, i + BATCH_SIZE);
         await processRaceBatch(batch, supabase, stats, job.id);
         

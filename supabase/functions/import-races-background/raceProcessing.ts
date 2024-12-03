@@ -44,6 +44,8 @@ export const processRaceBatch = async (
       } else {
         // Prepare and insert new race
         const raceData = prepareRaceData(race);
+        console.log('Prepared race data:', raceData);
+        
         const { data: newRace, error: raceError } = await supabase
           .from('races')
           .insert(raceData)
