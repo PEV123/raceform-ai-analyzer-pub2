@@ -10,6 +10,8 @@ import { RaceResults } from "./RaceResults";
 import { Tables } from "@/integrations/supabase/types";
 import { RaceDistanceComparison } from "./RaceDistanceComparison";
 import { DetailedHorseForm } from "./DetailedHorseForm";
+import { Card } from "@/components/ui/card";
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface RaceCardProps {
   race: any;
@@ -115,6 +117,9 @@ export const RaceCard = ({ race }: RaceCardProps) => {
   const getHorseDistanceAnalysis = (horseId: string) => {
     return distanceAnalyses?.find(analysis => analysis.horse_id === horseId);
   };
+
+  const timezone = settings?.timezone || 'Europe/London';
+  const raceTime = formatInTimeZone(new Date(race.off_time), timezone, 'HH:mm');
 
   if (historicalError || analysesError) {
     return (
