@@ -17,41 +17,71 @@ export const useImportRacesMutation = () => {
     mutationFn: async ({ date, onProgress, onUpdateSummary }: ImportRacesParams) => {
       console.log('Importing races for date:', date);
       
-      // Format the date range in UK timezone for consistency
+      // Format the date in UK timezone for the API request
       const ukDate = formatInTimeZone(date, 'Europe/London', 'yyyy-MM-dd');
-      const startTime = `${ukDate}T00:00:00Z`;
-      const endTime = `${ukDate}T23:59:59Z`;
+      console.log('Formatted UK date for API request:', ukDate);
 
-      console.log('Fetching races between:', startTime, 'and', endTime);
-      
-      const { data: races, error: fetchError } = await supabase
-        .from("races")
-        .select("*")
-        .gte("off_time", startTime)
-        .lt("off_time", endTime);
+      // Call the Edge Function to fetch races
+      const { data: response, error: fetchError } = await supabase.functions.invoke('fetch-races-by-date', {
+        body: { date: ukDate }
+      });
 
       if (fetchError) {
-        console.error("Error fetching races:", fetchError);
+        console.error("Error fetching races from Edge Function:", fetchError);
         throw fetchError;
       }
 
-      console.log(`Processing ${races?.length || 0} races`);
+      console.log('Edge Function response:', response);
 
-      for (const race of races || []) {
-        const processedRace = await processRace(race);
+      const races = response?.races || [];
+      console.log(`Processing ${races.length} races from Edge Function`);
+
+      let nonRunnerUpdates = [];
+      let oddsUpdates = [];
+
+      for (let i = 0; i < races.length; i++) {
+        const race = races[i];
+        const progress = Math.round((i / races.length) * 100);
         
-        // Fetch runners for this race
-        const { data: runners, error: runnersError } = await supabase
-          .from("runners")
-          .select("*")
-          .eq("race_id", race.id);
+        onProgress?.(progress, `Processing race at ${race.course}`);
+        console.log(`Processing race ${i + 1}/${races.length} at ${race.course}`);
 
-        if (runnersError) {
-          console.error("Error fetching runners:", runnersError);
-          throw runnersError;
+        try {
+          const processedRace = await processRace(race);
+          
+          if (race.runners?.length > 0) {
+            const { nonRunnerUpdates: raceNonRunners, oddsUpdates: raceOddsUpdates } = 
+              await processRunners(processedRace.id, race.runners);
+            
+            if (raceNonRunners > 0) {
+              nonRunnerUpdates.push({
+                raceId: race.race_id,
+                course: race.course,
+                count: raceNonRunners
+              });
+            }
+            
+            if (raceOddsUpdates > 0) {
+              oddsUpdates.push({
+                raceId: race.race_id,
+                course: race.course,
+                count: raceOddsUpdates
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing race at ${race.course}:`, error);
+          throw error;
         }
+      }
 
-        await processRunners(processedRace.id, runners || []);
+      onProgress?.(100, "Import complete");
+      
+      if (onUpdateSummary) {
+        onUpdateSummary({
+          nonRunnerUpdates,
+          oddsUpdates
+        });
       }
     },
     onSuccess: () => {
