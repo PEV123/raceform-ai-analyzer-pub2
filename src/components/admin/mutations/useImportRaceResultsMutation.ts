@@ -1,14 +1,11 @@
-import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 
-type Race = Tables<"races">;
-
-interface RaceResults {
-  results: any[];
-  [key: string]: any;
-}
+type Race = Tables<"races"> & {
+  runners: Tables<"runners">[];
+};
 
 export const useImportRaceResultsMutation = () => {
   const { toast } = useToast();
@@ -16,54 +13,43 @@ export const useImportRaceResultsMutation = () => {
 
   return useMutation({
     mutationFn: async (race: Race) => {
-      console.log("Starting race results import for:", race.course, race.off_time);
-      
-      try {
-        // Fetch results from Racing API
-        const { data: resultsData, error: apiError } = await supabase.functions.invoke<RaceResults>('fetch-race-results', {
-          body: { raceId: race.race_id }
+      console.log('Importing race results for:', race);
+
+      const { error: importError } = await supabase
+        .functions.invoke('fetch-race-results', {
+          body: { raceId: race.id }
         });
 
-        if (apiError) {
-          console.error('Error fetching race results:', apiError);
-          throw apiError;
-        }
-
-        if (!resultsData?.results) {
-          console.warn('No results found for race:', race.id);
-          return null;
-        }
-
-        console.log('Successfully fetched results:', resultsData);
-
-        // Move race to historical tables with results
-        const { error: moveError } = await supabase.rpc('move_race_to_historical', {
-          p_race_id: race.id
-        });
-
-        if (moveError) {
-          console.error('Error moving race to historical:', moveError);
-          throw moveError;
-        }
-
-        return resultsData;
-      } catch (error) {
-        console.error('Error in race results import:', error);
-        throw error;
+      if (importError) {
+        console.error('Error importing race results:', importError);
+        throw importError;
       }
+
+      // Move race to historical races
+      const { error: moveError } = await supabase
+        .rpc('move_race_to_historical', {
+          p_race_id: race.id // Changed from race_id to p_race_id to match the stored procedure
+        });
+
+      if (moveError) {
+        console.error('Error moving race to historical:', moveError);
+        throw moveError;
+      }
+
+      return race;
     },
-    onSuccess: () => {
+    onSuccess: (race) => {
       toast({
         title: "Success",
-        description: "Race results have been imported successfully",
+        description: `Results imported for race at ${race.course}`,
       });
       queryClient.invalidateQueries({ queryKey: ["races"] });
     },
-    onError: (error: Error) => {
-      console.error("Error importing race results:", error);
+    onError: (error) => {
+      console.error('Race results import error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to import race results. Please try again.",
+        description: "Failed to import race results",
         variant: "destructive",
       });
     },

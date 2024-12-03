@@ -9,7 +9,7 @@ export interface RaceDocumentsCellProps {
 }
 
 export const RaceDocumentsCell = ({
-  documents,
+  documents = [], // Provide default empty array
   onUploadDocs,
   onDeleteDocument,
 }: RaceDocumentsCellProps) => {
@@ -21,7 +21,7 @@ export const RaceDocumentsCell = ({
         </Button>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        {documents.map((doc) => (
+        {documents?.map((doc) => (
           <RaceDocumentThumbnail
             key={doc.id}
             doc={doc}
